@@ -32,6 +32,8 @@ No código só se usa `var(--token)`; nunca hex solto. Se faltar um token, pergu
 | `--font-sans` | Inter | Interface e texto | |
 | `--text-xs` … `--text-3xl` | 12, 13, 15, 16, 18, 24, 32, 48 px | Rótulo, Pequeno, Corpo, Título de card, Título 2, Título 1, Display, número-herói | |
 
+Número-herói: 48px (`--text-3xl`) no mobile e 64px no desktop (guia `varal-ui`; sem token próprio no Doop), centavos na metade do tamanho com opacidade .55.
+
 ## Da especificação
 
 ## 10. Identidade visual
