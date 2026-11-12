@@ -1,0 +1,44 @@
+openapi: 3.0.3
+info:
+  title: Varal API
+  version: 0.1.0
+  description: Contas (boletos e Pix) no espaço pessoal e em grupos familiares.
+paths:
+  /api/health/:
+    get:
+      operationId: health
+      tags:
+      - health
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              examples:
+                Ok:
+                  value:
+                    status: ok
+                  summary: ok
+          description: ''
+components:
+  schemas:
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+      - status
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
