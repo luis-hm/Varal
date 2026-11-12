@@ -1,0 +1,58 @@
+name: varal
+
+x-api: &api
+  build: ../api
+  env_file: .env
+  volumes: ["../api:/app"]
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_started }
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    env_file: .env
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+
+  minio:
+    # Local-only S3 (ADR 0002): pgsty/silo, the continuation of pgsty/minio, same API and MINIO_*
+    # vars. Pinned release, never `latest`. Opt-in until it has been run once and verified:
+    # `docker compose -f infra/docker-compose.yml --profile storage up -d minio`. Needed from stage 06.
+    profiles: ["storage"]
+    image: pgsty/silo:RELEASE.2026-11-12T00-00-00Z
+    command: server /data --console-address :9001
+    env_file: .env
+    ports: ["9000:9000", "9001:9001"]
+    volumes: ["miniodata:/data"]
+
+  api:
+    <<: *api
+    command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+    ports: ["8000:8000"]
+
+  worker:
+    <<: *api
+    command: celery -A config worker -l info
+
+  beat:
+    <<: *api
+    command: celery -A config beat -l info --schedule /tmp/celerybeat-schedule
+
+  web:
+    build: ../web
+    environment:
+      API_INTERNAL_URL: http://api:8000
+    volumes: ["../web:/app", "/app/node_modules", "/app/.next"]
+    ports: ["3000:3000"]
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  miniodata:

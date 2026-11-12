@@ -1,0 +1,45 @@
+# Movimento
+
+> **Contém:** as animações da interface (nome, onde, especificação) e a regra de movimento reduzido.
+> **Origem:** guia `varal-ui` do canvas Doop `k0kB5dc-Vo` e `docs/especificacao-varal.md`, seção 10.
+
+Toda animação é CSS e é desligada com `@media (prefers-reduced-motion: reduce)`.
+
+## Tabela do guia varal-ui (usar esta no código; conferida em 12/11/2026)
+
+No mobile as ações sobem em folhas (`sheet-up`); a partir de 1024px viram modais (`modal-pop`), e o detalhe e a gaveta de avisos entram com `slide-in`. Regra responsiva em [README.md](README.md#regra-responsiva).
+
+| Nome | Onde | Spec |
+| --- | --- | --- |
+| swing | Contas no varal | rotate ±5–7deg, 3–3.6s ease-in-out infinite, transform-origin topo, delays defasados |
+| rise | Entrada de cards/listas | translateY 14px→0 + fade, .5s cubic-bezier(.2,.8,.2,1), stagger 60–80ms |
+| grow | Barra de progresso do mês | width 0→valor, 1.4s, delay .4s |
+| count-up | Total do mês | 0→valor em 1.2s, ease-out cúbico (requestAnimationFrame) |
+| sheet-up | Folhas inferiores (mobile) | translateY 100%→0, .5s cubic-bezier(.2,.9,.25,1) |
+| modal-pop | Modais (desktop) | scale .96→1 + fade, .3s |
+| slide-in | Painel de detalhe e gaveta (desktop) | translateX 24px→0 + fade, .45s |
+| scan | Leitura do PDF | linha verde percorre a prévia; campos lidos ganham moldura âmbar com rótulo |
+| pop + draw | Check de sucesso | scale .3→1.12→1 (.6s) e stroke-dashoffset do check (.5s) |
+| badge-pulse | Ícone do selo Vencida | scale 1→1.18, 1.8s infinite |
+| press | Botões | :active scale(.97) |
+
+## Da especificação
+
+### Referência visual e movimento
+
+A interface segue o [UGLYCASH](https://onepagelove.com/uglycash): números enormes, cards brancos bem arredondados sobre fundo cinza, botões em pílula e um único bloco de cor forte por tela (o azul-marinho do topo do Início). O total do mês e o valor no detalhe usam um **número-herói** de 48 px em Bricolage 800, com os centavos em 24 px e 55% de opacidade.
+
+O varal com as contas é o motivo da marca dentro do app: aparece no resumo do Início, no Detalhe e na confirmação de pagamento, quando a conta "sai do varal".
+
+| Animação | Onde | Especificação |
+| --- | --- | --- |
+| Balanço (`swing`) | Contas penduradas | Rotação de ±5° a ±7°, 3 a 3,6 s, infinita, origem no topo, atrasos diferentes por conta |
+| Entrada (`rise`) | Cards e listas | Sobe 14 px e aparece em 0,5 s, com 80 ms entre itens |
+| Barra do mês (`grow`) | Progresso de pagas | Largura de 0 ao valor em 1,4 s |
+| Contagem | Total do mês | De 0 ao valor em 1,2 s, desacelerando |
+| Folha (`sheet-up`) | Nova conta, pagamento, convite | Sobe de baixo em 0,5 s |
+| Sucesso (`pop` + traço) | Conta paga | Círculo cresce com leve rebote e o check é desenhado |
+| Pulso | Ícone do selo Vencida | Escala de 1 para 1,18 a cada 1,8 s |
+| Toque | Botões e filtros | Encolhe para 97% ao pressionar |
+
+Toda animação é desligada quando o sistema pede movimento reduzido (`prefers-reduced-motion`).
