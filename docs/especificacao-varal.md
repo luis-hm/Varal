@@ -492,8 +492,9 @@ As 13 telas do MVP estão no canvas [Varal no Doop](https://doop.design/c/k0kB5d
 **Organização do canvas**
 
 - [01 · Marca e ícones](https://doop.design/c/k0kB5dc-Vo?page=k0kB5dc-Vo:page1): logo, paleta, tipografia e ícones.
-- [02 · Telas do MVP](https://doop.design/c/k0kB5dc-Vo?page=-eLoZ0SLb1): as 13 telas, em três linhas por fluxo.
-- [03 · Componentes](https://doop.design/c/k0kB5dc-Vo?page=page-mwdwblpn): os 14 componentes, cada um com o caminho no código (`web/src/components/...`).
+- [02 · Telas mobile](https://doop.design/c/k0kB5dc-Vo?page=-eLoZ0SLb1): as 13 telas em 390×844, em três linhas por fluxo.
+- [03 · Telas desktop](https://doop.design/c/k0kB5dc-Vo?page=YGk9_iqJ-Y): 5 telas em 1440×900, 6 janelas (modais) e a gaveta de avisos.
+- [04 · Componentes](https://doop.design/c/k0kB5dc-Vo?page=page-mwdwblpn): os 16 componentes, cada um com o caminho no código (`web/src/components/...`).
 - Guia **Varal · regras de interface** fixado no canvas: tokens, status e especificação das animações.
 
 | Nº | Tela | Casos de uso | Destaque |
@@ -511,6 +512,25 @@ As 13 telas do MVP estão no canvas [Varal no Doop](https://doop.design/c/k0kB5d
 | 11 | Convidar membro | CU03, RN24 | Escolha do papel e link de uso único |
 | 12 | Pedir para alguém pagar | CU10, RN20 | Do pessoal para o grupo, só esta conta |
 | 13 | Modo simples | CU11 | Ações grandes por conta: Copiar, Já paguei e Baixar boleto em PDF |
+
+**Telas desktop**
+
+A partir de 1024px, a barra inferior dá lugar a um menu lateral fixo (SideNav, 264px) com logo, seletor de espaço, botão Nova conta e usuário. As folhas inferiores viram janelas centralizadas, e Contas e Detalhe ficam lado a lado.
+
+| Nº | Tela | Equivale a | Destaque |
+| --- | --- | --- | --- |
+| D01 | Entrar | 01 | Bloco azul com as contas no varal à esquerda, login à direita |
+| D02 | Início | 02, 04 | Total do mês com o varal grande, contas que pedem atenção, progresso por casa e avisos recentes |
+| D03 | Contas + Detalhe | 03, 07 | Lista com filtros à esquerda e a conta aberta à direita, com Copiar, Baixar PDF e histórico |
+| D04 | Grupo | 10 | Casas, membros e papéis, recorrentes em colunas |
+| D05 | Modo simples | 13 | Contas do pagador em cards grandes, com Copiar, Já paguei e Baixar PDF |
+| D06 | Avisos | 04 | Gaveta lateral de 440px aberta pelo sino |
+| M01 | Nova conta | 05 | Janela com a área de enviar PDF e as outras formas |
+| M02 | Conferir conta | 06 | Prévia do PDF ao lado dos campos, com os dados lidos destacados |
+| M03 | Marcar como paga | 08 | Data e comprovante opcional |
+| M04 | Conta paga | 09 | Check desenhado e a conta saindo do varal |
+| M05 | Convidar membro | 11 | Papel e link de uso único |
+| M06 | Pedir para alguém pagar | 12 | Escolha do grupo e de quem paga |
 
 As telas ainda não estão ligadas como protótipo clicável; os botões indicam a navegação prevista.
 
