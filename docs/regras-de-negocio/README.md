@@ -80,3 +80,11 @@ stateDiagram-v2
 | RN21 | Quem sai do grupo deixa as contas que criou; as contas em que era pagador ficam sem pagador e o admin é avisado. |
 | RN22 | Cancelar não apaga: a conta fica Cancelada, e toda alteração vai para o histórico com autor e data. |
 | RN24 | O convite expira em 7 dias e pode ser usado uma vez. |
+
+## Regras acrescentadas por ADR
+
+Não estão na especificação; valem tanto quanto ela.
+
+| ID | Regra | ADR | Etapa |
+| --- | --- | --- | --- |
+| RN30 | Exportar (JSON com perfil, contas do espaço pessoal, participações em grupos, avisos e links assinados dos PDFs) e excluir a própria conta (apaga o espaço pessoal e os arquivos; nos grupos, as contas criadas ficam com o autor "Ex-membro"; único admin precisa passar a administração antes). Detalha o RNF04. | [0003](../arquitetura/adr/0003-rn30-exportar-e-excluir-dados.md) | 11 |
