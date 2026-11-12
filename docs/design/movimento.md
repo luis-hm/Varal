@@ -5,15 +5,20 @@
 
 Toda animação é CSS e é desligada com `@media (prefers-reduced-motion: reduce)`.
 
-## Tabela do guia varal-ui (usar esta no código)
+## Tabela do guia varal-ui (usar esta no código; conferida em 12/11/2026)
+
+No mobile as ações sobem em folhas (`sheet-up`); a partir de 1024px viram modais (`modal-pop`), e o detalhe e a gaveta de avisos entram com `slide-in`. Regra responsiva em [README.md](README.md#regra-responsiva).
 
 | Nome | Onde | Spec |
-|---|---|---|
+| --- | --- | --- |
 | swing | Contas no varal | rotate ±5–7deg, 3–3.6s ease-in-out infinite, transform-origin topo, delays defasados |
-| rise | Entrada de cards/listas | translateY 14px→0 + fade, .5s cubic-bezier(.2,.8,.2,1), stagger 80ms |
+| rise | Entrada de cards/listas | translateY 14px→0 + fade, .5s cubic-bezier(.2,.8,.2,1), stagger 60–80ms |
 | grow | Barra de progresso do mês | width 0→valor, 1.4s, delay .4s |
 | count-up | Total do mês | 0→valor em 1.2s, ease-out cúbico (requestAnimationFrame) |
-| sheet-up | Folhas inferiores | translateY 100%→0, .5s cubic-bezier(.2,.9,.25,1) |
+| sheet-up | Folhas inferiores (mobile) | translateY 100%→0, .5s cubic-bezier(.2,.9,.25,1) |
+| modal-pop | Modais (desktop) | scale .96→1 + fade, .3s |
+| slide-in | Painel de detalhe e gaveta (desktop) | translateX 24px→0 + fade, .45s |
+| scan | Leitura do PDF | linha verde percorre a prévia; campos lidos ganham moldura âmbar com rótulo |
 | pop + draw | Check de sucesso | scale .3→1.12→1 (.6s) e stroke-dashoffset do check (.5s) |
 | badge-pulse | Ícone do selo Vencida | scale 1→1.18, 1.8s infinite |
 | press | Botões | :active scale(.97) |
