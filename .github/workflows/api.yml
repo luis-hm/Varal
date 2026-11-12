@@ -1,0 +1,54 @@
+name: api
+
+on:
+  push:
+    paths: ["api/**", "web/src/types/**", ".github/workflows/api.yml"]
+  pull_request:
+    paths: ["api/**", "web/src/types/**", ".github/workflows/api.yml"]
+
+env:
+  DJANGO_DEBUG: "1"
+  POSTGRES_HOST: localhost
+  POSTGRES_PASSWORD: varal
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: varal
+          POSTGRES_USER: varal
+          POSTGRES_PASSWORD: varal
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 2s --health-retries 30
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest -q
+
+  types:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: uv sync --frozen
+        working-directory: api
+      - run: uv run python manage.py spectacular --file openapi.yaml --validate
+        working-directory: api
+      - run: npm ci && npm run types
+        working-directory: web
+      - name: Fail if generated schema or types differ from the commit
+        run: git diff --exit-code api/openapi.yaml web/src/types/api.ts
