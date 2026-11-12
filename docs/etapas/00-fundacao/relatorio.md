@@ -52,6 +52,27 @@ Testes: `api/tests/test_fundacao.py` (`test_health_ok`, `test_schema_documents_h
 
 ## Pendências
 
-- Decisões D1–D6 em [PROGRESSO](../../PROGRESSO.md#decisões-pendentes): altura do botão (52 × 48 px); `StatusBadge` sem `cancelada`; desktop/SideNav/D02 fora da especificação; imagem do MinIO; RNF04 (LGPD) sem etapa; merge da `etapa/00-fundacao` na `main` antes do `/etapa 01`.
+- Decisões D1–D6 em [PROGRESSO](../../PROGRESSO.md#decisões): altura do botão (52 × 48 px); `StatusBadge` sem `cancelada`; desktop/SideNav/D02 fora da especificação; imagem do MinIO; RNF04 (LGPD) sem etapa; merge da `etapa/00-fundacao` na `main` antes do `/etapa 01`.
 - Rodar o CI no GitHub quando houver remoto.
 - Playwright entra na Etapa 01.
+
+## Ajustes aplicados
+
+Do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5-b70c-f0790e03de41`), em 12/11/2026, commits `fix(ajustes): …`:
+
+| Item | Onde ficou |
+| --- | --- |
+| Documento de ajustes como fonte | `CLAUDE.md`, `docs/README.md` |
+| Comando /etapa (ler ajustes, revisão de ajustes, merge da etapa anterior) | `.claude/commands/etapa.md` |
+| Especificação reexportada (seção 12 com telas desktop) | `docs/especificacao-varal.md`, `docs/design/README.md` |
+| Páginas do Doop e frames desktop | `docs/design/README.md` |
+| Regra responsiva | `docs/design/README.md`, `CLAUDE.md` |
+| NavItem, SideNav e shell responsivo na Etapa 01 | `docs/design/README.md`, `docs/etapas/README.md`, `PROGRESSO.md` |
+| Animações modal-pop, slide-in, scan | `docs/design/movimento.md` (conferido com `varal-ui`) |
+| Agentes de frontend e QA em 390×844 e 1440×900 | `.claude/agents/varal-frontend.md`, `varal-qa.md` |
+| Matriz com frame mobile ↔ desktop | `docs/matriz-rastreabilidade.md` |
+| D1–D6 | `PROGRESSO.md` (resolvidas), ADR 0002 (D4), ADR 0003 / RN30 (D5), merge local (D6) |
+
+## Ajustes pendentes
+
+- Nenhum item do documento ficou pendente. Pendência operacional: P1 em `PROGRESSO.md` (rodar uma vez o serviço `minio` com `pgsty/silo`; a execução foi bloqueada pela checagem de segurança do agente).
