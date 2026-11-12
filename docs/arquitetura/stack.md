@@ -45,7 +45,7 @@ varal/
 | TanStack Query / openapi-typescript / Vitest | 5 / 7 / 4 | `web/package.json` |
 | Lint | ruff (api), ESLint + `tsc` (web) | `make lint` |
 
-Entram nas suas etapas: django-allauth headless (02), pdfplumber e cliente S3 (06), Web Push (09), Playwright (01, nos testes de tela).
+Entram nas suas etapas: django-allauth headless (02), pdfplumber e `django-storages` com endpoint, bucket e chaves do `.env` (06), Web Push (09), Playwright (01, nos testes de tela, em 390×844 e 1440×900).
 
 ## Serviços e portas (dev)
 
@@ -55,7 +55,7 @@ Entram nas suas etapas: django-allauth headless (02), pdfplumber e cliente S3 (0
 | api | 8000 | `/api/health/`, `/api/schema/`, `/api/docs/` (Swagger), `/admin/`; roda `migrate` ao subir |
 | worker / beat | — | `celery -A config worker` / `beat` |
 | postgres / redis | internas | |
-| minio | 9000 / 9001 | profile `storage` (opcional) até a imagem ser decidida |
+| minio | 9000 / 9001 | `pgsty/silo` com tag fixa, só local ([ADR 0002](adr/0002-armazenamento-s3-local.md)); profile `storage` até ser executado e verificado |
 
 ## Variáveis de ambiente
 

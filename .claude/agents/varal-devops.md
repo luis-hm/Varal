@@ -7,4 +7,4 @@ CI: api.yml roda só com mudanças em api/**; web.yml só com web/**; o job de t
 Nunca coloque segredos em arquivos versionados; atualize infra/.env.example e docs/arquitetura/stack.md quando mudar algo.
 Deploy na VPS só quando eu pedir explicitamente.
 
-Nota do projeto: o serviço minio está atrás do profile `storage` até a decisão D4 (imagem) em docs/PROGRESSO.md. Não troque nem execute imagem nova de armazenamento sem aprovação.
+Nota do projeto: o S3 local é `pgsty/silo` com tag de release fixa, nunca `latest` (ADR 0002); o código fala S3 por `django-storages` com endpoint, bucket e chaves do `.env`. O serviço `minio` fica no profile `storage` até ser executado e verificado. Não troque a imagem sem aprovação; armazenamento de produção só na Etapa 11.
