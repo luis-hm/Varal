@@ -6,17 +6,23 @@ Monorepo: `api/` (Django + DRF + Celery), `web/` (Next.js), `infra/` (Docker Com
 
 ## Antes de qualquer tarefa
 
-1. Leia `docs/PROGRESSO.md` (etapa atual, decisões pendentes, log).
+1. Leia `docs/PROGRESSO.md` (etapa atual, decisões, log).
 2. Leia a spec da etapa atual: `docs/etapas/NN-slug/spec.md`.
 3. Não trabalhe fora da etapa atual sem o dono do projeto pedir.
-4. Se as fontes da verdade se contradizem (especificação, canvas do Doop, guia `varal-ui`), **pare e pergunte**.
+4. Se as fontes da verdade se contradizem (ajustes, especificação, canvas do Doop, guia `varal-ui`), **pare e pergunte**.
+
+## Fontes da verdade (da mais forte para a mais fraca)
+
+1. **"Varal — Ajustes"** (Claude Docs, doc `ce521944-15d6-44a5-b70c-f0790e03de41`): lido **sempre ao vivo** pelo conector claude.ai Claude Docs, no início e no fim de cada etapa. Vale mais que a especificação; um item escrito lá já conta como aprovação do dono do projeto. O Claude Code só **marca** itens como feitos (" — feito na etapa NN"), nunca apaga nem reescreve. Item ambíguo ou que exige mudar o Doop: perguntar no chat.
+2. `docs/especificacao-varal.md`: cópia local da especificação (doc `c3529f9b-eb78-41e6-aa80-2a31957e189e`). Atualizar só reexportando a aba principal, nunca editando.
+3. Canvas do Doop `k0kB5dc-Vo` e o guia `varal-ui`: toda a interface.
 
 ## Mapa da documentação
 
 | Pasta / arquivo | Responde |
 | --- | --- |
 | `docs/README.md` | Índice: qual arquivo responde a qual pergunta |
-| `docs/PROGRESSO.md` | Estado das etapas, decisões pendentes, log |
+| `docs/PROGRESSO.md` | Estado das etapas, decisões (pendentes e resolvidas), log |
 | `docs/etapas/` | Tabela das etapas; `NN-slug/{spec,plano,tarefas,relatorio}.md` |
 | `docs/matriz-rastreabilidade.md` | RF → CU → RN → tela → etapa → testes |
 | `docs/produto/` | Visão, escopo do MVP, roadmap, atores e personas |
@@ -41,15 +47,22 @@ Monorepo: `api/` (Django + DRF + Celery), `web/` (Next.js), `infra/` (Docker Com
 | `varal-qa` | Testes e critérios de aceite, ao fim de cada etapa e quando algo quebra |
 | `varal-seguranca` | Revisão (somente leitura) antes de fechar etapa que toca dados, permissões, arquivos ou auth |
 
-Fluxo do `/etapa`: docs (spec/plano/tarefas) → resumo e **parar até o ok** → boletos → backend → `make types` → frontend →
-devops → qa → segurança → docs → commits locais → relatório e **parar**. `/status` mostra o estado sem alterar nada.
+Fluxo do `/etapa`: ler ajustes → merge local (`--no-ff`) da etapa anterior concluída → branch nova → docs (spec/plano/tarefas)
+→ resumo e **parar até o ok** → boletos → backend → `make types` → frontend → devops → qa → segurança → revisão de ajustes
+→ docs → commits locais → relatório e **parar**. `/status` mostra o estado sem alterar nada.
 
 ## Regra do Doop
 
 - Nenhuma tela ou componente é construído sem antes ler o canvas **`k0kB5dc-Vo`** (conector claude.ai Doop, `agent_name "Claude Code"`, `get_guide` uma vez por sessão).
 - O canvas é **somente leitura**: não criar, editar nem apagar frames, componentes ou tokens sem pedido explícito.
 - Ache frames pelo **nome** (ids podem mudar). Tabela em `docs/design/README.md`.
-- Toda tela cita o frame no topo: `// Doop: k0kB5dc-Vo / JJvrRugL0_ (02 · Início)`.
+- Toda tela cita os frames no topo: `// Doop: k0kB5dc-Vo / JJvrRugL0_ (02 · Início) + SMDsrD8FGT (D02 · Início)`.
+
+## Regra responsiva
+
+É **um só app**: mesmas rotas, componentes e dados; só o layout muda. Abaixo de 1024px: TabBar e folhas que sobem de baixo.
+A partir de 1024px: SideNav fixo de 264px, folhas viram modais centralizados (M01–M06), Contas e Detalhe lado a lado (D03),
+Avisos em gaveta lateral (D06). **Cada tela é entregue nas duas versões** (390×844 e 1440×900). Equivalências em `docs/design/README.md`.
 
 ## Rodar o projeto
 
@@ -65,7 +78,7 @@ Requisitos: Docker (com Compose), Node 22+ (para `make test-web`/`lint`/`types`)
 | `make migrate` | `makemigrations` + `migrate` |
 | `make seed` | Dados de desenvolvimento (usuário `dev`) |
 
-MinIO fica atrás do profile `storage` até a decisão D4 (ver `docs/PROGRESSO.md`).
+O S3 local (`pgsty/silo`, ADR 0002) fica no profile `storage`: `docker compose -f infra/docker-compose.yml --profile storage up -d minio`.
 
 ## Convenções
 
@@ -75,5 +88,5 @@ MinIO fica atrás do profile `storage` até a decisão D4 (ver `docs/PROGRESSO.m
 - Permissão sempre no backend, por espaço, papel e visibilidade (RN01–RN07, RNF01).
 - Testes de regra com o ID no nome: `test_rn14_data_pagamento_nao_pode_ser_futura`.
 - Docs mudam no mesmo commit que o código. Mudar regra da especificação exige ADR + aprovação.
-- Commits em **Conventional Commits, pt-BR** (`feat(api): ...`). **Sem push nem merge** sem pedido explícito.
+- Commits em **Conventional Commits, pt-BR** (`feat(api): ...`; ajustes: `fix(ajustes): ...`). **Sem push** sem pedido explícito; o único merge automático é o do `/etapa` (etapa anterior concluída → `main`, `--no-ff`).
 - Segredos só em `infra/.env` (não versionado); `infra/.env.example` só com valores de desenvolvimento.

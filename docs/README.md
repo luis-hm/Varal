@@ -5,9 +5,12 @@
 
 Sessão nova começa por [PROGRESSO.md](PROGRESSO.md). Cada agente lê **só** os docs que a spec da sua etapa cita.
 
+**Fonte mais forte: o documento "Varal — Ajustes"** (Claude Docs, doc `ce521944-15d6-44a5-b70c-f0790e03de41`), lido sempre ao vivo pelo conector claude.ai Claude Docs. Vale mais que a especificação; um item escrito lá já conta como aprovação do dono do projeto. Só se marcam itens como feitos (" — feito na etapa NN"); nunca se apagam nem se reescrevem.
+
 | Pergunta | Arquivo |
 | --- | --- |
-| Em que etapa estamos? O que falta decidir? | [PROGRESSO.md](PROGRESSO.md) |
+| O que o dono do projeto pediu para mudar? | "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5-b70c-f0790e03de41`, ao vivo) |
+| Em que etapa estamos? O que foi decidido? | [PROGRESSO.md](PROGRESSO.md) |
 | Quais são as etapas e o que cada uma cobre? | [etapas/README.md](etapas/README.md) |
 | O que a etapa NN entrega e como se aceita? | `etapas/NN-slug/spec.md`, `plano.md`, `tarefas.md`, `relatorio.md` |
 | Qual RF vira qual CU, RN, tela, etapa e teste? | [matriz-rastreabilidade.md](matriz-rastreabilidade.md) |
@@ -21,11 +24,11 @@ Sessão nova começa por [PROGRESSO.md](PROGRESSO.md). Cada agente lê **só** o
 | Como as peças conversam? | [arquitetura/visao-geral.md](arquitetura/visao-geral.md) |
 | Que versões, portas e variáveis de ambiente? | [arquitetura/stack.md](arquitetura/stack.md) |
 | Por que decidimos X? | [arquitetura/adr/](arquitetura/adr/) |
-| Onde está a tela/componente no Doop? | [design/README.md](design/README.md) |
+| Onde está a tela/componente no Doop? Como fica no desktop? | [design/README.md](design/README.md) (inclui a regra responsiva) |
 | Quais cores, fontes, raios? | [design/tokens.md](design/tokens.md) |
 | Como anima? | [design/movimento.md](design/movimento.md) |
 | Como gerar e versionar o OpenAPI e os tipos? | [api/README.md](api/README.md) |
-| O texto original completo | [especificacao-varal.md](especificacao-varal.md) (origem; **não editar**) |
+| O texto original completo | [especificacao-varal.md](especificacao-varal.md) (cópia da origem, doc `c3529f9b-eb78-41e6-aa80-2a31957e189e`; **não editar**, só reexportar) |
 
 ## Regras
 
