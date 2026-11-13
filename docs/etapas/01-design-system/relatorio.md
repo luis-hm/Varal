@@ -70,10 +70,12 @@ Medidas de espaço e tamanho que não são cor, sombra, fonte nem altura de linh
 | CA14 | e2e `ca14` (screenshots) + comparação com o Doop | OK, com diferenças listadas abaixo |
 | CA15 | e2e `ca15` + `ca15 (controle)` | OK |
 | CA16 | `dev/componentes/page.test.tsx`: `ca16`; `next build` + `next start` → 404 | OK |
-| CA17 | `make test`, `make lint` | **Parcial** (ver abaixo) |
+| CA17 | `make test`, `make lint` | OK (revalidação em 13/11/2026, abaixo) |
 | CA18 | e2e `ca18` | OK |
 
-Resultados: Vitest 29/29; ESLint e `tsc` limpos; Playwright 26/26 (duas rodadas). **CA17:** `make test` e `make lint` não rodaram, porque a integração WSL do Docker Desktop está desligada (`docker` não existe no WSL). A API não mudou; `ruff` local passou; `pytest` local deu 1 ok e 2 erros por falta de Postgres. Pendência P2.
+Resultados iniciais (12/11/2026): Vitest 29/29; ESLint e `tsc` limpos; Playwright 26/26 (duas rodadas). **CA17:** `make test` e `make lint` não rodaram, porque a integração WSL do Docker Desktop estava desligada (`docker` não existia no WSL). A API não mudou; `ruff` local passou; `pytest` local deu 1 ok e 2 erros por falta de Postgres. Foi registrada a pendência P2.
+
+**Revalidação em 13/11/2026:** Docker disponível. A primeira execução de `make test` falhou por credenciais do `.env` local incompatíveis com o volume PostgreSQL já inicializado. Após validar as credenciais de desenvolvimento documentadas, foram corrigidas apenas `POSTGRES_USER` e `POSTGRES_PASSWORD` no `.env` não versionado, sem alterar usuários ou dados do banco. `make test` passou (API 3/3; web 29/29) e `make lint` passou (ruff, ESLint e TypeScript). P2 resolvida e CA17 completo; merge desbloqueado. Sem mudança de código, o próprio `make test` serviu de verificação da correção de ambiente.
 
 ## Bugs corrigidos pelo QA
 
@@ -113,7 +115,7 @@ Bate em cor, tipografia, raio, ícones, selos, botões, TabBar e SideNav. Difere
 
 ## Pendências
 
-- **P2**: em 13/11/2026, Docker disponível e `make lint` passou. `make test` executou a API: 1 teste passou e 2 tiveram erro de autenticação no PostgreSQL (`password authentication failed`), antes de executar os testes web. `make test-web` passou separadamente (29/29). Resolver o acesso ao banco e repetir `make test` (CA17). Continua bloqueando o merge da Etapa 01 na `main`.
+- **P2 resolvida em 13/11/2026**, conforme revalidação acima.
 - Confirmar os desvios deliberados acima.
 - CI no GitHub (inclui o job `e2e`) quando houver remoto.
 
