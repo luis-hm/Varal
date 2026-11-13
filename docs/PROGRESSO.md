@@ -30,7 +30,6 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 | # | Assunto | Bloqueia |
 | --- | --- | --- |
 | P1 | Rodar uma vez o serviço `minio` (`pgsty/silo`) para verificar o comando e as variáveis: a checagem de segurança do agente bloqueou executar a imagem. O dono do projeto sobe manualmente (`docker compose -f infra/docker-compose.yml --profile storage up -d minio`) ou libera a permissão. | Etapa 06 |
-| P2 | Validação em 13/11/2026: Docker disponível e `make lint` verde; `make test` bloqueado por falha de autenticação do usuário PostgreSQL (`password authentication failed`). Resolver o acesso ao banco e repetir `make test` (CA17 da Etapa 01). | Merge da Etapa 01 na `main` |
 
 ### Resolvidas
 
@@ -42,10 +41,17 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 | D4 | Qual armazenamento S3? | `pgsty/silo` com tag fixa, só local; código via `django-storages` com config no `.env`; produção na Etapa 11. Etapa 06 desbloqueada. | [ADR 0002](arquitetura/adr/0002-armazenamento-s3-local.md) |
 | D5 | Onde entra o RNF04 (LGPD)? | Etapa 11, como regra nova **RN30** (exportar JSON; excluir conta com autor "Ex-membro" nos grupos). Tela Perfil não existe no Doop: parar e pedir. | [ADR 0003](arquitetura/adr/0003-rn30-exportar-e-excluir-dados.md) |
 | D6 | Merge da Etapa 00 na main? | Merge local feito agora (`--no-ff`). Daqui em diante, rodar `/etapa` aprova a etapa anterior e faz o merge local dela antes da branch nova. Push só com pedido. | `.claude/commands/etapa.md` |
+| P2 | Validação completa da Etapa 01 | Resolvida em 13/11/2026: Docker disponível; credenciais do `.env` local alinhadas às já existentes no volume, sem alterar usuários nem dados do banco. `make test`: API 3/3 e web 29/29; `make lint` verde. | Etapa 01, CA17 |
 
 ## Log
 
 Ordem cronológica inversa.
+
+### 13/11/2026 — Desbloqueio da Etapa 01
+
+- Causa da falha: `.env` local usava um usuário diferente do único usuário de aplicação existente no volume PostgreSQL (`varal`). Validado acesso TCP com as credenciais de desenvolvimento documentadas; corrigidas apenas `POSTGRES_USER` e `POSTGRES_PASSWORD` no `.env` não versionado. Sem alteração de usuários ou dados do banco.
+- `make test` passou (API 3/3; web 29/29); `make lint` já validado nesta sessão. CA17 completo, P2 resolvida; merge da Etapa 01 desbloqueado.
+- Dono forneceu o texto de "Varal — Ajustes" no chat como alternativa ao conector indisponível. Fonte lida do anexo `Texto colado.txt`; não houve leitura ao vivo nem alteração do documento remoto. Único item pendente: variáveis do Google na Etapa 02.
 
 ### 13/11/2026 — Pré-verificação da Etapa 02 (Autenticação)
 

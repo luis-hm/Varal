@@ -24,6 +24,6 @@ Não se aplica nesta etapa: **varal-boletos**, **varal-backend** e `make types` 
 | 14 | [x] Comparar a vitrine com o Doop em 390×844 e 1440×900; listar diferenças | varal-frontend | CA14 |
 | 15 | [x] `@playwright/test`, `playwright.config.ts`, script `e2e`, alvo `make e2e`, `.gitignore`, job `e2e` em `.github/workflows/web.yml` | varal-devops | — |
 | 16 | [x] E2E da vitrine e da navegação "Em breve" nas duas resoluções; screenshots em `web/e2e/__screens__/` | varal-qa | CA02, CA12–CA16, CA18 |
-| 17 | [x] `make test`, `make lint`, `make e2e`; conferir CA01–CA17 (parcial: `make test` e `make lint` não rodaram, ver P2) | varal-qa | CA17 |
+| 17 | [x] `make test`, `make lint`, `make e2e`; conferir CA01–CA17 (`make test` e `make lint` concluídos em 13/11/2026; P2 resolvida) | varal-qa | CA17 |
 | 18 | [x] Revisão do documento "Varal — Ajustes" (ao vivo): marcar itens feitos, sem apagar | orquestrador | — |
 | 19 | [x] `relatorio.md`; PROGRESSO (etapa concluída, log); matriz (RNF08, RNF09: testes); `design/README.md` (componentes feitos, vitrine) e `tokens.md` se divergiu | varal-docs | — |
