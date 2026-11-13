@@ -113,7 +113,7 @@ Bate em cor, tipografia, raio, ícones, selos, botões, TabBar e SideNav. Difere
 
 ## Pendências
 
-- **P2**: ativar a integração WSL do Docker Desktop e rodar `make test` e `make lint` (CA17). Bloqueia o merge da Etapa 01 na `main`.
+- **P2**: em 13/11/2026, Docker disponível e `make lint` passou. `make test` executou a API: 1 teste passou e 2 tiveram erro de autenticação no PostgreSQL (`password authentication failed`), antes de executar os testes web. `make test-web` passou separadamente (29/29). Resolver o acesso ao banco e repetir `make test` (CA17). Continua bloqueando o merge da Etapa 01 na `main`.
 - Confirmar os desvios deliberados acima.
 - CI no GitHub (inclui o job `e2e`) quando houver remoto.
 

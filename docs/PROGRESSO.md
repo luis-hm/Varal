@@ -30,7 +30,7 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 | # | Assunto | Bloqueia |
 | --- | --- | --- |
 | P1 | Rodar uma vez o serviço `minio` (`pgsty/silo`) para verificar o comando e as variáveis: a checagem de segurança do agente bloqueou executar a imagem. O dono do projeto sobe manualmente (`docker compose -f infra/docker-compose.yml --profile storage up -d minio`) ou libera a permissão. | Etapa 06 |
-| P2 | Ativar a integração WSL do Docker Desktop e rodar `make test` e `make lint` (CA17 da Etapa 01). | Merge da Etapa 01 na `main` |
+| P2 | Validação em 13/11/2026: Docker disponível e `make lint` verde; `make test` bloqueado por falha de autenticação do usuário PostgreSQL (`password authentication failed`). Resolver o acesso ao banco e repetir `make test` (CA17 da Etapa 01). | Merge da Etapa 01 na `main` |
 
 ### Resolvidas
 
@@ -46,6 +46,13 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 ## Log
 
 Ordem cronológica inversa.
+
+### 13/11/2026 — Pré-verificação da Etapa 02 (Autenticação)
+
+- Próxima etapa identificada: 02 (RF01–RF03, CU01, RN03; telas 01 · Entrar e D01). Permanece pendente.
+- Docker disponível nesta sessão; `make lint` passou (ruff, ESLint e TypeScript). `make test` executou a API: 1 teste passou e 2 tiveram erro de autenticação no PostgreSQL; não chegou aos testes web. `make test-web` executado separadamente: 29/29 passaram. P2 continua bloqueando o merge da Etapa 01.
+- Leitura ao vivo de "Varal — Ajustes" não realizada: conector Claude Docs indisponível nesta sessão; busca de plugins sem acesso correspondente e nenhuma sessão de documento conectada. Necessário disponibilizar a fonte ou autorizar uma alternativa antes de preparar a etapa.
+- Sem merge, branch nova ou código da Etapa 02.
 
 ### 12/11/2026 — Etapa 01 (Design system no código)
 
