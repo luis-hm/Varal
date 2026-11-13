@@ -1,0 +1,67 @@
+/* Doop: k0kB5dc-Vo / componente Chip */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 var(--spacing-4);
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-line);
+  background: var(--color-surface);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+  white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.n {
+  font-weight: 500;
+  color: var(--color-ink-muted);
+}
+
+.chip[data-state="on"] .pill {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-surface);
+}
+
+.chip[data-state="on"] .n {
+  color: var(--color-surface);
+  opacity: 0.7;
+}
+
+/* press (especificação: botões e filtros) */
+.chip:active .pill {
+  transform: scale(0.97);
+}
+
+.chip:focus-visible {
+  outline: none;
+}
+
+.chip:focus-visible .pill {
+  outline: 3px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill {
+    transition: none;
+  }
+
+  .chip:active .pill {
+    transform: none;
+  }
+}

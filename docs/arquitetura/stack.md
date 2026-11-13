@@ -43,9 +43,10 @@ varal/
 | PostgreSQL / Redis | 17 / 7 | `infra/docker-compose.yml` |
 | Node / Next.js / React | 22 / 16.4 / 19.3 | `web/` |
 | TanStack Query / openapi-typescript / Vitest | 5 / 7 / 4 | `web/package.json` |
+| Playwright (`@playwright/test`, Chromium) | 1.65.0 | `web/package.json`, `web/playwright.config.ts`, `make e2e` |
 | Lint | ruff (api), ESLint + `tsc` (web) | `make lint` |
 
-Entram nas suas etapas: django-allauth headless (02), pdfplumber e `django-storages` com endpoint, bucket e chaves do `.env` (06), Web Push (09), Playwright (01, nos testes de tela, em 390×844 e 1440×900).
+Entram nas suas etapas: django-allauth headless (02), pdfplumber e `django-storages` com endpoint, bucket e chaves do `.env` (06), Web Push (09).
 
 ## Serviços e portas (dev)
 
