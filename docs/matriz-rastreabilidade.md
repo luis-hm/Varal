@@ -62,6 +62,6 @@ Telas: frame mobile ↔ frame desktop no canvas `k0kB5dc-Vo` (ids e equivalênci
 
 | Item | Testes |
 | --- | --- |
-| Healthcheck `/api/health/` | `api/tests/test_fundacao.py::test_health_ok`, `web/src/app/page.test.tsx` |
+| Healthcheck `/api/health/` | `api/tests/test_fundacao.py::test_health_ok`, `web/src/app/(app)/page.test.tsx` |
 | OpenAPI servido | `api/tests/test_fundacao.py::test_schema_documents_health` |
 | Celery configurado | `api/tests/test_fundacao.py::test_celery_ping_task` |
