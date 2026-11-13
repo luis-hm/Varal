@@ -1,0 +1,41 @@
+/* Doop: k0kB5dc-Vo / componente TopBar */
+.top {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  height: 72px;
+  padding: 0 var(--spacing-5);
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+}
+
+.side {
+  width: 44px;
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* The back link and whatever goes in the action slot share the round 44px button look. */
+.bk,
+.side > * {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.tt {
+  flex: 1;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}

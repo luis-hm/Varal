@@ -1,0 +1,41 @@
+/* Doop: k0kB5dc-Vo / frame Logo e componente SideNav (.logo) */
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-ink);
+}
+
+.symbol {
+  flex: none;
+}
+
+.word {
+  font-family: var(--font-display);
+  font-size: var(--text-logo);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: var(--leading-none);
+}
+
+.line {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-linecap: round;
+}
+
+.pin {
+  fill: var(--color-ink);
+}
+
+.red {
+  fill: var(--color-red);
+}
+
+.amber {
+  fill: var(--color-amber);
+}
+
+.green {
+  fill: var(--color-green);
+}

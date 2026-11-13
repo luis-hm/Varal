@@ -1,0 +1,70 @@
+/* Doop: k0kB5dc-Vo / componente StatusBadge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  height: 24px;
+  padding: 0 var(--spacing-2) 0 6px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: var(--color-neutral-soft);
+  color: var(--color-ink-muted);
+}
+
+.badge .ic {
+  color: inherit;
+}
+
+.badge[data-status="aguardando"] {
+  background: transparent;
+  border: 1.5px dashed var(--color-ink-subtle);
+}
+
+.badge[data-status="vence"] {
+  background: var(--color-amber-soft);
+  color: var(--color-amber-text);
+}
+
+.badge[data-status="vencida"] {
+  background: var(--color-red-soft);
+  color: var(--color-red-text);
+}
+
+.badge[data-status="vencida"] .ic {
+  animation: badge-pulse 1.8s ease-in-out infinite;
+}
+
+.badge[data-status="paga"],
+.badge[data-status="confirmada"] {
+  background: var(--color-green-soft);
+  color: var(--color-green-text);
+}
+
+.badge[data-status="cancelada"] {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-line);
+  color: var(--color-ink-muted);
+}
+
+@keyframes badge-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Same specificity as the rule that starts the pulse, or it would win. */
+  .badge[data-status="vencida"] .ic {
+    animation: none;
+  }
+}

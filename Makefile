@@ -4,10 +4,10 @@ RUN := $(COMPOSE) run --rm --user $$(id -u):$$(id -g)
 API := $(RUN) --no-deps api
 API_DB := $(RUN) api
 
-.PHONY: help env dev down test test-api test-web lint types migrate seed
+.PHONY: help env dev down test test-api test-web e2e lint types migrate seed
 
 help: ## List targets
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
+	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
 
 env:
 	@test -f infra/.env || cp infra/.env.example infra/.env
@@ -26,6 +26,9 @@ test-api: env
 
 test-web:
 	cd web && npm test
+
+e2e: ## Run Playwright e2e (web, 390x844 and 1440x900)
+	cd web && npx playwright install chromium && npm run e2e
 
 lint: env ## Lint and typecheck api and web
 	$(API) sh -c "ruff check . && ruff format --check ."

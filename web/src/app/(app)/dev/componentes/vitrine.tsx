@@ -1,0 +1,160 @@
+// Doop: k0kB5dc-Vo / componentes Icon, StatusBadge, Button, Chip, Field, TopBar, TabItem, TabBar, NavItem,
+// SideNav (página 04 · Componentes) e frame Logo (t4pHch9UDR). Sample copy taken from the Doop frames.
+"use client";
+
+import { useState } from "react";
+import { StatusBadge, type Status } from "@/components/bills/status-badge";
+import { SideNav, NavItem } from "@/components/layout/side-nav";
+import { TabBar, TabItem } from "@/components/layout/tab-bar";
+import { TopBar } from "@/components/layout/top-bar";
+import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
+import { Field } from "@/components/ui/field";
+import { Icon, iconNames } from "@/components/ui/icon";
+import { Logo } from "@/components/ui/logo";
+import styles from "./vitrine.module.css";
+
+const statuses: Status[] = ["aguardando", "pendente", "vence", "vencida", "paga", "confirmada", "cancelada"];
+const tones = ["primary", "secondary", "ghost", "success", "danger"] as const;
+const chips = [
+  ["Todas", 13],
+  ["Vencidas", 2],
+  ["Pendentes", 3],
+  ["Pagas", 8],
+] as const;
+
+export function Vitrine() {
+  const [chip, setChip] = useState("Vencidas");
+  return (
+    <div className={styles.page}>
+      <TopBar title="Componentes" backHref="/" />
+
+      <section className={styles.sec}>
+        <h2>Logo</h2>
+        <div className={styles.row}>
+          <Logo />
+          <Logo variant="simbolo" size={120} />
+        </div>
+      </section>
+
+      <section className={styles.sec}>
+        <h2>Icon</h2>
+        <ul className={styles.icons}>
+          {iconNames.map((name) => (
+            <li key={name}>
+              <Icon name={name} />
+              <span>{name}</span>
+            </li>
+          ))}
+        </ul>
+        <div className={styles.row}>
+          <Icon name="sino" size="sm" />
+          <Icon name="sino" size="md" />
+          <Icon name="sino" size="lg" />
+          <Icon name="sino" size="xl" />
+        </div>
+      </section>
+
+      <section className={styles.sec}>
+        <h2>StatusBadge</h2>
+        <div className={styles.row}>
+          {statuses.map((s) => (
+            <StatusBadge key={s} status={s} />
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.sec}>
+        <h2>Button</h2>
+        <div className={styles.row}>
+          {tones.map((tone) => (
+            <Button key={tone} tone={tone} label="Copiar código" />
+          ))}
+          <Button tone="ghost" icon="copiar" label="Copiar código" />
+          <Button tone="secondary" icon="baixar" aria-label="Baixar PDF" />
+        </div>
+        <Button width="full" label="Entrar" />
+      </section>
+
+      <section className={styles.sec}>
+        <h2>Chip</h2>
+        <div className={styles.row}>
+          {chips.map(([label, count]) => (
+            <Chip
+              key={label}
+              label={label}
+              count={count}
+              state={chip === label ? "on" : "off"}
+              onClick={() => setChip(label)}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.sec}>
+        <h2>Field</h2>
+        <div className={styles.fields}>
+          <Field label="E-mail" placeholder="voce@email.com" />
+          <Field label="Beneficiário" defaultValue="Enel Distribuição Ceará" />
+          <Field
+            label="Valor"
+            defaultValue="R$ 287,43"
+            hint="Lido do código de barras"
+            filled
+            trailing={<Icon name="pago" size="md" />}
+          />
+          <Field label="Código" defaultValue="8366000000 2" error="Código incompleto: faltam dígitos" />
+        </div>
+      </section>
+
+      <section className={styles.sec}>
+        <h2>TopBar</h2>
+        <div className={styles.box}>
+          <TopBar
+            title="Avisos"
+            backHref="/"
+            action={
+              <button type="button" aria-label="Filtrar avisos">
+                <Icon name="filtro" size="md" />
+              </button>
+            }
+          />
+        </div>
+      </section>
+
+      <section className={styles.sec}>
+        <h2>TabItem e TabBar</h2>
+        <div className={styles.row}>
+          <div className={styles.tabitem}>
+            <TabItem state="off" label="Início" icon="varal" href="/" />
+          </div>
+          <div className={styles.tabitem}>
+            <TabItem state="on" label="Início" icon="varal" href="/" />
+          </div>
+        </div>
+        {(["inicio", "contas", "grupos", "perfil"] as const).map((a) => (
+          <div key={a} className={styles.tabbar}>
+            <TabBar active={a} />
+          </div>
+        ))}
+      </section>
+
+      <section className={styles.sec}>
+        <h2>NavItem e SideNav</h2>
+        <div className={styles.navitems}>
+          <NavItem label="Início" icon="varal" href="/" />
+          <NavItem state="on" label="Início" icon="varal" href="/" />
+          <NavItem label="Avisos" icon="sino" href="/avisos" count={3} />
+        </div>
+        <div className={styles.sidenav}>
+          <SideNav
+            active="inicio"
+            avisos={3}
+            espaco={{ iniciais: "FM", nome: "Família Martins", detalhe: "Grupo · 4 membros" }}
+            usuario={{ iniciais: "LM", nome: "Luis Martins", detalhe: "luis@email.com" }}
+          />
+        </div>
+      </section>
+    </div>
+  );
+}

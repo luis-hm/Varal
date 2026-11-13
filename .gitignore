@@ -7,3 +7,6 @@ __pycache__/
 node_modules/
 .next/
 web/e2e/__screens__/
+web/test-results/
+web/playwright-report/
+web/AGENTS.md

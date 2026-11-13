@@ -1,0 +1,85 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding-bottom: var(--spacing-8);
+}
+
+.sec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: 0 var(--spacing-5);
+}
+
+.sec h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.icons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: var(--spacing-2);
+  padding: 0;
+  list-style: none;
+}
+
+.icons li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-4) 0;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  font-size: var(--text-xs);
+  color: var(--color-ink);
+}
+
+.icons span {
+  color: var(--color-ink-muted);
+}
+
+.fields {
+  display: grid;
+  gap: var(--spacing-4);
+  max-width: 380px;
+}
+
+.box,
+.tabbar {
+  max-width: 390px;
+  background: var(--color-bg);
+  border: 1px dashed var(--color-line);
+}
+
+.tabbar {
+  padding-top: 34px; /* room for the FAB */
+}
+
+.navitems {
+  display: grid;
+  gap: var(--spacing-1);
+  max-width: 260px;
+}
+
+.sidenav {
+  height: 900px;
+  width: max-content;
+  border: 1px dashed var(--color-line);
+}
+
+.tabitem {
+  display: flex;
+  width: 160px;
+  background: var(--color-surface);
+}

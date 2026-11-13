@@ -1,0 +1,75 @@
+/* Doop: k0kB5dc-Vo / componente Field */
+.fld {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--font-sans);
+}
+
+.lb {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.bx {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 var(--spacing-4);
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-line);
+  background: var(--color-surface);
+  font-size: var(--text-base);
+  color: var(--color-ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bx:focus-within {
+  border-color: var(--color-ink);
+  box-shadow: var(--shadow-focus);
+}
+
+.vl {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  outline: none;
+  text-overflow: ellipsis;
+}
+
+.vl::placeholder {
+  color: var(--color-ink-subtle);
+  opacity: 1;
+}
+
+.hn {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.tr {
+  display: inline-flex;
+  color: var(--color-ink-muted);
+}
+
+.fld[data-state="filled"] .bx {
+  background: var(--color-green-soft);
+  border-color: var(--color-green-soft);
+}
+
+.fld[data-state="filled"] .tr {
+  color: var(--color-green-text);
+}
+
+.fld[data-state="error"] .bx {
+  border-color: var(--color-red);
+}
+
+.fld[data-state="error"] .hn {
+  color: var(--color-red-text);
+}
