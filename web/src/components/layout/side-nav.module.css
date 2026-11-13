@@ -148,7 +148,20 @@
 }
 
 .me b {
+  display: block;
   font-size: var(--text-sm);
+}
+
+.identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.identity b,
+.identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .av {

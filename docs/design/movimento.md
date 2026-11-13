@@ -5,6 +5,10 @@
 
 Toda animação é CSS e é desligada com `@media (prefers-reduced-motion: reduce)`.
 
+## Aplicação na Etapa 02
+
+Autenticação usa `swing` nas três contas, entrada `drop`, `sheet-up` na folha mobile e `rise` no formulário desktop. Em 13/11/2026, o dono aprovou seguir o **guia** para a folha: `translateY(100%) → 0`, `0,5s`, resolvendo a diferença do HTML do frame (40px, 0,6s). Nenhum frame foi alterado. O reduced motion desliga essas animações e o efeito de pressão.
+
 ## Tabela do guia varal-ui (usar esta no código; conferida em 12/11/2026)
 
 No mobile as ações sobem em folhas (`sheet-up`); a partir de 1024px viram modais (`modal-pop`), e o detalhe e a gaveta de avisos entram com `slide-in`. Regra responsiva em [README.md](README.md#regra-responsiva).

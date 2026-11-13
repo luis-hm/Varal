@@ -42,6 +42,8 @@ Ambos estão como **draft**, sem atribuição de aprovação no Doop. O canvas p
 
 ## Decisões para o resumo antes do código
 
+**Aprovação em 13/11/2026:** o dono respondeu “ok” ao resumo, autorizando os estados do formulário, uso dos frames apresentados e a recomendação de movimento abaixo. O canvas permanece somente leitura; seu status remoto não foi alterado.
+
 1. **Cadastro e recuperação:** os frames têm os links “Criar conta” e “Esqueci”, mas não têm os estados de destino. Proposta: reutilizar o mesmo layout, trocando título, campos e mensagens para cadastro, solicitação, nova senha e retorno do Google. Confirmar essa proposta no ok; não inventar frames nem alterar o Doop.
 2. **Movimento:** a folha mobile no HTML do frame entra com `translateY(40px)` em `.6s`; o guia `varal-ui` define `sheet-up` de `translateY(100%)` em `.5s`. Recomendação para aprovação: seguir o guia (`100%`, `0,5s`). A escolha depende do ok do dono antes dessa implementação. As animações sempre respeitam movimento reduzido.
 3. **Aprovação visual:** os dois frames continuam draft; o resumo deve explicitar esse estado antes da implementação.
