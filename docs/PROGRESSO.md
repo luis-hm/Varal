@@ -8,7 +8,7 @@
 | Nº | Etapa | Status | Branch | Concluída em | Relatório |
 | --- | --- | --- | --- | --- | --- |
 | 00 | Fundação | concluída | `etapa/00-fundacao` | 12/11/2026 | [relatorio](etapas/00-fundacao/relatorio.md) |
-| 01 | Design system no código | pendente | — | — | — |
+| 01 | Design system no código | em andamento | `etapa/01-design-system` | — | — |
 | 02 | Autenticação | pendente | — | — | — |
 | 03 | Espaços e grupos | pendente | — | — | — |
 | 04 | Contas (núcleo) | pendente | — | — | — |
