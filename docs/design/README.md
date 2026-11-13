@@ -1,7 +1,7 @@
 # Design — canvas do Doop
 
 > **Contém:** onde está cada tela e componente no Doop, como lê-los, a regra responsiva e as telas e ícones da especificação.
-> **Origem:** canvas Doop `k0kB5dc-Vo` (lido em 12/11/2026), guia `varal-ui` e `docs/especificacao-varal.md`, seções 11 e 12.
+> **Origem:** canvas Doop `k0kB5dc-Vo` (lido em 12/11/2026), guia `varal-ui`, `docs/especificacao-varal.md`, seções 11 e 12, e o código da Etapa 01.
 
 ## Regras
 
@@ -70,22 +70,25 @@ Tamanhos: telas mobile 390×844 (06: 390×1090; 07: 390×1220; 10: 390×944); te
 
 | Componente | Props (do Doop) | Caminho no código | Etapa |
 | --- | --- | --- | --- |
-| Icon | `name` (29 nomes), `size: sm\|md\|lg\|xl` | `web/src/components/ui/icon.tsx` | 01 |
-| StatusBadge | `status: aguardando\|pendente\|vence\|vencida\|paga\|confirmada\|cancelada` | `web/src/components/bills/status-badge.tsx` | 01 |
-| Button | `tone: primary\|secondary\|ghost\|success\|danger`, `width: auto\|full`, `label`, slot `icon` (52px) | `web/src/components/ui/button.tsx` | 01 |
-| Chip | `state: off\|on`, `label`, `count` | `web/src/components/ui/chip.tsx` | 01 |
-| Field | `state: default\|placeholder\|filled\|error`, `label`, `value`, `hint`, slot `trailing` | `web/src/components/ui/field.tsx` | 01 |
-| TopBar | `title`, slot `action` | `web/src/components/layout/top-bar.tsx` | 01 |
-| TabItem | `state: off\|on`, `label`, slot `icon` | `web/src/components/layout/tab-bar.tsx` | 01 |
-| TabBar | `active: inicio\|contas\|grupos\|perfil` (< 1024px) | `web/src/components/layout/tab-bar.tsx` | 01 |
-| NavItem | `state: off\|on`, `label`, `count`, slot `icon` | `web/src/components/layout/side-nav.tsx` | 01 |
-| SideNav | `active: inicio\|contas\|grupos\|avisos\|perfil` (≥ 1024px) | `web/src/components/layout/side-nav.tsx` | 01 |
+| Icon | `name` (29 nomes), `size: sm\|md\|lg\|xl` | `web/src/components/ui/icon.tsx` | 01 (feito) |
+| StatusBadge | `status: aguardando\|pendente\|vence\|vencida\|paga\|confirmada\|cancelada` | `web/src/components/bills/status-badge.tsx` | 01 (feito) |
+| Button | `tone: primary\|secondary\|ghost\|success\|danger`, `width: auto\|full`, `label`, slot `icon` (52px) | `web/src/components/ui/button.tsx` | 01 (feito) |
+| Chip | `state: off\|on`, `label`, `count` | `web/src/components/ui/chip.tsx` | 01 (feito) |
+| Field | `state: default\|placeholder\|filled\|error`, `label`, `value`, `hint`, slot `trailing` | `web/src/components/ui/field.tsx` | 01 (feito) |
+| TopBar | `title`, slot `action` | `web/src/components/layout/top-bar.tsx` | 01 (feito) |
+| TabItem | `state: off\|on`, `label`, slot `icon` | `web/src/components/layout/tab-bar.tsx` | 01 (feito) |
+| TabBar | `active: inicio\|contas\|grupos\|perfil` (< 1024px) | `web/src/components/layout/tab-bar.tsx` | 01 (feito) |
+| NavItem | `state: off\|on`, `label`, `count`, slot `icon` | `web/src/components/layout/side-nav.tsx` | 01 (feito) |
+| SideNav | `active: inicio\|contas\|grupos\|avisos\|perfil` (≥ 1024px) | `web/src/components/layout/side-nav.tsx` | 01 (feito) |
 | BillCard | `title`, `meta`, `value`, slots `icon`, `status` | `web/src/components/bills/bill-card.tsx` | 04 |
 | RadioCard | `state: off\|on`, `title`, `text` | `web/src/components/ui/radio-card.tsx` | 03 |
 | MemberRow | `role: admin\|membro\|pagador\|observador`, `initials`, `name`, `detail` | `web/src/components/groups/member-row.tsx` | 03 |
 | HouseCard | `house-link`, `label`, `caption`, `caption-2` | `web/src/components/groups/house-card.tsx` | 03 |
 | RecurringRow | `text`, `caption`, `vl` | `web/src/components/recurrences/recurring-row.tsx` | 08 |
 | NoticeRow | `tone: info\|vence\|vencida\|aguardando\|pago`, `unread: no\|yes`, `title`, `text`, `time`, slot `icon` | `web/src/components/notifications/notice-row.tsx` | 09 |
+
+Fora da página 04, também da Etapa 01: logo (`web/src/components/ui/logo.tsx`), shell responsivo (`web/src/components/layout/app-shell.tsx`) e "Em breve" (`web/src/components/layout/em-breve.tsx`).
+**Vitrine** `/dev/componentes` (`web/src/app/(app)/dev/componentes/`): todos os componentes feitos e seus estados, para teste e comparação com o Doop; só em desenvolvimento (404 em produção).
 
 ### Conta cancelada (D2)
 

@@ -8,7 +8,7 @@
 | Nº | Etapa | Status | Branch | Concluída em | Relatório |
 | --- | --- | --- | --- | --- | --- |
 | 00 | Fundação | concluída | `etapa/00-fundacao` | 12/11/2026 | [relatorio](etapas/00-fundacao/relatorio.md) |
-| 01 | Design system no código | em andamento | `etapa/01-design-system` | — | — |
+| 01 | Design system no código | concluída | `etapa/01-design-system` | 12/11/2026 | [relatorio](etapas/01-design-system/relatorio.md) |
 | 02 | Autenticação | pendente | — | — | — |
 | 03 | Espaços e grupos | pendente | — | — | — |
 | 04 | Contas (núcleo) | pendente | — | — | — |
@@ -30,6 +30,7 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 | # | Assunto | Bloqueia |
 | --- | --- | --- |
 | P1 | Rodar uma vez o serviço `minio` (`pgsty/silo`) para verificar o comando e as variáveis: a checagem de segurança do agente bloqueou executar a imagem. O dono do projeto sobe manualmente (`docker compose -f infra/docker-compose.yml --profile storage up -d minio`) ou libera a permissão. | Etapa 06 |
+| P2 | Ativar a integração WSL do Docker Desktop e rodar `make test` e `make lint` (CA17 da Etapa 01). | Merge da Etapa 01 na `main` |
 
 ### Resolvidas
 
@@ -45,6 +46,15 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 ## Log
 
 Ordem cronológica inversa.
+
+### 12/11/2026 — Etapa 01 (Design system no código)
+
+- Tokens do Doop em `tokens.css` (com bloco "fora do Doop": 4 medidas de texto e 5 sombras via `color-mix`), fontes por `next/font/google`, logo e favicon.
+- Componentes: Icon (29), Button 52px (D1), Chip, Field, StatusBadge com `cancelada` (D2), TopBar, TabBar/TabItem, SideNav/NavItem; AppShell com troca em 1024px (D3); animações `press` e `badge-pulse` com reduced motion.
+- Vitrine `/dev/componentes` (404 em produção) e páginas "Em breve" em `/`, `/contas`, `/grupos`, `/avisos`, `/perfil`.
+- Playwright 1.65.0, `make e2e`, job `e2e` no `web.yml`. Vitest 29/29, ESLint e `tsc` limpos, Playwright 26/26.
+- CA17 parcial: `make test`/`make lint` sem Docker no WSL (P2). Sete desvios deliberados aguardam confirmação do dono ([relatório](etapas/01-design-system/relatorio.md#desvios-deliberados-pedir-confirmação-ao-dono)).
+- Ajuste pendente para a Etapa 02: variáveis do Google (allauth).
 
 ### 12/11/2026 — Etapa 00 (ajustes do documento "Varal — Ajustes")
 

@@ -1,12 +1,12 @@
 # Tokens de design
 
 > **Contém:** os tokens do Doop, o nome equivalente na especificação e como viram variáveis CSS no web.
-> **Origem:** `get_tokens` do canvas Doop `k0kB5dc-Vo` (12/11/2026) e `docs/especificacao-varal.md`, seção 10.
+> **Origem:** `get_tokens` do canvas Doop `k0kB5dc-Vo` (12/11/2026), `docs/especificacao-varal.md`, seção 10, e `web/src/styles/tokens.css` (Etapa 01).
 
 ## Regra
 
 `web/src/styles/tokens.css` é a saída de `get_tokens(canvas_id "k0kB5dc-Vo", format "css")`, **com os mesmos nomes**.
-No código só se usa `var(--token)`; nunca hex solto. Se faltar um token, pergunte (o canvas é somente leitura).
+No código só se usa `var(--token)`; nunca hex solto. Se faltar um token, pergunte (o canvas é somente leitura); medida usada pelo Doop sem token vai para o bloco [fora do Doop](#fora-do-doop).
 
 ## Doop → especificação
 
@@ -27,12 +27,16 @@ No código só se usa `var(--token)`; nunca hex solto. Se faltar um token, pergu
 | `--color-green` | `#1F9D6B` | `green-600` | Paga, confirmada, sucesso |
 | `--color-green-text` / `--color-green-soft` | `#12704B` / `#E6F4EE` | `green-text` / `green-50` | Selos "Paga" e "Confirmada" |
 | `--radius-sm` / `md` / `lg` / `xl` / `2xl` / `full` | 8 / 12 / 20 / 22 / 28 / 999 px | selos / campos / cards / — / hero e folhas / pílula | |
-| `--spacing-1…8` | 4, 8, 12, 16, 20, 24, 32 px | múltiplos de 4 | margem lateral 20 px |
+| `--spacing-1…6`, `--spacing-8` | 4, 8, 12, 16, 20, 24, 32 px | múltiplos de 4 | margem lateral 20 px; não existe `--spacing-7` (de propósito) |
 | `--font-display` | Bricolage Grotesque | Display, títulos, valores | |
 | `--font-sans` | Inter | Interface e texto | |
-| `--text-xs` … `--text-3xl` | 12, 13, 15, 16, 18, 24, 32, 48 px | Rótulo, Pequeno, Corpo, Título de card, Título 2, Título 1, Display, número-herói | |
+| `--text-xs` … `--text-4xl` | 12, 13, 15, 16, 18, 24, 32, 48, 64 px | Rótulo, Pequeno, Corpo, Título de card, Título 2, Título 1, Display, número-herói mobile, número-herói desktop | |
 
-Número-herói: 48px (`--text-3xl`) no mobile e 64px no desktop (guia `varal-ui`; sem token próprio no Doop), centavos na metade do tamanho com opacidade .55.
+Número-herói: 48px (`--text-3xl`) no mobile e 64px (`--text-4xl`) no desktop (guia `varal-ui`), centavos na metade do tamanho com opacidade .55.
+
+## Fora do Doop
+
+Medidas que o CSS do Doop usa sem token (sombras, `--text-2xs`, `--text-logo`, alturas de linha) ficam num bloco comentado **"fora do Doop"** no fim de `tokens.css`, nunca soltas nos componentes. Sombras usam `color-mix` sobre os tokens de cor (nenhuma cor nova). Lista e origem: [relatório da Etapa 01](../etapas/01-design-system/relatorio.md#variáveis-fora-do-doop).
 
 ## Da especificação
 
