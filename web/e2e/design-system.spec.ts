@@ -2,7 +2,8 @@
 // Runs in both projects of playwright.config.ts: mobile 390×844 and desktop 1440×900.
 // Next 16 keeps visited routes mounted but hidden, hence the `visible` filters.
 import path from "node:path";
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 const VITRINE = "/dev/componentes";
 const SCREENS = path.join(__dirname, "__screens__");
@@ -186,9 +187,9 @@ test("ca14: screenshots da vitrine e de uma página Em breve", async ({ page }, 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(VITRINE);
   await page.evaluate(() => document.fonts.ready);
-  await page.screenshot({ path: path.join(SCREENS, `vitrine-${info.project.name}.png`), fullPage: true });
+  await page.screenshot({ path: path.join(SCREENS, `vitrine-${info.project.name}.png`), fullPage: true, caret: "initial" });
 
   await page.goto("/contas");
   await expect(page.getByText("Em breve", { exact: true }).filter({ visible: true })).toBeVisible();
-  await page.screenshot({ path: path.join(SCREENS, `contas-em-breve-${info.project.name}.png`) });
+  await page.screenshot({ path: path.join(SCREENS, `contas-em-breve-${info.project.name}.png`), caret: "initial" });
 });

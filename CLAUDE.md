@@ -73,9 +73,9 @@ Requisitos: Docker (com Compose), Node 22+ (para `make test-web`/`lint`/`types`)
 | `make dev` | Cria `infra/.env` se faltar e sobe api, worker, beat, postgres, redis e web (http://localhost:3000) |
 | `make down` | Para tudo |
 | `make test` | pytest (api, no Compose) + Vitest (web) |
-| `make e2e` | Playwright (web) em 390×844 e 1440×900; sobe o `next dev` sozinho, sem a API |
+| `make e2e` | Sobe API/worker e dependências; Playwright inicia o Next e testa em 390×844 e 1440×900 |
 | `make lint` | ruff (check + format) + ESLint + `tsc` |
-| `make types` | Gera `api/openapi.yaml` e `web/src/types/api.ts` |
+| `make types` | Exporta/valida schema composto DRF + allauth (`export_schema`) e gera `web/src/types/api.ts` |
 | `make migrate` | `makemigrations` + `migrate` |
 | `make seed` | Dados de desenvolvimento (usuário `dev`) |
 

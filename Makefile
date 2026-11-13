@@ -27,7 +27,13 @@ test-api: env
 test-web:
 	cd web && npm test
 
-e2e: ## Run Playwright e2e (web, 390x844 and 1440x900)
+e2e: env ## Run Playwright e2e with the real API (390x844 and 1440x900)
+	$(COMPOSE) up --build -d api worker
+	@attempt=0; until $(COMPOSE) exec -T api python -c 'from urllib.request import urlopen; urlopen("http://127.0.0.1:8000/api/health/", timeout=2)' >/dev/null 2>&1; do \
+		attempt=$$((attempt + 1)); \
+		if [ "$$attempt" -ge 60 ]; then echo "API healthcheck failed; inspect docker compose logs api" >&2; exit 1; fi; \
+		sleep 1; \
+	done
 	cd web && npx playwright install chromium && npm run e2e
 
 lint: env ## Lint and typecheck api and web
@@ -35,7 +41,7 @@ lint: env ## Lint and typecheck api and web
 	cd web && npm run lint && npm run typecheck
 
 types: env ## Regenerate api/openapi.yaml and web/src/types/api.ts
-	$(API) python manage.py spectacular --file openapi.yaml --validate
+	$(API) python manage.py export_schema --file openapi.yaml
 	cd web && npm run types
 
 migrate: env ## Create and apply migrations
