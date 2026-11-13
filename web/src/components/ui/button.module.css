@@ -1,0 +1,70 @@
+/* Doop: k0kB5dc-Vo / componente Button */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  height: 52px;
+  padding: 0 var(--spacing-6);
+  border-radius: var(--radius-full);
+  border: 1.5px solid transparent;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--color-ink);
+  color: var(--color-surface);
+  white-space: nowrap;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.btn:hover {
+  filter: brightness(1.15);
+}
+
+/* press */
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+.btn[data-tone="secondary"] {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-color: var(--color-line);
+}
+
+.btn[data-tone="ghost"] {
+  background: var(--color-neutral-soft);
+  color: var(--color-ink);
+}
+
+.btn[data-tone="success"] {
+  background: var(--color-green-text);
+  color: var(--color-surface);
+}
+
+.btn[data-tone="danger"] {
+  background: var(--color-surface);
+  color: var(--color-red-text);
+  border-color: var(--color-red-soft);
+}
+
+.btn[data-width="full"] {
+  display: flex;
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+
+  .btn:active {
+    transform: none;
+  }
+}

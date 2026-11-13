@@ -1,0 +1,44 @@
+/* Doop: k0kB5dc-Vo / 02 · Início (TabBar no rodapé) + D02 · Início (SideNav à esquerda) */
+.shell {
+  min-height: 100dvh;
+}
+
+.side {
+  display: none;
+}
+
+.main {
+  min-width: 0;
+  padding-bottom: 84px; /* TabBar height */
+}
+
+.bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+}
+
+@media (min-width: 1024px) {
+  .shell {
+    display: flex;
+  }
+
+  .side {
+    display: block;
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    flex: none;
+  }
+
+  .main {
+    flex: 1;
+    padding: 28px 40px var(--spacing-8);
+  }
+
+  .bottom {
+    display: none;
+  }
+}
