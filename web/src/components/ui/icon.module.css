@@ -1,0 +1,19 @@
+/* Doop: k0kB5dc-Vo / componente Icon */
+.icon {
+  flex: none;
+  display: inline-block;
+}
+
+/* Status icons carry their colour (Doop); StatusBadge overrides it with the badge text colour. */
+.icon[data-name="relogio"] {
+  color: var(--color-amber);
+}
+
+.icon[data-name="alerta"] {
+  color: var(--color-red);
+}
+
+.icon[data-name="pago"],
+.icon[data-name="comprovante"] {
+  color: var(--color-green);
+}

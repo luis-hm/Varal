@@ -1,0 +1,25 @@
+@import "./tokens.css";
+
+/* next/font serves the files; point the Doop font tokens at its generated families. */
+:root {
+  --font-display: var(--font-bricolage), var(--font-inter), sans-serif;
+  --font-sans: var(--font-inter), sans-serif;
+}
+
+* {
+  margin: 0;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}

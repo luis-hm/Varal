@@ -18,6 +18,8 @@ test("shows the API health returned by /api/health/", async () => {
   const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: "ok" })));
   vi.stubGlobal("fetch", fetchMock);
   renderHome();
+  expect(screen.getByRole("heading", { name: "Início" })).toBeTruthy();
+  expect(screen.getByText("Em breve")).toBeTruthy();
   expect(await screen.findByText("API: ok")).toBeTruthy();
   expect(fetchMock).toHaveBeenCalledWith("/api/health/");
 });

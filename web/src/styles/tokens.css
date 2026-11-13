@@ -1,0 +1,60 @@
+/* Doop: k0kB5dc-Vo / get_tokens(format "css"), 12/11/2026. Same names and values; do not edit by hand. */
+:root {
+  --color-bg: #F6F7F9;
+  --color-surface: #FFFFFF;
+  --color-line: #E3E6EC;
+  --color-ink: #1C2541;
+  --color-ink-muted: #4A5372;
+  --color-ink-subtle: #8A91A8;
+  --color-neutral-soft: #EEF0F4;
+  --color-amber: #F5A524;
+  --color-amber-text: #9A5B00;
+  --color-amber-soft: #FEF4E2;
+  --color-red: #E5484D;
+  --color-red-text: #B42318;
+  --color-red-soft: #FDECEC;
+  --color-green: #1F9D6B;
+  --color-green-text: #12704B;
+  --color-green-soft: #E6F4EE;
+  --color-ink-soft: #2B3657;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 22px;
+  --radius-full: 999px;
+  --radius-2xl: 28px;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --font-display: "Bricolage Grotesque", "Inter", sans-serif;
+  --font-sans: "Inter", sans-serif;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+  --text-3xl: 48px;
+  --text-4xl: 64px;
+}
+
+/*
+ * fora do Doop: values the Doop CSS uses without a token. Copied from the component/frame CSS,
+ * shadows rebuilt with color-mix() over the Doop colour tokens (same rgba, no new colour).
+ */
+:root {
+  --text-2xs: 11.5px; /* TabItem label */
+  --text-logo: 30px; /* SideNav wordmark */
+  --leading-none: 1; /* SideNav wordmark */
+  --leading-body: 22px; /* "Corpo" 15/22, frame Paleta e tipografia */
+  --shadow-tabbar: 0 -10px 30px color-mix(in srgb, var(--color-ink) 7%, transparent); /* TabBar .tb */
+  --shadow-fab: 0 10px 24px color-mix(in srgb, var(--color-amber) 45%, transparent); /* TabBar .fab */
+  --shadow-cta: 0 8px 20px color-mix(in srgb, var(--color-amber) 35%, transparent); /* SideNav .new */
+  --shadow-navitem: 0 1px 0 var(--color-line), 0 0 0 1px var(--color-line); /* NavItem on */
+  --shadow-focus: 0 0 0 4px var(--color-neutral-soft); /* Field .bx:focus-within */
+}
