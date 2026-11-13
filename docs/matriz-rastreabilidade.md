@@ -46,8 +46,8 @@ Telas: frame mobile ↔ frame desktop no canvas `k0kB5dc-Vo` (ids e equivalênci
 | RNF05 | 11 | — |
 | RNF06 | 06, 09 | — |
 | RNF07 | 09 | — |
-| RNF08 | 01, 11 | — |
-| RNF09 | 01, 11 | — |
+| RNF08 | 01, 11 | e2e `rnf08 ca13: … alvos ≥ 44px em 360px` (vitrine e 5 páginas), `ca05/d1: Button renderizado com 52px…` (`web/e2e/design-system.spec.ts`); Vitest `ca05/d1: the button is 52px tall…` (`button.test.tsx`) |
+| RNF09 | 01, 11 | Vitest `ca08/rnf09: every status shows the Doop icon and text, never colour alone` (`status-badge.test.tsx`), `ca09/rnf09: badge and main text pairs reach 4.5:1` (`tokens.test.ts`) |
 | RNF10 | 09, 11 | — |
 | RNF11 | 00 (fuso/UTC), 04 (centavos) | — |
 | RNF12 | 00 (`make types` + CI) | `api.yml` job `types` |

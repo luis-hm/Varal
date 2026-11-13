@@ -63,7 +63,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .badge .ic {
+  /* Same specificity as the rule that starts the pulse, or it would win. */
+  .badge[data-status="vencida"] .ic {
     animation: none;
   }
 }
