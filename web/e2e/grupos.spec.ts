@@ -320,6 +320,8 @@ test("ca19/ca20 rn31 rnf08/rnf09: folha/modal com foco preso, Esc, setas no Radi
     return { nome: s.animationName, vezes: s.animationIterationCount, duracao: s.animationDuration, atraso: s.animationDelay };
   });
   expect(shine).toEqual({ nome: expect.stringMatching(/shine/), vezes: "2", duracao: "2.4s", atraso: desktop ? "0.6s" : "0.8s" });
+  // Measure once sheet-up/modal-pop (the dialog's own animation) has settled.
+  await convite.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
   const box = await convite.boundingBox();
   if (desktop) {
     expect(box).toMatchObject({ width: 560, height: 480 });
