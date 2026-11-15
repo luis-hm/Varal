@@ -161,6 +161,9 @@ STATIC_URL = "static/"
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    # Session only: DRF's default also accepts HTTP Basic, which bypasses allauth's
+    # login rate limit and CSRF (security review, stage 03).
+    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
     # Scoped throttles key on the user id and live in the default (Redis) cache.
     "DEFAULT_THROTTLE_RATES": {"convite_aceite": "10/hour"},  # RN31
 }

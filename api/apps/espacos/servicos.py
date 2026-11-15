@@ -153,9 +153,16 @@ def alterar_papel(grupo, membro_id, papel):
         membro = get_object_or_404(Membro.objects.select_for_update(), espaco=grupo, pk=membro_id)
         if papel != Papel.ADMIN and admins == {membro.pk}:
             raise UltimoAdmin()
+        if papel != Papel.ADMIN:
+            _revogar_convites_de(grupo, membro.usuario_id)
         membro.papel = papel
         membro.save(update_fields=["papel"])
     return membro
+
+
+def _revogar_convites_de(grupo, usuario_id):
+    # RN21/RN31: someone who stops being admin cannot come back through a link they generated.
+    convites_pendentes(grupo).filter(criado_por_id=usuario_id).update(revogado_em=timezone.now())
 
 
 def _desligar(grupo, **filtro):
@@ -165,6 +172,7 @@ def _desligar(grupo, **filtro):
         membro = get_object_or_404(Membro.objects.select_for_update(), espaco=grupo, **filtro)
         if admins == {membro.pk}:
             raise UltimoAdmin()
+        _revogar_convites_de(grupo, membro.usuario_id)
         membro.delete()
 
 
