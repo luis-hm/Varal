@@ -9,7 +9,7 @@
 | --- | --- | --- | --- | --- | --- |
 | 00 | Fundação | concluída | `etapa/00-fundacao` | 12/11/2026 | [relatorio](etapas/00-fundacao/relatorio.md) |
 | 01 | Design system no código | concluída | `etapa/01-design-system` | 12/11/2026 | [relatorio](etapas/01-design-system/relatorio.md) |
-| 02 | Autenticação | pendente | — | — | — |
+| 02 | Autenticação | concluída | `etapa/02-autenticacao` | 13/11/2026 | [relatorio](etapas/02-autenticacao/relatorio.md) |
 | 03 | Espaços e grupos | pendente | — | — | — |
 | 04 | Contas (núcleo) | pendente | — | — | — |
 | 05 | Boleto e Pix | pendente | — | — | — |
@@ -30,10 +30,11 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 | # | Assunto | Bloqueia |
 | --- | --- | --- |
 | P1 | Rodar uma vez o serviço `minio` (`pgsty/silo`) para verificar o comando e as variáveis: a checagem de segurança do agente bloqueou executar a imagem. O dono do projeto sobe manualmente (`docker compose -f infra/docker-compose.yml --profile storage up -d minio`) ou libera a permissão. | Etapa 06 |
+| P3 | Configurar a cadeia de proxies confiáveis e testar spoofing antes do deploy. Allauth mantém `trusted_proxy_count=0` enquanto a API 8000 está exposta; limite por IP vê o Next como origem. | Deploy da Etapa 11; não bloqueia a Etapa 02 |
 
 ### Resolvidas
 
-| # | Pergunta | Resposta (12/11/2026) | Onde |
+| # | Pergunta | Resposta | Onde |
 | --- | --- | --- | --- |
 | D1 | Altura do botão: 52 ou 48 px? | **52 px.** O CSS do Button no Doop já era 52 px; a descrição foi corrigida. | Etapa 01 |
 | D2 | Como aparece uma conta cancelada? | StatusBadge ganhou `cancelada` (ícone `fechar`, texto "Cancelada", fundo branco, borda `--color-line`, texto `--color-ink-muted`). Sai do Início, das listas padrão, dos totais e dos lembretes; só no filtro "Canceladas" e no histórico; no card, valor riscado e opacidade reduzida. | Etapa 01 (selo), 04 (filtro e regras); [design](design/README.md#conta-cancelada-d2) |
@@ -46,6 +47,32 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 ## Log
 
 Ordem cronológica inversa.
+
+### 13/11/2026 — Etapa 02 (Autenticação) concluída
+
+- Cadastro/login por e-mail ou Google, recuperação por link com envio Celery, saída e dados próprios. Espaço pessoal automático/único, migração dos usuários anteriores e username interno compatível com admin/seed.
+- UI mobile/desktop do Doop, estados aprovados, shell com sessão/dados reais e saída em Perfil. Canvas somente leitura; senha vazia com placeholder em vez dos bullets preenchidos do exemplo.
+- Allauth 65.22.0 integrado ao schema DRF validado; `make types` com exportação composta e tipos sincronizados. Regeneração final preservou os hashes dos dois arquivos.
+- Revisão de segurança sem bloqueantes; URL Google malformada que provocava 500 foi reproduzida, corrigida e coberta por três casos do endpoint real.
+- Google real conferido até a tela oficial de entrada para Varal; sem autenticar conta externa. Callback completo coberto com HTTP externo simulado. Retorno OAuth 8000 e origem 3000 preservados.
+- Anexo de ajustes relido; único item Google implementado, registrado como feito no relatório local. Documento remoto permanece sem marcação por falta do conector.
+- `make test`: API 31/31 e Vitest 39/39; lint verde; E2E integral 38/38. Build final passou (14 páginas). Smoke de produção 4/4, regressão HTTP 404 da vitrine 2/2, fluxo central após extração da guarda 2/2 e vitrine em desenvolvimento 12/12.
+- Corrigidos também o HTTP 200 indevido da página 404 em streaming, a confirmação de recuperação sobrescrita pela chave consumida e a perda de e-mail antes da hidratação. O fluxo central final passou 2/2 com verificação permanente de controles desabilitados no SSR e habilitados após hidratar; logs sem erros `instant`/hidratação.
+- Recuperação real conferida no build final com conta descartável: token válido gerado localmente, senha alterada, chave consumida rejeitada sem apagar confirmação e entrada com a nova senha. Sem envio de e-mail externo nem exposição do token.
+- Relatório em `etapas/02-autenticacao/relatorio.md`; matriz atualizada com testes reais. Etapa 03 segue pendente; sem push.
+
+### 13/11/2026 — Execução autorizada da Etapa 02
+
+- Dono respondeu **ok** ao resumo da preparação. Aprovados cadastro/recuperação no layout de autenticação existente e animação mobile conforme o guia (`translateY(100%)`, `0,5s`), usando os frames apresentados sem alterar o Doop.
+- Iniciada execução das tarefas da Etapa 02; backend e contratos antes da integração frontend.
+
+### 13/11/2026 — Preparação da Etapa 02 (Autenticação)
+
+- Merge local da `etapa/01-design-system` na `main` com `--no-ff`, autorizado pelo `/etapa`; criada `etapa/02-autenticacao` a partir da `main`. Sem push.
+- Planejamento de RF01–RF03, CU01 e RN03, incluindo o ajuste Google recebido no chat. `spec.md`, `plano.md` e `tarefas.md` em `etapas/02-autenticacao/`; implementação aguarda o **ok** do dono, conforme passo 4 do comando.
+- Doop consultado em leitura: canvas, guia `varal-ui`, HTML e screenshots de 01 · Entrar (`GJDSPaQbio`, 390×844) e D01 · Entrar (`7JTmWMAJup`, 1440×900). Ambos ainda `draft`; nenhum frame modificado.
+- Propostas para aprovação: cadastro e recuperação como estados do formulário existente (não há frames próprios); resolver divergência da animação da folha mobile entre o frame (40px, 0,6s) e o guia (100%, 0,5s) antes de implementá-la.
+- Callback OAuth Google preservado na proposta: `http://localhost:8000/accounts/google/login/callback/`; origem `http://localhost:3000`. Não houve alteração de código de autenticação nem marcação do ajuste como feito.
 
 ### 13/11/2026 — Desbloqueio da Etapa 01
 

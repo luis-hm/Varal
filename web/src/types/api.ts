@@ -4,6 +4,1379 @@
  */
 
 export interface paths {
+    "/api/auth/browser/v1/account/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List email addresses
+         * @description Retrieves the list of email addresses of the account.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: components["responses"]["AllauthEmailAddresses"];
+                401: components["responses"]["AllauthAuthentication"];
+            };
+        };
+        /**
+         * Request email verification
+         * @description Requests for (another) email verification email to be sent. Note that
+         *     sending emails is rate limited, so when you send too many requests the
+         *     email will not be sent.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: components["requestBodies"]["AllauthEmail"];
+            responses: {
+                200: components["responses"]["AllauthStatusOK"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                /** @description Too many email verification mails were already sent. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthForbiddenResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Add/Change email address
+         * @description The following functionality is available:
+         *
+         *       - Adding a new email address for an already signed in user (`ACCOUNT_CHANGE_EMAIL = False`).
+         *       - Change to a new email address for an already signed in user   (`ACCOUNT_CHANGE_EMAIL = True`).
+         *       - Change to a new email address during the email verification process at signup (`ACCOUNT_EMAIL_VERIFICATION_SUPPORTS_CHANGE = True`).
+         *
+         *     In all cases, an email verification mail will be sent containing a link or code that needs to be verified.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: components["requestBodies"]["AllauthEmail"];
+            responses: {
+                200: components["responses"]["AllauthEmailAddresses"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                401: components["responses"]["AllauthAuthenticationOrReauthentication"];
+                /** @description Conflict. For example, when no user is authenticated and no email verification flow is pending. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Remove an email address
+         * @description Used to remove an email address.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: components["requestBodies"]["AllauthEmail"];
+            responses: {
+                200: components["responses"]["AllauthEmailAddresses"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Change primary email address
+         * @description Used to change primary email address to a different one. Note that only verified email addresses
+         *     can be marked as primary.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: components["requestBodies"]["AllauthMarkPrimaryEmail"];
+            responses: {
+                200: components["responses"]["AllauthEmailAddresses"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/auth/browser/v1/account/password/change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change password
+         * @description In order to change the password of an account, the current and new
+         *     password must be provider.  However, accounts that were created by
+         *     signing up using a third-party provider do not have a password set. In
+         *     that case, the current password is not required.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: components["requestBodies"]["AllauthChangePassword"];
+            responses: {
+                400: components["responses"]["AllauthError"];
+                401: components["responses"]["AllauthAuthentication"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/account/phone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the phone number
+         * @description Retrieves the phone number of the account, if any. Note that while the
+         *     endpoint returns a list of phone numbers, at most one entry is returned.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: components["responses"]["AllauthPhoneNumbers"];
+                401: components["responses"]["AllauthAuthentication"];
+            };
+        };
+        put?: never;
+        /**
+         * Change the phone number
+         * @description The following functionality is available:
+         *
+         *     - Initiate the phone number change process for signed in users.
+         *     - Change to a new phone number during the phone number verification
+         *       process at signup for unauthenticated users. Note that this requires:
+         *       `ACCOUNT_PHONE_VERIFICATION_SUPPORTS_CHANGE = True`.
+         *
+         *     In both cases, after posting a new phone number, proceed with the phone
+         *     verification endpoint to confirm the change of the phone number by
+         *     posting the verification code.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: components["requestBodies"]["AllauthPhone"];
+            responses: {
+                /** @description Phone number change process initiated. */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthPhoneNumberChangeResponse"];
+                    };
+                };
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                401: components["responses"]["AllauthAuthenticationOrReauthentication"];
+                /** @description Conflict. For example, when no user is authenticated and no phone verification flow is pending. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/account/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the connected third-party provider accounts */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: components["responses"]["AllauthProviderAccounts"];
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Disconnect a third-party provider account
+         * @description Disconnect a third-party provider account, returning the remaining
+         *     accounts that are still connected. The disconnect is not allowed if it
+         *     would leave the account unusable. For example, if no password was
+         *     set up yet.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: components["requestBodies"]["AllauthProviderAccount"];
+            responses: {
+                200: components["responses"]["AllauthProviderAccounts"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/code/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm login code
+         * @description Use this endpoint to pass along the received "special" login code.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["AllauthConfirmLoginCode"];
+            responses: {
+                200: components["responses"]["AllauthAuthenticatedByCode"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthAuthenticationResponse"];
+                    };
+                };
+                /** @description Conflict. The "login by code" flow is not pending. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/email/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get email verification information
+         * @description Obtain email verification information, given the token that was sent to
+         *     the user by email.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description The email verification key */
+                    "X-Email-Verification-Key": components["parameters"]["AllauthEmailVerificationKey"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: components["responses"]["AllauthEmailVerificationInfo"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                /** @description Conflict. The email verification (by code) flow is not pending. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Verify an email
+         * @description Complete the email verification process. Depending on the configuration,
+         *     email addresses are either verified by opening a link that is sent to
+         *     their email address, or, by inputting a code that is sent. On the API,
+         *     both cases are handled identically. Meaning, the required key is either
+         *     the one from the link, or, the code itself.
+         *
+         *     Note that a status code of 401 does not imply failure. It indicates that
+         *     the email verification was successful, yet, the user is still not signed
+         *     in. For example, in case `ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION` is set to
+         *     `False`, a 401 is returned when verifying as part of login/signup.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: components["requestBodies"]["AllauthVerifyEmail"];
+            responses: {
+                200: components["responses"]["AllauthAuthenticated"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                401: components["responses"]["AllauthUnauthenticated"];
+                /** @description Conflict. The email verification (by code) flow is not pending. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/email/verify/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend email verification code
+         * @description Requests a new email verification code.
+         *     Requires `ACCOUNT_EMAIL_VERIFICATION_SUPPORTS_RESEND = True`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: components["responses"]["AllauthStatusOK"];
+                /** @description Conflict. The email verification (by code) flow is not pending. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+                429: components["responses"]["AllauthTooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Login
+         * @description Login using a username-password or email-password combination.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["AllauthLogin"];
+            responses: {
+                200: components["responses"]["AllauthAuthenticatedByPassword"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthAuthenticationResponse"];
+                    };
+                };
+                /** @description Conflict. For example, when logging in when a user is already logged in. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/password/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request password
+         * @description Initiates the password reset procedure. Depending on whether or not
+         *     `ACCOUNT_PASSWORD_RESET_BY_CODE_ENABLED` is `True`, the procedure is
+         *     either stateless or stateful.
+         *
+         *     In case codes are used, it is stateful, and a new
+         *     `password_reset_by_code` flow is started. In this case, on a successful
+         *     password reset request, you will receive a 401 indicating the pending
+         *     status of this flow.
+         *
+         *     In case password reset is configured to use (stateless) links, you will
+         *     receive a 200 on a successful password reset request.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["AllauthRequestPassword"];
+            responses: {
+                200: components["responses"]["AllauthStatusOK"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                401: components["responses"]["AllauthAuthentication"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/password/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get password reset information
+         * @description Used to obtain information on and validate a password reset key.  The
+         *     key passed is either the key encoded in the password reset URL that the
+         *     user has received per email, or, the password reset code in case of
+         *     `ACCOUNT_PASSWORD_RESET_BY_CODE_ENABLED`. Note that in case of a code,
+         *     the number of requests you can make is limited (by
+         *     `ACCOUNT_PASSWORD_RESET_BY_CODE_MAX_ATTEMPTS`).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description The password reset key */
+                    "X-Password-Reset-Key": components["parameters"]["AllauthPasswordResetKey"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: components["responses"]["AllauthPasswordResetInfo"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                /** @description Conflict. There is no password reset (by code) flow pending. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Reset password
+         * @description Perform the password reset, by handing over the password reset key and
+         *     the new password. After successfully completing the password reset, the
+         *     user is either logged in (in case `ACCOUNT_LOGIN_ON_PASSWORD_RESET` is
+         *     `True`), or, the user will need to proceed to the login page.  In case
+         *     of the former, a `200` status code is returned, in case of the latter a
+         *     401.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: components["requestBodies"]["AllauthResetPassword"];
+            responses: {
+                200: components["responses"]["AllauthAuthenticatedByPassword"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                401: components["responses"]["AllauthAuthentication"];
+                /** @description Conflict. There is no password reset (by code) flow pending. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/phone/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify a phone number
+         * @description Complete the phone number verification process. Note that a status code
+         *     of 401 does not imply failure. It merely indicates that the phone number
+         *     verification was successful, yet, the user is still not signed in.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: components["requestBodies"]["AllauthVerifyPhone"];
+            responses: {
+                200: components["responses"]["AllauthAuthenticated"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                401: components["responses"]["AllauthUnauthenticated"];
+                /** @description Conflict. The phone verification flow is not pending. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/phone/verify/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend phone number verification code
+         * @description Requests a new phone number verification code.
+         *     Requires `ACCOUNT_PHONE_VERIFICATION_SUPPORTS_RESEND = True`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: components["responses"]["AllauthStatusOK"];
+                /** @description Conflict. The phone verification flow is not pending. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+                429: components["responses"]["AllauthTooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/provider/redirect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Provider redirect
+         * @description Initiates the third-party provider authentication redirect flow. As calling
+         *     this endpoint results in a user facing redirect (302), this call is only
+         *     available in a browser, and must be called in a synchronous (non-XHR)
+         *     manner.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["AllauthProviderRedirect"];
+            responses: {
+                /** @description The provider authorization URL to which the client should be redirected. */
+                302: {
+                    headers: {
+                        /** @description The redirect URL. */
+                        location?: string;
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/provider/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Provider signup information
+         * @description If, while signing up using a third-party provider account, there is
+         *     insufficient information received from the provider to automatically
+         *     complete the signup process, an additional step is needed to complete
+         *     the missing data before the user is fully signed up and authenticated.
+         *     The information available so far, such as the pending provider account,
+         *     can be retrieved via this endpoint.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: components["responses"]["AllauthProviderSignup"];
+                /** @description Conflict. The provider signup flow is not pending. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Provider signup
+         * @description If, while signing up using a third-party provider account, there is
+         *     insufficient information received from the provider to automatically
+         *     complete the signup process, an additional step is needed to complete
+         *     the missing data before the user is fully signed up and authenticated.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["AllauthProviderSignup"];
+            responses: {
+                200: components["responses"]["AllauthAuthenticated"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated, more steps are required to be completed. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthAuthenticationResponse"];
+                    };
+                };
+                /** @description Forbidden. For example, when signup is closed. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthForbiddenResponse"];
+                    };
+                };
+                /** @description Conflict. The provider signup flow is not pending. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/provider/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Provider token
+         * @description Authenticates with a third-party provider using provider tokens received
+         *     by other means. For example, in case of a mobile app, the authentication
+         *     flow runs completely on the device itself, without any interaction with
+         *     the API. Then, when the (device) authentication completes and the mobile
+         *     app receives an access and/or ID token, it can hand over these tokens
+         *     via this endpoint to authenticate on the server.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["AllauthProviderToken"];
+            responses: {
+                200: components["responses"]["AllauthAuthenticated"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated, more steps are required to be completed. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthAuthenticationResponse"];
+                    };
+                };
+                /** @description Forbidden. For example, when signup is closed. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthForbiddenResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/reauthenticate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reauthenticate
+         * @description In order to safeguard the account, some actions require the user to be
+         *     recently authenticated.  If you try to perform such an action without
+         *     having been recently authenticated, a `401` status is returned, listing
+         *     flows that can be performed to reauthenticate. One such flow is the flow
+         *     with ID `reauthenticate`, which allows for the user to input the
+         *     password. This is the endpoint related towards that flow.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["AllauthReauthenticate"];
+            responses: {
+                200: components["responses"]["AllauthAuthenticatedByPassword"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                403: components["responses"]["AllauthForbidden"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/reauthenticate/code/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm a reauthentication code
+         * @description Complete the pending `reauthenticate_by_code` flow using the code sent
+         *     to the selected email address or phone number.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["AllauthConfirmLoginCode"];
+            responses: {
+                200: components["responses"]["AllauthAuthenticatedByCode"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                401: components["responses"]["AllauthAuthentication"];
+                403: components["responses"]["AllauthForbidden"];
+                /** @description Conflict. The reauthentication by code flow is not pending. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/reauthenticate/code/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request a reauthentication code
+         * @description Send a reauthentication code to one of the verified email addresses or
+         *     the verified phone number listed on the `reauthenticate_by_code` flow.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["AllauthRequestReauthenticationCode"];
+            responses: {
+                200: components["responses"]["AllauthStatusOK"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                401: components["responses"]["AllauthAuthentication"];
+                403: components["responses"]["AllauthForbidden"];
+                429: components["responses"]["AllauthTooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/reauthenticate/code/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend a reauthentication code
+         * @description Send a new code for the pending `reauthenticate_by_code` flow.
+         *     Requires `ACCOUNT_LOGIN_BY_CODE_SUPPORTS_RESEND` to be enabled.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: components["responses"]["AllauthStatusOK"];
+                401: components["responses"]["AllauthAuthentication"];
+                403: components["responses"]["AllauthForbidden"];
+                /**
+                 * @description Conflict. The reauthentication by code flow is not pending or can
+                 *     no longer be resent.
+                 */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+                429: components["responses"]["AllauthTooManyRequests"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get authentication status
+         * @description Retrieve information about the authentication status for the current
+         *     session.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: components["responses"]["AllauthAuthenticated"];
+                401: components["responses"]["AllauthAuthentication"];
+                410: components["responses"]["AllauthSessionGone"];
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Logout
+         * @description Logs out the user from the current session.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                401: components["responses"]["AllauthUnauthenticated"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/auth/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Signup
+         * @description Whether or not `username`, `email`, `phone` or combination of those are
+         *     required depends on the configuration of django-allauth. Additionally,
+         *     if a custom signup form is used there may be other custom properties
+         *     required.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["AllauthSignup"];
+            responses: {
+                200: components["responses"]["AllauthAuthenticatedByPassword"];
+                /** @description An input error occurred. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthErrorResponse"];
+                    };
+                };
+                /** @description Not authenticated. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthAuthenticationResponse"];
+                    };
+                };
+                /** @description Forbidden. For example, when signup is closed. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthForbiddenResponse"];
+                    };
+                };
+                /** @description Conflict. For example, when signing up while user is logged in. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AllauthConflictResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/browser/v1/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get configuration
+         * @description There are many configuration options that alter the functionality
+         *     and behavior of django-allauth, some of which can also impact the
+         *     frontend. Therefore, relevant configuration options are exposed via
+         *     this endpoint. The data returned is not user/authentication
+         *     dependent. Hence, it suffices to only fetch this data once at boot
+         *     time of your application.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: components["responses"]["AllauthConfiguration"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health/": {
         parameters: {
             query?: never;
@@ -20,17 +1393,1265 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["me_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description The access token.
+         * @example eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdW
+         */
+        AllauthAccessToken: string;
+        /** @description Configuration of the Django `allauth.account` app. */
+        AllauthAccountConfiguration: {
+            email_verification_by_code_enabled: boolean;
+            is_open_for_signup: boolean;
+            login_by_code_enabled: boolean;
+            login_methods?: ("email" | "username")[];
+            password_reset_by_code_enabled?: boolean;
+        };
+        AllauthAuthenticated: {
+            /** @description A list of methods used to authenticate. */
+            methods: components["schemas"]["AllauthAuthenticationMethod"][];
+            user: components["schemas"]["AllauthUser"];
+        };
+        AllauthAuthenticatedMeta: components["schemas"]["AllauthBaseAuthenticationMeta"] & {
+            /** @enum {boolean} */
+            is_authenticated: true;
+        };
+        AllauthAuthenticatedResponse: {
+            data: components["schemas"]["AllauthAuthenticated"];
+            meta: components["schemas"]["AllauthAuthenticationMeta"];
+            status: components["schemas"]["AllauthStatusOK"];
+        };
+        AllauthAuthenticationMeta: components["schemas"]["AllauthBaseAuthenticationMeta"] & {
+            is_authenticated: boolean;
+        };
+        AllauthAuthenticationMethod: {
+            at: components["schemas"]["AllauthTimestamp"];
+            email?: components["schemas"]["AllauthEmail"];
+            /** @enum {string} */
+            method: "password";
+            username?: components["schemas"]["AllauthUsername"];
+        } | {
+            at: components["schemas"]["AllauthTimestamp"];
+            email: components["schemas"]["AllauthEmail"];
+            /** @enum {string} */
+            method: "password_reset";
+        } | {
+            at: components["schemas"]["AllauthTimestamp"];
+            email: components["schemas"]["AllauthEmail"];
+            /** @enum {string} */
+            method: "code";
+            /** @enum {boolean} */
+            reauthenticated?: true;
+        } | {
+            at: components["schemas"]["AllauthTimestamp"];
+            /** @enum {string} */
+            method: "code";
+            phone: components["schemas"]["AllauthPhone"];
+            /** @enum {boolean} */
+            reauthenticated?: true;
+        } | {
+            at: components["schemas"]["AllauthTimestamp"];
+            /** @enum {string} */
+            method: "password";
+            /** @enum {boolean} */
+            reauthenticated: true;
+        } | {
+            at: components["schemas"]["AllauthTimestamp"];
+            /** @enum {string} */
+            method: "socialaccount";
+            provider: components["schemas"]["AllauthProviderID"];
+            uid: components["schemas"]["AllauthProviderAccountID"];
+        } | {
+            at: components["schemas"]["AllauthTimestamp"];
+            /** @enum {string} */
+            method: "mfa";
+            reauthenticated?: boolean;
+            type: components["schemas"]["AllauthAuthenticatorType"];
+        };
+        /** @description An authentication related response. */
+        AllauthAuthenticationResponse: {
+            data: {
+                flows: components["schemas"]["AllauthFlow"][];
+            };
+            meta: components["schemas"]["AllauthAuthenticationMeta"];
+            /** @enum {integer} */
+            status: 401;
+        };
+        /**
+         * @description An authenticator code.
+         * @example 314159
+         */
+        AllauthAuthenticatorCode: string;
+        /**
+         * @description Authenticator ID.
+         * @example 123
+         */
+        AllauthAuthenticatorID: number;
+        AllauthAuthenticatorList: (components["schemas"]["AllauthTOTPAuthenticator"] | components["schemas"]["AllauthRecoveryCodesAuthenticator"] | components["schemas"]["AllauthWebAuthnAuthenticator"])[];
+        /**
+         * @description The type of authenticator.
+         * @enum {string}
+         */
+        AllauthAuthenticatorType: "recovery_codes" | "totp" | "webauthn";
+        AllauthBaseAuthenticationMeta: {
+            /**
+             * @description The access token (`app` clients only).
+             * @example eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdW
+             */
+            access_token?: string;
+            /**
+             * @description The session token (`app` clients only).
+             * @example ufwcig0zen9skyd545jc0fkq813ghar2
+             */
+            session_token?: string;
+        };
+        AllauthBaseAuthenticator: {
+            created_at: components["schemas"]["AllauthTimestamp"];
+            last_used_at: components["schemas"]["AllauthOptionalTimestamp"];
+        };
+        AllauthBaseSignup: {
+            email: components["schemas"]["AllauthEmail"];
+        };
+        /**
+         * @description The client ID (in case of OAuth2 or OpenID Connect based providers)
+         * @example 123.apps.googleusercontent.com
+         */
+        AllauthClientID: string;
+        /**
+         * @description An one-time code.
+         * @example NQ3TM5
+         */
+        AllauthCode: string;
+        /**
+         * @example {
+         *       "data": {
+         *         "account": {
+         *           "authentication_method": "email"
+         *         },
+         *         "mfa": {
+         *           "supported_types": [
+         *             "recovery_codes",
+         *             "totp"
+         *           ]
+         *         },
+         *         "socialaccount": {
+         *           "providers": [
+         *             {
+         *               "client_id": "123.apps.googleusercontent.com",
+         *               "flows": [
+         *                 "provider_redirect",
+         *                 "provider_token"
+         *               ],
+         *               "id": "google",
+         *               "name": "Google",
+         *               "openid_configuration_url": "https://accounts.google.com/.well-known/openid-configuration"
+         *             }
+         *           ]
+         *         },
+         *         "usersessions": {
+         *           "track_activity": false
+         *         }
+         *       },
+         *       "status": 200
+         *     }
+         */
+        AllauthConfigurationResponse: {
+            data: {
+                account: components["schemas"]["AllauthAccountConfiguration"];
+                mfa?: components["schemas"]["AllauthMFAConfiguration"];
+                socialaccount?: components["schemas"]["AllauthSocialAccountConfiguration"];
+                usersessions?: components["schemas"]["AllauthUserSessionsConfiguration"];
+            };
+            status: components["schemas"]["AllauthStatusOK"];
+        };
+        AllauthConfirmLoginCode: {
+            code: components["schemas"]["AllauthCode"];
+        };
+        AllauthConflictResponse: {
+            /** @enum {integer} */
+            status: 409;
+        };
+        /**
+         * @description The email address.
+         * @example email@domain.org
+         */
+        AllauthEmail: string;
+        AllauthEmailAddress: {
+            email: components["schemas"]["AllauthEmail"];
+            /** @example true */
+            primary: boolean;
+            /** @example false */
+            verified: boolean;
+        };
+        AllauthEmailVerificationInfo: {
+            data: {
+                email: components["schemas"]["AllauthEmail"];
+                user: components["schemas"]["AllauthUser"];
+            };
+            meta: {
+                is_authenticating: boolean;
+            };
+            status: components["schemas"]["AllauthStatusOK"];
+        };
+        AllauthEndSessions: {
+            /** @description The IDs of the sessions that are to be ended. */
+            sessions: number[];
+        };
+        AllauthErrorResponse: {
+            errors?: {
+                /**
+                 * @description An error code.
+                 * @example invalid
+                 */
+                code: string;
+                /**
+                 * @description A human readable error message.
+                 * @example Enter a valid email address.
+                 */
+                message: string;
+                /**
+                 * @description The name of the input parameter that was incorrect.
+                 * @example email
+                 */
+                param?: string;
+            }[];
+            /**
+             * @example 400
+             * @enum {integer}
+             */
+            status?: 400;
+        };
+        AllauthFlow: {
+            /** @enum {string} */
+            id: "login" | "login_by_code" | "mfa_authenticate" | "mfa_reauthenticate" | "provider_redirect" | "provider_signup" | "provider_token" | "reauthenticate" | "reauthenticate_by_code" | "signup" | "verify_email" | "verify_phone";
+            /** @enum {boolean} */
+            is_pending?: true;
+            provider?: components["schemas"]["AllauthProvider"];
+            /** @description Verified destinations that can receive a reauthentication code. */
+            recipients?: components["schemas"]["AllauthReauthenticationCodeRecipient"][];
+            /** @description Matches `settings.MFA_SUPPORTED_TYPES`. */
+            types?: components["schemas"]["AllauthAuthenticatorType"][];
+        };
+        AllauthForbiddenResponse: {
+            /** @enum {integer} */
+            status: 403;
+        };
+        AllauthLogin: {
+            password: components["schemas"]["AllauthPassword"];
+        } & ({
+            username: components["schemas"]["AllauthUsername"];
+        } | {
+            email: components["schemas"]["AllauthEmail"];
+        } | {
+            phone: components["schemas"]["AllauthPhone"];
+        });
+        AllauthMFAAuthenticate: {
+            code: components["schemas"]["AllauthAuthenticatorCode"];
+        };
+        /** @description Configuration of the Django `allauth.mfa` app. */
+        AllauthMFAConfiguration: {
+            /** @description Matches `settings.MFA_SUPPORTED_TYPES`. */
+            supported_types: components["schemas"]["AllauthAuthenticatorType"][];
+        };
+        AllauthMFATrust: {
+            trust: boolean;
+        };
+        AllauthOptionalTimestamp: components["schemas"]["AllauthTimestamp"];
+        AllauthPasskeySignup: components["schemas"]["AllauthBaseSignup"];
+        /**
+         * @description The password.
+         * @example Alohomora!
+         */
+        AllauthPassword: string;
+        /**
+         * @description The phone number.
+         * @example +314159265359
+         */
+        AllauthPhone: string;
+        /** @description A phone number. */
+        AllauthPhoneNumber: {
+            /** @example +314159265359 */
+            phone: string;
+            verified: boolean;
+        };
+        /**
+         * @example {
+         *       "data": [
+         *         {
+         *           "phone": "+314159265359",
+         *           "verified": false
+         *         }
+         *       ],
+         *       "status": 202
+         *     }
+         */
+        AllauthPhoneNumberChangeResponse: {
+            data: components["schemas"]["AllauthPhoneNumber"][];
+            status: components["schemas"]["AllauthStatusAccepted"];
+        };
+        AllauthPhoneNumbersResponse: {
+            data: components["schemas"]["AllauthPhoneNumber"][];
+            status: components["schemas"]["AllauthStatusOK"];
+        };
+        /**
+         * @description The process to be executed when the user successfully
+         *     authenticates. When set to `login`, the user will be logged into the
+         *     account to which the provider account is connected, or if no such
+         *     account exists, a signup will occur. If set to `connect`, the provider
+         *     account will be connected to the list of provider accounts for the
+         *     currently authenticated user.
+         * @example login
+         * @enum {string}
+         */
+        AllauthProcess: "login" | "connect";
+        AllauthProvider: {
+            /**
+             * @description The client ID (in case of OAuth2 or OpenID Connect based providers)
+             * @example 123.apps.googleusercontent.com
+             */
+            client_id?: string;
+            /** @description The authentication flows the provider integration supports. */
+            flows: ("provider_redirect" | "provider_token")[];
+            /**
+             * @description The provider ID.
+             * @example google
+             */
+            id: string;
+            /**
+             * @description The name of the provider.
+             * @example Google
+             */
+            name: string;
+            /**
+             * @description The OIDC discovery or well-known URL (in case of OAuth2 or OpenID Connect based providers)
+             * @example https://accounts.google.com/.well-known/openid-configuration
+             */
+            openid_configuration_url?: string;
+        };
+        AllauthProviderAccount: {
+            /**
+             * @description A name derived from the third-party provider account data.
+             * @example Wizzkid
+             */
+            display: string;
+            provider: components["schemas"]["AllauthProvider"];
+            uid: components["schemas"]["AllauthProviderAccountID"];
+        };
+        /**
+         * @description The provider specific account ID.
+         * @example goo12345
+         */
+        AllauthProviderAccountID: string;
+        /**
+         * @description The provider ID.
+         * @example google
+         */
+        AllauthProviderID: string;
+        AllauthProviderList: components["schemas"]["AllauthProvider"][];
+        AllauthProviderRedirect: {
+            /**
+             * @description The URL to return to after the redirect flow is complete.
+             *
+             *     Note that this is not to be mistaken with the callback URL that you
+             *     configure over at the OAuth provider during the OAuth app/client
+             *     setup. The flow is as follows:
+             *
+             *       1. Your frontend redirects to the headless provider redirect
+             *          endpoint in a synchronous (non-XHR) manner, informing allauth
+             *          (by means of `callback_url`) where to redirect to after the
+             *          provider handshake is completed.
+             *
+             *       2. Headless will redirect to the (OAuth) identity provider to
+             *          initiate the handshake, passing along a different callback URL
+             *          to the provider: one that points to an allauth backend URL.
+             *          This is the URL that you need to have setup at your OAuth
+             *          app/client configuration. Note that this must be a backend URL
+             *          as providers can use POST requests to perform their callbacks,
+             *          which is something a frontend would not be able to handle.
+             *
+             *       3. After the authorization at the provider is completed, the
+             *          provider redirects to the *backend* allauth callback URL, which
+             *          will then redirect back to the *frontend* callback URL.
+             *
+             *       4. Your frontend is now expected to fetch the current session to
+             *          determine what the next course of action is. The user could be
+             *          authenticated at this point, or another flow is pending
+             *          (e.g. email verification, or, provider signup). In case of
+             *          errors a `?error=` is passed to the frontend callback URL.
+             * @example https://app.project.org/account/provider/callback
+             */
+            callback_url: string;
+            process: components["schemas"]["AllauthProcess"];
+            provider: components["schemas"]["AllauthProviderID"];
+        };
+        AllauthProviderSignup: components["schemas"]["AllauthBaseSignup"];
+        AllauthProviderToken: {
+            process: components["schemas"]["AllauthProcess"];
+            provider: components["schemas"]["AllauthProviderID"];
+            /** @description The token. */
+            token: {
+                /**
+                 * @description The access token.
+                 * @example 36POk6yJV_adQs
+                 */
+                access_token?: string;
+                client_id: components["schemas"]["AllauthClientID"];
+                /**
+                 * @description The ID token.
+                 * @example eyJhbGciOiJI
+                 */
+                id_token?: string;
+            };
+        };
+        AllauthReauthenticate: {
+            password: components["schemas"]["AllauthPassword"];
+        };
+        AllauthReauthenticationCodeRecipient: {
+            email: components["schemas"]["AllauthEmail"];
+        } | {
+            phone: components["schemas"]["AllauthPhone"];
+        };
+        AllauthReauthenticationRequired: {
+            flows: components["schemas"]["AllauthFlow"][];
+            /** @description A list of methods used to authenticate. */
+            methods: components["schemas"]["AllauthAuthenticationMethod"][];
+            user: components["schemas"]["AllauthUser"];
+        };
+        /** @description A response indicating reauthentication is required. */
+        AllauthReauthenticationResponse: {
+            data: components["schemas"]["AllauthReauthenticationRequired"];
+            meta: components["schemas"]["AllauthAuthenticatedMeta"];
+            /** @enum {integer} */
+            status: 401;
+        };
+        AllauthRecoveryCodesAuthenticator: components["schemas"]["AllauthBaseAuthenticator"] & {
+            /**
+             * @description The total number of recovery codes that initially were available.
+             * @example 10
+             */
+            total_code_count: number;
+            /**
+             * @description The authenticator type.
+             * @enum {string}
+             */
+            type: "recovery_codes";
+            /**
+             * @description The number of recovery codes that are unused.
+             * @example 7
+             */
+            unused_code_count: number;
+        };
+        /**
+         * @description The refresh token.
+         * @example eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.QV30
+         */
+        AllauthRefreshToken: string;
+        AllauthRequestLoginCode: {
+            phone: components["schemas"]["AllauthPhone"];
+        } | {
+            email: components["schemas"]["AllauthEmail"];
+        };
+        AllauthRequestPassword: {
+            email: components["schemas"]["AllauthEmail"];
+        };
+        AllauthRequestReauthenticationCode: {
+            phone: components["schemas"]["AllauthPhone"];
+        } | {
+            email: components["schemas"]["AllauthEmail"];
+        };
+        AllauthResetPassword: {
+            /**
+             * @description The password reset key
+             * @example 2f-c4nqd4-e07d9bc694f9f28cd4fe92569d495333
+             */
+            key: string;
+            password: components["schemas"]["AllauthPassword"];
+        };
+        AllauthSensitiveRecoveryCodesAuthenticator: components["schemas"]["AllauthRecoveryCodesAuthenticator"] & {
+            /** @description The list of unused codes. */
+            unused_codes: components["schemas"]["AllauthAuthenticatorCode"][];
+        };
+        AllauthSession: {
+            created_at: components["schemas"]["AllauthTimestamp"];
+            /** @example 123 */
+            id: number;
+            /** @example 127.2.3.192 */
+            ip: string;
+            is_current: boolean;
+            last_seen_at?: components["schemas"]["AllauthTimestamp"];
+            /** @example Mozilla Firefox */
+            user_agent: string;
+        };
+        /** @description The session is expired or invalid. */
+        AllauthSessionGoneResponse: {
+            data: Record<string, never>;
+            meta: components["schemas"]["AllauthAuthenticationMeta"];
+            /** @enum {integer} */
+            status: 410;
+        };
+        AllauthSignup: components["schemas"]["AllauthBaseSignup"] & {
+            password: components["schemas"]["AllauthPassword"];
+        };
+        /** @description Configuration of the Django `allauth.socialaccount` app. */
+        AllauthSocialAccountConfiguration: {
+            providers: components["schemas"]["AllauthProviderList"];
+        };
+        /** @enum {integer} */
+        AllauthStatusAccepted: 202;
+        /** @enum {integer} */
+        AllauthStatusOK: 200;
+        AllauthTOTPAuthenticator: components["schemas"]["AllauthBaseAuthenticator"] & {
+            /** @enum {string} */
+            type: "totp";
+        };
+        /**
+         * @description An epoch based timestamp (trivial to parse using: `new Date(value)*1000`)
+         * @example 1711555057.065702
+         */
+        AllauthTimestamp: number;
+        AllauthUser: {
+            /**
+             * @description Display name
+             * @example Ana
+             */
+            display: string;
+            /**
+             * @description Email
+             * @example ana@example.com
+             */
+            email?: string;
+            /**
+             * @description Password configured
+             * @example true
+             */
+            has_usable_password: boolean;
+            /**
+             * @description User UUID
+             * @example 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+             */
+            id: string;
+        };
+        /** @description Configuration of the Django `allauth.usersessions` app. */
+        AllauthUserSessionsConfiguration: {
+            /** @description Matches `settings.USERSESSIONS_TRACK_ACTIVITY`. */
+            track_activity: boolean;
+        };
+        /**
+         * @description The username.
+         * @example wizard
+         */
+        AllauthUsername: string;
+        AllauthVerifyEmail: {
+            /**
+             * @description The email verification key
+             * @example 2f-c4nqd4-e07d9bc694f9f28cd4fe92569d495333
+             */
+            key: string;
+        };
+        AllauthVerifyPhone: {
+            /**
+             * @description The phone verification code
+             * @example 4S3H82
+             */
+            code: string;
+        };
+        AllauthWebAuthnAuthenticator: components["schemas"]["AllauthBaseAuthenticator"] & {
+            id: components["schemas"]["AllauthAuthenticatorID"];
+            /** @description Whether or not this authenticator represents a passkey. Absent if it is not specified. */
+            is_passwordless?: boolean;
+            /** @example Master key */
+            name: string;
+            /** @enum {string} */
+            type: "webauthn";
+        };
+        /**
+         * @example {
+         *       "credential": {
+         *         "authenticatorAttachment": "cross-platform",
+         *         "clientExtensionResults": {},
+         *         "id": "-J4JNfPfnLyRSMK4R...",
+         *         "rawId": "-J4JNfPfnLyRSMK4R...",
+         *         "response": {
+         *           "authenticatorData": "SZYN5YgO...",
+         *           "clientDataJSON": "eyJjaGFsbGVuZ2UiOi...",
+         *           "signature": "MEUCIE-7sqILygPqGbrRZ4j2nqeqUU...",
+         *           "userHandle": "Mg..."
+         *         },
+         *         "type": "public-key"
+         *       }
+         *     }
+         */
+        AllauthWebAuthnCredential: Record<string, never>;
+        AllauthWebAuthnCredentialCreationOptions: {
+            /**
+             * @example {
+             *       "data": {
+             *         "request_options": {
+             *           "publicKey": {
+             *             "allowCredentials": [],
+             *             "challenge": "aOecJJtLA2e-Dj2WU-zbRoJewbQqSUPxoA9EzsUL72o",
+             *             "rpId": "localhost",
+             *             "userVerification": "preferred"
+             *           }
+             *         }
+             *       },
+             *       "status": 200
+             *     }
+             */
+            creation_options: Record<string, never>;
+        };
+        AllauthWebAuthnCredentialRequestOptions: {
+            /**
+             * @example {
+             *       "data": {
+             *         "request_options": {
+             *           "publicKey": {
+             *             "allowCredentials": [],
+             *             "challenge": "aOecJJtLA2e-Dj2WU-zbRoJewbQqSUPxoA9EzsUL72o",
+             *             "rpId": "localhost",
+             *             "userVerification": "preferred"
+             *           }
+             *         }
+             *       },
+             *       "status": 200
+             *     }
+             */
+            request_options: Record<string, never>;
+        };
+        EspacoPessoal: {
+            /** Format: uuid */
+            readonly id: string;
+            nome: string;
+            tipo: components["schemas"]["TipoEnum"];
+        };
         Health: {
             status: string;
         };
+        Me: {
+            /** Format: email */
+            email: string;
+            espaco_pessoal: components["schemas"]["EspacoPessoal"];
+            /** Format: uuid */
+            id: string;
+            nome: string;
+        };
+        /**
+         * @description * `pessoal` - Pessoal
+         *     * `grupo` - Grupo
+         * @enum {string}
+         */
+        TipoEnum: "pessoal" | "grupo";
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
+    responses: {
+        /** @description The account prohibits adding an authenticator, e.g. because of an unverified email address. */
+        AllauthAddAuthenticatorConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AllauthConflictResponse"];
+            };
+        };
+        /** @description A WebAuthn authenticator. */
+        AllauthAddWebAuthnAuthenticator: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: components["schemas"]["AllauthWebAuthnAuthenticator"];
+                    meta: {
+                        /** @description Whether or not recovery codes where generated automatically. */
+                        recovery_codes_generated?: boolean;
+                    };
+                    status: components["schemas"]["AllauthStatusOK"];
+                };
+            };
+        };
+        /** @description The user is authenticated. */
+        AllauthAuthenticated: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AllauthAuthenticatedResponse"];
+            };
+        };
+        /** @description Authenticated by code. */
+        AllauthAuthenticatedByCode: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AllauthAuthenticatedResponse"];
+            };
+        };
+        /** @description Authenticated by password. */
+        AllauthAuthenticatedByPassword: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AllauthAuthenticatedResponse"];
+            };
+        };
+        /** @description Authenticated by password and 2FA. */
+        AllauthAuthenticatedByPasswordAnd2FA: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AllauthAuthenticatedResponse"];
+            };
+        };
+        /** @description Not authenticated. */
+        AllauthAuthentication: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AllauthAuthenticationResponse"];
+            };
+        };
+        /** @description The response indicates authentication or re-authentication is required. */
+        AllauthAuthenticationOrReauthentication: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AllauthAuthenticationResponse"] | components["schemas"]["AllauthReauthenticationResponse"];
+            };
+        };
+        /** @description List of authenticators. */
+        AllauthAuthenticators: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: components["schemas"]["AllauthAuthenticatorList"];
+                    status: components["schemas"]["AllauthStatusOK"];
+                };
+            };
+        };
+        /** @description The django-allauth configuration. */
+        AllauthConfiguration: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AllauthConfigurationResponse"];
+            };
+        };
+        /** @description List of email addresses. */
+        AllauthEmailAddresses: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: components["schemas"]["AllauthEmailAddress"][];
+                    status: components["schemas"]["AllauthStatusOK"];
+                };
+            };
+        };
+        /** @description Email verification information. */
+        AllauthEmailVerificationInfo: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AllauthEmailVerificationInfo"];
+            };
+        };
+        /** @description An input error occurred. */
+        AllauthError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AllauthErrorResponse"];
+            };
+        };
+        /** @description A forbidden response. */
+        AllauthForbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AllauthForbiddenResponse"];
+            };
+        };
+        /** @description Not found. */
+        AllauthNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @enum {integer} */
+                    status: 404;
+                };
+            };
+        };
+        /** @description Information about the password reset key. */
+        AllauthPasswordResetInfo: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: {
+                        user?: components["schemas"]["AllauthUser"];
+                    };
+                    status: components["schemas"]["AllauthStatusOK"];
+                };
+            };
+        };
+        /** @description List of phone numbers. */
+        AllauthPhoneNumbers: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AllauthPhoneNumbersResponse"];
+            };
+        };
+        /** @description List of third-party provider accounts. */
+        AllauthProviderAccounts: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: components["schemas"]["AllauthProviderAccount"][];
+                    status: components["schemas"]["AllauthStatusOK"];
+                };
+            };
+        };
+        /** @description Information relating to the pending provider signup. */
+        AllauthProviderSignup: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: {
+                        account: components["schemas"]["AllauthProviderAccount"];
+                        email: components["schemas"]["AllauthEmailAddress"][];
+                        user: components["schemas"]["AllauthUser"];
+                    };
+                    status: components["schemas"]["AllauthStatusOK"];
+                };
+            };
+        };
+        /** @description The response indicates reauthentication is required. */
+        AllauthReauthenticationRequired: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AllauthReauthenticationResponse"];
+            };
+        };
+        /** @description Information on the recovery codes. */
+        AllauthRecoveryCodes: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: components["schemas"]["AllauthSensitiveRecoveryCodesAuthenticator"];
+                    status: components["schemas"]["AllauthStatusOK"];
+                };
+            };
+        };
+        /** @description A new access token (and optionally new refresh token). */
+        AllauthRefreshToken: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: {
+                        access_token: components["schemas"]["AllauthAccessToken"];
+                        refresh_token?: components["schemas"]["AllauthRefreshToken"];
+                    };
+                    status: components["schemas"]["AllauthStatusOK"];
+                };
+            };
+        };
+        /** @description The response indicates session is invalid or no longer exists. */
+        AllauthSessionGone: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AllauthSessionGoneResponse"];
+            };
+        };
+        /** @description List of sessions. */
+        AllauthSessions: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: components["schemas"]["AllauthSession"][];
+                    status: components["schemas"]["AllauthStatusOK"];
+                };
+            };
+        };
+        /** @description A success response. */
+        AllauthStatusOK: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    status: components["schemas"]["AllauthStatusOK"];
+                };
+            };
+        };
+        /** @description Information on the TOTP authenticator. */
+        AllauthTOTPAuthenticator: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: components["schemas"]["AllauthTOTPAuthenticator"];
+                    meta?: {
+                        /** @description Whether or not recovery codes where generated automatically. */
+                        recovery_codes_generated?: boolean;
+                    };
+                    status: components["schemas"]["AllauthStatusOK"];
+                };
+            };
+        };
+        /** @description No TOTP authenticator has been set up. */
+        AllauthTOTPAuthenticatorNotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    meta: {
+                        /**
+                         * @description A TOTP secret that can be used to setup a new authenticator.
+                         * @example J4ZKKXTK7NOVU7EPUVY23LCDV4T2QZYM
+                         */
+                        secret: string;
+                        /**
+                         * @description otpauth URI from which a QR code can be generated and scanned by OTP clients.
+                         * @example otpauth://totp/Example:alice@fsf.org?secret=JBSWY3DPEHPK3PXP&issuer=Example
+                         */
+                        totp_url: string;
+                    };
+                    /** @enum {integer} */
+                    status: 404;
+                };
+            };
+        };
+        /** @description Too many requests. */
+        AllauthTooManyRequests: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @enum {integer} */
+                    status: 429;
+                };
+            };
+        };
+        /** @description There is no authenticated session. */
+        AllauthUnauthenticated: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AllauthAuthenticationResponse"];
+            };
+        };
+        /** @description A WebAuthn authenticator. */
+        AllauthWebAuthnAuthenticator: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: components["schemas"]["AllauthWebAuthnAuthenticator"];
+                    status: components["schemas"]["AllauthStatusOK"];
+                };
+            };
+        };
+        /** @description WebAuthn credential creation options. */
+        AllauthWebAuthnCreationOptionsResponse: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: components["schemas"]["AllauthWebAuthnCredentialCreationOptions"];
+                    status: components["schemas"]["AllauthStatusOK"];
+                };
+            };
+        };
+        /** @description WebAuthn credential request options. */
+        AllauthWebAuthnRequestOptionsResponse: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: components["schemas"]["AllauthWebAuthnCredentialRequestOptions"];
+                    status: components["schemas"]["AllauthStatusOK"];
+                };
+            };
+        };
+    };
+    parameters: {
+        /** @description The email verification key */
+        AllauthEmailVerificationKey: string;
+        /**
+         * @description When present (regardless of its value), enables passwordless sign-in via a WebAuthn credential (Passkey),
+         *     which requires PIN, biometric, or equivalent user verification. Omit the parameter to disable.
+         */
+        AllauthPasswordLess: boolean;
+        /** @description The password reset key */
+        AllauthPasswordResetKey: string;
+    };
+    requestBodies: {
+        AllauthAddWebAuthnAuthenticator: {
+            content: {
+                "application/json": {
+                    credential: components["schemas"]["AllauthWebAuthnCredential"];
+                    /** @example Master key */
+                    name?: string;
+                };
+            };
+        };
+        /** @description Authenticate using WebAuthn. */
+        AllauthAuthenticateWebAuthn: {
+            content: {
+                "application/json": {
+                    credential: components["schemas"]["AllauthWebAuthnCredential"];
+                };
+            };
+        };
+        AllauthChangePassword: {
+            content: {
+                "application/json": {
+                    current_password?: components["schemas"]["AllauthPassword"];
+                    /**
+                     * @description The current password.
+                     * @example Aberto!
+                     */
+                    new_password: string;
+                };
+            };
+        };
+        AllauthConfirmLoginCode: {
+            content: {
+                "application/json": components["schemas"]["AllauthConfirmLoginCode"];
+            };
+        };
+        AllauthDeleteWebAuthn: {
+            content: {
+                "application/json": {
+                    /** @description The IDs of the authenticator that are to be deleted. */
+                    authenticators: components["schemas"]["AllauthAuthenticatorID"][];
+                };
+            };
+        };
+        AllauthEmail: {
+            content: {
+                "application/json": {
+                    email: components["schemas"]["AllauthEmail"];
+                };
+            };
+        };
+        AllauthEndSessions: {
+            content: {
+                "application/json": components["schemas"]["AllauthEndSessions"];
+            };
+        };
+        /** @description Login. */
+        AllauthLogin: {
+            content: {
+                "application/json": components["schemas"]["AllauthLogin"];
+            };
+        };
+        /** @description Login using WebAuthn. */
+        AllauthLoginWebAuthn: {
+            content: {
+                "application/json": {
+                    credential: components["schemas"]["AllauthWebAuthnCredential"];
+                };
+            };
+        };
+        AllauthMFAAuthenticate: {
+            content: {
+                "application/json": components["schemas"]["AllauthMFAAuthenticate"];
+            };
+        };
+        AllauthMFATrust: {
+            content: {
+                "application/json": components["schemas"]["AllauthMFATrust"];
+            };
+        };
+        AllauthMarkPrimaryEmail: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description An email address.
+                     * @example email@domain.org
+                     */
+                    email: string;
+                    /**
+                     * @description Primary flag.
+                     * @enum {boolean}
+                     */
+                    primary: true;
+                };
+            };
+        };
+        /** @description Signup using a passkey */
+        AllauthPasskeySignup: {
+            content: {
+                "application/json": components["schemas"]["AllauthPasskeySignup"];
+            };
+        };
+        AllauthPhone: {
+            content: {
+                "application/json": {
+                    /** @example +314159265359 */
+                    phone: string;
+                };
+            };
+        };
+        AllauthProviderAccount: {
+            content: {
+                "application/json": {
+                    account: components["schemas"]["AllauthProviderAccountID"];
+                    provider: components["schemas"]["AllauthProviderID"];
+                };
+            };
+        };
+        /** @description Initiate the provider redirect flow. */
+        AllauthProviderRedirect: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["AllauthProviderRedirect"];
+            };
+        };
+        /** @description Provider signup. */
+        AllauthProviderSignup: {
+            content: {
+                "application/json": components["schemas"]["AllauthProviderSignup"];
+            };
+        };
+        AllauthProviderToken: {
+            content: {
+                "application/json": components["schemas"]["AllauthProviderToken"];
+            };
+        };
+        /** @description Reauthenticate. */
+        AllauthReauthenticate: {
+            content: {
+                "application/json": components["schemas"]["AllauthReauthenticate"];
+            };
+        };
+        /** @description Reauthenticate using WebAuthn. */
+        AllauthReauthenticateWebAuthn: {
+            content: {
+                "application/json": {
+                    credential: components["schemas"]["AllauthWebAuthnCredential"];
+                };
+            };
+        };
+        AllauthRefreshToken: {
+            content: {
+                "application/json": {
+                    refresh_token: components["schemas"]["AllauthRefreshToken"];
+                };
+            };
+        };
+        /** @description Request a login code. */
+        AllauthRequestLoginCode: {
+            content: {
+                "application/json": components["schemas"]["AllauthRequestLoginCode"];
+            };
+        };
+        /** @description Request password. */
+        AllauthRequestPassword: {
+            content: {
+                "application/json": components["schemas"]["AllauthRequestPassword"];
+            };
+        };
+        /** @description Request a reauthentication code. */
+        AllauthRequestReauthenticationCode: {
+            content: {
+                "application/json": components["schemas"]["AllauthRequestReauthenticationCode"];
+            };
+        };
+        AllauthResetPassword: {
+            content: {
+                "application/json": components["schemas"]["AllauthResetPassword"];
+            };
+        };
+        AllauthSetupTOTP: {
+            content: {
+                "application/json": {
+                    code: components["schemas"]["AllauthAuthenticatorCode"];
+                };
+            };
+        };
+        /** @description Signup */
+        AllauthSignup: {
+            content: {
+                "application/json": components["schemas"]["AllauthSignup"];
+            };
+        };
+        AllauthUpdateWebAuthn: {
+            content: {
+                "application/json": {
+                    id?: components["schemas"]["AllauthAuthenticatorID"];
+                    /** @example Master key */
+                    name?: string;
+                };
+            };
+        };
+        AllauthVerifyEmail: {
+            content: {
+                "application/json": components["schemas"]["AllauthVerifyEmail"];
+            };
+        };
+        AllauthVerifyPhone: {
+            content: {
+                "application/json": components["schemas"]["AllauthVerifyPhone"];
+            };
+        };
+    };
     headers: never;
     pathItems: never;
 }
@@ -51,6 +2672,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    me_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
                 };
             };
         };

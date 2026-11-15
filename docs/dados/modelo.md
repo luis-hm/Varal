@@ -1,7 +1,7 @@
 # Modelo de dados
 
 > **Contém:** entidades, campos, decisões de modelagem e diagrama ER.
-> **Origem:** `docs/especificacao-varal.md`, seção 8 (o diagrama ER foi derivado do bloco de entidades).
+> **Origem:** `docs/especificacao-varal.md`, seção 8 (diagrama ER derivado das entidades), mais a seção de implementação da Etapa 02.
 
 ## 8. Modelo de dados
 
@@ -38,6 +38,12 @@ notificacao        id, usuario_id, lancamento_id, tipo, canal, agendada_para,
 - **Instrumento separado:** novos meios de pagamento entram sem mexer em `lancamento`.
 - **`chave_idempotencia` única** em `notificacao` garante RN19 e RNF07.
 - **UUID** como chave em tudo; índice em `(espaco_id, vencimento)`.
+
+## Implementação da Etapa 02
+
+O bloco acima preserva a especificação. No código, `Usuario` mantém UUID/username legado e acrescenta `nome` (150 caracteres), `telefone` (30) e `prefs_notificacao` (JSON, padrão `{}`). O e-mail é normalizado ao salvar e tem restrição de unicidade sem distinguir maiúsculas.
+
+`Espaco` já tem UUID, `tipo`, `nome`, `dono` e `janela_alerta_dias` (padrão 3). Para `pessoal`, o banco exige dono e unicidade por dono. `Usuario.save()` salva usuário e provisiona “Pessoal” na mesma transação, de forma idempotente. A migração `espacos.0002_pessoais_existentes` provisiona usuários anteriores sem trocar UUID/senha. Não há modelo de membros ainda; grupos e vínculos entram na Etapa 03. As tabelas de e-mail e conta social são mantidas pelo allauth.
 
 ## Diagrama ER
 
