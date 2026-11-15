@@ -17,5 +17,5 @@ O RF11 pedia categoria, mas nenhum frame do Doop tem o campo e não havia lista 
 ## Consequências
 
 - `requisitos/funcionais.md` (RF11) segue a origem rev 47.
-- A origem ainda cita categoria no passo 3 do CU05 e no modelo de dados (seção 8: entidade `categoria` e `lancamento.categoria_id?`). Os derivados seguem este ADR: [CU05](../../casos-de-uso/CU05-cadastrar-conta.md) sem categoria e [modelo](../../dados/modelo.md) com nota. Limpar a origem é pergunta ao dono (Q22 da Etapa 04).
+- A origem ainda cita categoria no passo 3 do CU05 e no modelo de dados (seção 8: entidade `categoria` e `lancamento.categoria_id?`). Os derivados seguem este ADR: [CU05](../../casos-de-uso/CU05-cadastrar-conta.md) sem categoria e [modelo](../../dados/modelo.md) com nota. O dono limpou a origem na rev 50 (Q22 da Etapa 04); a cópia local é reexportada na abertura da Etapa 05.
 - A Etapa 04 não cria `categoria` nem `categoria_id`.

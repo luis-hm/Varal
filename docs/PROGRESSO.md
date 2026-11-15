@@ -33,6 +33,8 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 | P3 | Configurar a cadeia de proxies confiáveis e testar spoofing antes do deploy. Allauth mantém `trusted_proxy_count=0` enquanto a API 8000 está exposta; limite por IP vê o Next como origem. Ativar também o limite de aceite de convite por IP (RN31). | Deploy da Etapa 11 |
 | P4 | Produção: com `DJANGO_DEBUG=0` a API liga `SECURE_SSL_REDIRECT`, e o Next consulta `/api/me/` pela rede interna em HTTP sem `X-Forwarded-Proto`; provável redirecionamento para https e falha das páginas protegidas. Definir como o Next fala com a API em produção (cabeçalho, exceção de rota ou proxy). Omitir também o token de convite do access log do proxy/servidor de produção (RN31). | Deploy da Etapa 11 |
 | P5 | Tornar o limite de cadastro configurável só no E2E/CI (flakiness do E2E): `ACCOUNT_RATE_LIMITS` com `signup` por env. O E2E cria ~40 contas contra o limite de 20/min por IP do allauth. Não é bug de produção. | Não bloqueia |
+| P6 | Reexportar a especificação da origem rev 50 (o dono tirou categoria do passo 3 do CU05, a entidade `categoria` e `lancamento.categoria_id`; Q22 da Etapa 04) e alinhar CU05, `dados/modelo.md` e ADR 0005. | Abertura da Etapa 05 |
+| P7 | Entregar ao removido o aviso das contas canceladas pela RN32 na remoção pelo admin ([ADR 0006](arquitetura/adr/0006-rn32-conta-restrita-orfa.md)). A Etapa 04 só grava no histórico (`cancelada_automaticamente`, `dados.removido`). A confirmar no relatório da 04. | Etapa 09 |
 
 ### Resolvidas
 
@@ -49,6 +51,14 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 ## Log
 
 Ordem cronológica inversa.
+
+### 15/11/2026 — Respostas do dono às Q17–Q23 da Etapa 04
+
+- **Q17 / ADR 0006 (RN32) revisto:** sair e excluir a própria conta seguem com 409; remoção pelo admin nunca bloqueia, cancela a restrita órfã ("cancelada automaticamente: ficou sem ninguém que pudesse vê-la") e não dá sinal nenhum ao admin. Aviso ao removido na 09 (P7). Nunca escalar a visibilidade para o admin.
+- **ADR 0007 (Q18):** exceção à RN05 só dentro da saída barrada pela RN32 (acrescentar em "Quem vê" ou cancelar), com histórico.
+- **ADR 0008 (Q19a):** acesso explícito (RN06) prevalece sobre a RN07; trocar alguém para pagador preserva o acesso à restrita que só ele vê. **Q19b:** editar deixando a conta sem ninguém → 400.
+- Q20 (CU04 alternativo fora da 04), Q21 (admin só avisado/desfaz no que vê; anotado em 07 e 09) e Q23 (sem conta "pagas" no varal até a 07) como propostos. Q22: origem rev 50 sem categoria; reexportar na abertura da 05 (P6).
+- Spec (CA01–CA34, sete CAs novos ou reescritos), plano, tarefas, regras, matriz e etapas atualizados. Sem código nem commit.
 
 ### 15/11/2026 — Ok do dono à Etapa 04, com correções
 
