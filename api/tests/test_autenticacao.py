@@ -377,6 +377,22 @@ def test_rnf02_ca11_configuracao_producao_cookies_e_https(monkeypatch):
     assert production["SESSION_COOKIE_SAMESITE"] == "Lax"
 
 
+@pytest.mark.parametrize("signup_env", [None, "1000/m/ip"])
+def test_p5_limite_de_cadastro_por_env_mantem_os_outros(settings, monkeypatch, signup_env):
+    from allauth.account import app_settings
+
+    if signup_env:
+        monkeypatch.setenv("ACCOUNT_RATE_LIMIT_SIGNUP", signup_env)
+    else:
+        monkeypatch.delenv("ACCOUNT_RATE_LIMIT_SIGNUP", raising=False)
+    config = runpy.run_path(str(Path(__file__).parents[1] / "config/settings.py"))
+    settings.ACCOUNT_RATE_LIMITS = config["ACCOUNT_RATE_LIMITS"]
+    limits = app_settings.RATE_LIMITS
+    assert limits["signup"] == (signup_env or "20/m/ip")  # allauth 65.22 default
+    assert limits["login"] == "30/m/ip"
+    assert limits["login_failed"] and limits["reset_password"] and limits["change_password"]
+
+
 def test_rnf02_ca11_login_limitado_apos_tentativas_incorretas(settings):
     settings.ACCOUNT_RATE_LIMITS = {"login_failed": "2/m/key"}
     create_user()

@@ -38,6 +38,8 @@ jobs:
       FRONTEND_URL: http://localhost:3000
       API_PUBLIC_URL: http://localhost:8000
       API_INTERNAL_URL: http://localhost:8000
+      # The suite signs up ~40 accounts from one IP; allauth's default is 20/m/ip (P5).
+      ACCOUNT_RATE_LIMIT_SIGNUP: 1000/m/ip
     services:
       postgres:
         image: postgres:17-alpine

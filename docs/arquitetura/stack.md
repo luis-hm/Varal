@@ -71,6 +71,8 @@ E-mail: `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_H
 
 `REDIS_URL` atende ao broker e ao cache Django, com prefixo `varal-cache`; os limites de autenticação compartilham estado entre processos. Fora de DEBUG, cookies são Secure e a API força HTTPS. Antes do deploy, configurar a cadeia de proxies confiáveis: o limite por IP ainda vê o Next como origem; não confiar indiscriminadamente nos headers encaminhados enquanto a porta 8000 estiver exposta.
 
+Só E2E/CI: `ACCOUNT_RATE_LIMIT_SIGNUP` sobrescreve o limite de cadastro do allauth (`ACCOUNT_RATE_LIMITS["signup"]`; o allauth mescla o dicionário aos padrões, então login, `login_failed`, `reset_password` etc. seguem os dele). `make e2e` passa `1000/m/ip` ao serviço `api` e o job `e2e` do `web.yml` define o mesmo valor, porque a suíte cria ~40 contas do mesmo IP. Fora disso fica vazia e vale o padrão (20/m/ip). Não vai no `infra/.env.example` (P5).
+
 ## Decisões de implementação
 
 - Modelo de usuário próprio (`contas_usuario.Usuario`, UUID) desde a Etapa 00. Na Etapa 02: campos de domínio, login por e-mail e unicidade sem distinguir maiúsculas; username segue interno para compatibilidade do admin/seed.
