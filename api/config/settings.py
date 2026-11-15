@@ -161,6 +161,8 @@ STATIC_URL = "static/"
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    # Scoped throttles key on the user id and live in the default (Redis) cache.
+    "DEFAULT_THROTTLE_RATES": {"convite_aceite": "10/hour"},  # RN31
 }
 SPECTACULAR_SETTINGS = {
     "TITLE": "Varal API",
@@ -168,6 +170,7 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "DEFAULT_GENERATOR_CLASS": "config.schema.CombinedSchemaGenerator",
+    "ENUM_NAME_OVERRIDES": {"PapelEnum": "apps.espacos.models.Papel"},
 }
 
 CELERY_BROKER_URL = env("REDIS_URL", "redis://localhost:6379/0")
