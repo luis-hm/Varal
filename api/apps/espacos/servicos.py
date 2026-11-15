@@ -109,6 +109,13 @@ def restritas_de_quem_sai(usuario, travar=True):
     """RN32 for deleting the account: every group of the user, as if they left it."""
     from apps.lancamentos.servicos import restritas_sem_quem_veja
 
+    if travar:  # M1: member rows before bills, the order `_desligar` uses
+        list(
+            Membro.objects.select_for_update()
+            .filter(usuario=usuario)
+            .order_by("pk")
+            .values_list("pk", flat=True)
+        )
     grupos = Espaco.objects.filter(membros__usuario=usuario).order_by("pk")
     return [c for g in grupos for c in restritas_sem_quem_veja(g, usuario, travar)]
 
@@ -117,7 +124,7 @@ def restritas_de_quem_sai(usuario, travar=True):
 def proteger_conta_restrita(sender, instance, **kwargs):
     """RN32/ADR 0006: deleting one's own account is the person acting, so it is blocked like
     leaving (no resolutions here: those exist only in the exit, ADR 0007). Runs after the RN04
-    guard, so locks keep the order admins -> bills."""
+    guard, so locks keep the order admins -> member -> bills."""
     orfas = restritas_de_quem_sai(instance)
     if orfas:
         raise ContaRestritaSemQuemVeja(orfas, mensagem=ContaRestritaSemQuemVeja.EXCLUIR)
@@ -228,8 +235,12 @@ def _desligar(grupo, voluntario, resolucoes=(), por=None, **filtro):
 
     with transaction.atomic():
         admins = {pk for _, pk, _ in _admins_travados([grupo.pk])}
+        # of=self: locking the joined Usuario row too would deadlock with an edit's deferred FK
+        # check on "Quem vê" (it holds the bill this exit waits for).
         membro = get_object_or_404(
-            Membro.objects.select_for_update().select_related("usuario"), espaco=grupo, **filtro
+            Membro.objects.select_for_update(of=("self",)).select_related("usuario"),
+            espaco=grupo,
+            **filtro,
         )
         if admins == {membro.pk}:
             raise UltimoAdmin()

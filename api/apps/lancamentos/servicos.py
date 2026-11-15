@@ -17,14 +17,17 @@ SO_VOCE_VE = "Você é a única pessoa que vê esta conta. Escolha outra pessoa 
 CAMPOS = ["descricao", "valor_centavos", "vencimento", "subgrupo_id", "pagador_id", "visibilidade"]
 
 
-def nome(usuario):
-    return usuario.nome or usuario.email
+SEM_NOME, EX_MEMBRO = "Pessoa sem nome", "Ex-membro"
 
 
-def _nomes(usuario_ids):
-    from apps.contas_usuario.models import Usuario
+def rotulo(usuario):
+    """How a person is shown in bills and their history: never the e-mail (LGPD); a deleted
+    account is "Ex-membro" (RN30)."""
+    return EX_MEMBRO if usuario is None else usuario.nome or SEM_NOME
 
-    return sorted(nome(u) for u in Usuario.objects.filter(pk__in=usuario_ids))
+
+def _ids(usuario_ids):
+    return sorted(str(pk) for pk in usuario_ids)
 
 
 def _membros(espaco, ids, papeis):
@@ -71,6 +74,34 @@ def validar(espaco, dados, conta=None):
     return dados
 
 
+def resolver_pessoas(historicos):
+    """RN22/RN30: `dados` stores user ids, never names or e-mails (LGPD), so nothing about a
+    person outlives their account. Sets `dados_exibidos` with names, in one query; the stored
+    `dados` is left untouched."""
+    from apps.contas_usuario.models import Usuario
+
+    ids = set()
+    for h in historicos:
+        ids.update(i for i in h.dados.get("pagador", ()) if i)
+        ids.update(i for lado in h.dados.get("acesso", ()) for i in lado)
+        if h.dados.get("pessoa"):
+            ids.add(h.dados["pessoa"])
+    nomes = {str(u.pk): rotulo(u) for u in Usuario.objects.filter(pk__in=ids)}
+
+    def nome(i):
+        return None if i is None else nomes.get(i, EX_MEMBRO)
+
+    for h in historicos:
+        dados = dict(h.dados)
+        if "pagador" in dados:
+            dados["pagador"] = [nome(i) for i in dados["pagador"]]
+        if "acesso" in dados:
+            dados["acesso"] = [sorted(nome(i) for i in lado) for lado in dados["acesso"]]
+        if "pessoa" in dados:
+            dados["pessoa"] = nome(dados["pessoa"])
+        h.dados_exibidos = dados
+
+
 def _historico(conta, usuario, acao, dados=None):
     Historico.objects.create(lancamento=conta, usuario=usuario, acao=acao, dados=dados or {})
 
@@ -91,7 +122,7 @@ def _legivel(campo, valor):
     if campo == "subgrupo_id":
         return Subgrupo.objects.get(pk=valor).nome
     if campo == "pagador_id":
-        return _nomes([valor])[0]
+        return str(valor)  # user ids only (LGPD); names are resolved on read
     if campo == "vencimento":
         return valor.isoformat()
     return valor
@@ -115,7 +146,7 @@ def editar(usuario, conta_id, dados):
         if "acesso" in dados:
             antes = set(conta.acesso.values_list("pk", flat=True))
             if antes != dados["acesso"]:
-                mudancas["acesso"] = [_nomes(antes), _nomes(dados["acesso"])]
+                mudancas["acesso"] = [_ids(antes), _ids(dados["acesso"])]
                 conta.acesso.set(dados["acesso"])
         if not mudancas:
             return conta
@@ -152,9 +183,23 @@ def _escolhido(usuario):
     )
 
 
+def travar_restritas(grupo):
+    """RN32: lock every open restricted bill of the group by pk, not only those the person sees
+    in this snapshot: an edit adding them to a bill holds its lock, so it commits first and the
+    next query sees it. Callers lock admins -> member before this; `editar` locks only the bill."""
+    list(
+        Lancamento.objects.select_for_update()
+        .filter(espaco=grupo, visibilidade=Visibilidade.RESTRITA, status__in=ABERTOS)
+        .order_by("pk")
+        .values_list("pk", flat=True)
+    )
+
+
 def restritas_sem_quem_veja(grupo, usuario, travar=True):
     """RN32: open restricted bills `usuario` sees now that nobody would see without them (RN21
     applied). Locked by pk (fixed order) when `travar`; needs a transaction then."""
+    if travar:
+        travar_restritas(grupo)
     contas = lancamentos_visiveis(usuario, grupo).filter(
         visibilidade=Visibilidade.RESTRITA, status__in=ABERTOS
     )
@@ -176,7 +221,7 @@ def pessoas_para_escolher(grupo, sem):
         .order_by("usuario__nome", "usuario__email")
     )
     # Names only, never e-mail (LGPD): someone leaving may not see the group page.
-    return [{"id": m.usuario_id, "nome": m.usuario.nome or "Pessoa sem nome"} for m in membros]
+    return [{"id": m.usuario_id, "nome": rotulo(m.usuario)} for m in membros]
 
 
 def resolver_na_saida(usuario, grupo, resolucoes, orfas):
@@ -201,7 +246,7 @@ def resolver_na_saida(usuario, grupo, resolucoes, orfas):
             )
         antes = set(conta.acesso.values_list("pk", flat=True))
         conta.acesso.add(*novos)
-        dados = {"acesso": [_nomes(antes), _nomes(antes | novos)], "motivo": "saida_rn32"}
+        dados = {"acesso": [_ids(antes), _ids(antes | novos)], "motivo": "saida_rn32"}
         _historico(conta, usuario, Acao.EDITADA, dados)
 
 
@@ -220,11 +265,13 @@ def desligar_das_contas(usuario, grupo):
     for conta in abertas.select_for_update().order_by("pk"):
         conta.pagador = None
         conta.save(update_fields=["pagador", "atualizado_em"])
-        _historico(conta, None, Acao.PAGADOR_REMOVIDO, {"pagador": [nome(usuario), None]})
+        _historico(conta, None, Acao.PAGADOR_REMOVIDO, {"pagador": [str(usuario.pk), None]})
     acessos = Lancamento.acesso.through.objects.filter(lancamento__espaco=grupo, usuario=usuario)
     Historico.objects.bulk_create(
         Historico(
-            lancamento_id=lancamento_id, acao=Acao.ACESSO_REMOVIDO, dados={"pessoa": nome(usuario)}
+            lancamento_id=lancamento_id,
+            acao=Acao.ACESSO_REMOVIDO,
+            dados={"pessoa": str(usuario.pk)},
         )
         for lancamento_id in acessos.values_list("lancamento_id", flat=True)
     )
@@ -234,6 +281,7 @@ def desligar_das_contas(usuario, grupo):
 def preservar_acesso(grupo, usuario):
     """ADR 0008 (Q19a): before `usuario` becomes a payer, every open restricted bill only they
     see (and would stop seeing by RN07) gets their explicit access. Nothing tells the admin."""
+    travar_restritas(grupo)
     contas = (
         lancamentos_visiveis(usuario, grupo)
         .filter(visibilidade=Visibilidade.RESTRITA, status__in=ABERTOS)

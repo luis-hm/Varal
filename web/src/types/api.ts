@@ -2451,6 +2451,7 @@ export interface components {
             readonly autor: string | null;
             /** Format: date-time */
             criado_em: string;
+            /** @description Pessoas já como nomes */
             dados: {
                 [key: string]: unknown;
             };

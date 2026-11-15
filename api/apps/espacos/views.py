@@ -121,7 +121,7 @@ class ResolucaoSerializer(serializers.Serializer):
 
 
 class SairSerializer(serializers.Serializer):
-    resolucoes = ResolucaoSerializer(many=True, required=False, default=list)
+    resolucoes = ResolucaoSerializer(many=True, required=False, default=list, max_length=50)
 
 
 class ContaRefSerializer(serializers.Serializer):
