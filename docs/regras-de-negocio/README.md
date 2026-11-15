@@ -1,6 +1,6 @@
 # Regras de negócio
 
-> **Contém:** RN01–RN29 agrupadas por domínio e o ciclo de status da conta.
+> **Contém:** RN01–RN29 agrupadas por domínio, as regras acrescentadas por ADR (RN30–RN31) e o ciclo de status da conta.
 > **Origem:** `docs/especificacao-varal.md`, seção 7.
 
 ## 7. Regras de negócio
@@ -88,3 +88,4 @@ Não estão na especificação; valem tanto quanto ela.
 | ID | Regra | ADR | Etapa |
 | --- | --- | --- | --- |
 | RN30 | Exportar (JSON com perfil, contas do espaço pessoal, participações em grupos, avisos e links assinados dos PDFs) e excluir a própria conta (apaga o espaço pessoal e os arquivos; nos grupos, as contas criadas ficam com o autor "Ex-membro"; único admin precisa passar a administração antes). Detalha o RNF04. | [0003](../arquitetura/adr/0003-rn30-exportar-e-excluir-dados.md) | 11 |
+| RN31 | Link de convite como credencial: token aleatório de no mínimo 128 bits, banco guarda só o hash, mostrado inteiro só na criação, uso único, 7 dias (RN24), revogável pelo admin, aceite limitado a 10 tentativas por usuário por hora (e por IP depois da P3), na tela sempre encurtado (`varal.app/c/9fKq2mXb…R4dT`). | [0004](../arquitetura/adr/0004-rn31-link-de-convite.md) | 03 |

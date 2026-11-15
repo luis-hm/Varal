@@ -64,7 +64,7 @@ Em qualquer tamanho: alvo mínimo 44px, botões 52px. Número-herói 48px no mob
 | 12 · Pedir para alguém pagar | `MFZW3LUORq` | M06 · Pedir para alguém pagar (modal) | `3OQOmTm6BG` | 10 |
 | 13 · Modo simples (pagador) | `mIvLheR2TS` | D05 · Modo simples (pagador) | `YTtAtGSyCI` | 10 |
 
-Tamanhos: telas mobile 390×844 (06: 390×1090; 07: 390×1220; 10: 390×944); telas desktop 1440×900; gaveta D06 440×900; modais no tamanho da janela (M01 560×590, M02 1040×660, M03 520×450, M04 480×520, M05 560×560, M06 560×530).
+Tamanhos: telas mobile 390×844 (06: 390×1090; 07: 390×1220; 10: 390×944); telas desktop 1440×900; gaveta D06 440×900; modais no tamanho da janela (M01 560×590, M02 1040×660, M03 520×450, M04 480×520, M05 560×480, M06 560×530).
 
 ### Componentes (página 04)
 

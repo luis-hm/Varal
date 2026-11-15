@@ -72,6 +72,7 @@ O anexo fornecido pelo dono foi relido no fim. Não houve leitura ao vivo nem ma
 ## Ajustes pendentes e limites
 
 - Nenhum outro item desmarcado na cópia fornecida. A marcação no documento remoto permanece pendente de acesso.
+  - *Nota de 14/11/2026:* o item foi marcado no documento remoto (" — feito na etapa 02") ao abrir a Etapa 03.
 - Google real verificado até a tela oficial de entrada “continue to Varal”, sem autenticar conta externa. Cadastro/retorno completo do provedor foi testado com respostas HTTP simuladas; não foi declarado login externo completo.
 - **P3 / Etapa 11:** configurar proxies confiáveis e testar spoofing antes do deploy. `trusted_proxy_count=0` preservado enquanto API 8000 estiver exposta; limite por IP vê o Next como origem. Não bloqueia esta etapa.
 - **P1 / Etapa 06:** validação do armazenamento local permanece como antes.
