@@ -39,7 +39,7 @@
 | `make types` | **Sem diff**, salvo a descrição de `Historico.dados` (f072ce5), já commitada |
 | `make e2e` | **74 passaram, 2 ignorados de propósito** (360px só no projeto mobile); nenhum 429 |
 
-**Registro honesto do E2E:** uma execução anterior teve um 429 isolado no primeiro cadastro, na partida a frio da API recriada pelo `make e2e` (o `cache_lock` do allauth espera 1 s no Redis). A reexecução completa passou. Fica como P8.
+**Registro honesto do E2E:** uma execução anterior teve um 429 isolado no primeiro cadastro, na partida a frio da API recriada pelo `make e2e` (o `cache_lock` do allauth espera 1 s no Redis). Repetiu-se na verificação final, depois das correções de segurança, junto com duas medições feitas durante animações. Resolvido (P8): `globalSetup` do Playwright faz um cadastro sozinho antes dos workers, e as medições esperam `modal-pop`/`sheet-up` terminarem. A execução final, com a API fria, passou inteira (74 + 2 ignorados) sem nenhum 429.
 
 **Correções do QA (19fb5fe):** Chip com rótulo longo trunca com reticências e `title`; a vitrine `/dev/componentes` não rola mais em 360px; E2E `grupos` e `auth` ajustados ao Início, ao HouseCard e ao seletor por cookie; helpers movidos para `web/e2e/fixtures.ts`.
 
@@ -130,7 +130,7 @@ A decisão 2 da Etapa 03 (rota do pagador) foi confirmada pela Q5 desta etapa.
 
 - **P6 (abertura da 05):** reexportar a origem rev 50 (sem categoria) e alinhar CU05, `dados/modelo.md` e ADR 0005.
 - **P7 (Etapa 09):** aviso ao removido das contas canceladas pela RN32 (decisão 25).
-- **P8 (nova):** 429 isolado do allauth na partida a frio do `make e2e`. Se repetir, o `varal-devops` aquece a API antes do Playwright.
+- **P8:** aberta e resolvida nesta etapa (veja o registro do E2E).
 - **P1, P3, P4:** sem mudança (Etapas 06 e 11).
 - **Banco de dev** com dados de teste antigos: grupo `x` (revisão de segurança da 03), grupos "Teste UI …" e 4 contas `burst-*@varal.test` do QA. Nada foi apagado.
 - **Node local v20**; o projeto pede 22+.

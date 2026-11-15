@@ -114,6 +114,15 @@ export async function outraAba(browser: Browser, page: Page, conta?: Conta) {
 }
 
 export async function semRolagemEAlvos44(page: Page) {
+  // Measure the settled layout: modal-pop scales targets to .96 while it runs.
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+        .map((a) => a.finished.catch(() => undefined)),
+    ),
+  );
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   const pequenos = await page.locator("a, button, input:not([type=hidden])").evaluateAll((els) =>
     els
