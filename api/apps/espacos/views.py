@@ -57,12 +57,18 @@ class CriarGrupoSerializer(serializers.Serializer):
 
 class MembroSerializer(serializers.ModelSerializer):
     nome = serializers.CharField(source="usuario.nome", read_only=True)
-    email = serializers.EmailField(source="usuario.email", read_only=True)
+    email = serializers.SerializerMethodField()
     sou_eu = serializers.SerializerMethodField()
 
     class Meta:
         model = Membro
         fields = ["id", "nome", "email", "papel", "sou_eu"]
+
+    def get_email(self, obj) -> str | None:
+        # LGPD minimisation: admins see every e-mail; others only when there is no name to show.
+        if self.context.get("papel", Papel.ADMIN) == Papel.ADMIN or not obj.usuario.nome:
+            return obj.usuario.email
+        return None
 
     def get_sou_eu(self, obj) -> bool:
         return obj.usuario_id == self.context["request"].user.pk
@@ -84,7 +90,8 @@ class GrupoDetalheSerializer(serializers.Serializer):
     @extend_schema_field(MembroSerializer(many=True))
     def get_membros(self, grupo):
         membros = grupo.membros.select_related("usuario").order_by("criado_em")
-        return MembroSerializer(membros, many=True, context=self.context).data
+        context = {**self.context, "papel": grupo.meu_papel}
+        return MembroSerializer(membros, many=True, context=context).data
 
     @extend_schema_field(CasaSerializer(many=True))
     def get_casas(self, grupo):

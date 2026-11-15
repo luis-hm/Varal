@@ -20,7 +20,8 @@ import { SairDoGrupo } from "./sair-do-grupo";
 import styles from "./grupo.module.css";
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
-export const nomeDoMembro = (m: Membro) => m.nome || m.email;
+// The API always sends the e-mail when there is no name (RNF04 minimisation).
+export const nomeDoMembro = (m: Membro) => m.nome || m.email || "";
 
 export function GrupoPagina({ id }: { id: string }) {
   const router = useRouter();
@@ -189,7 +190,7 @@ function MembroFolha({ grupoId, membro, onClose }: { grupoId: string; membro: Me
       open={!!membro}
       onClose={fechar}
       title={nome}
-      subtitle={membro?.nome ? membro.email : "Papel no grupo"}
+      subtitle={(membro?.nome && membro.email) || "Papel no grupo"}
       actions={
         <>
           <Button

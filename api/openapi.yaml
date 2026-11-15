@@ -2498,7 +2498,7 @@ components:
     Membro:
       properties:
         email:
-          format: email
+          nullable: true
           readOnly: true
           type: string
         id:
@@ -2572,9 +2572,6 @@ components:
       in: header
       name: X-Session-Token
       type: apiKey
-    basicAuth:
-      scheme: basic
-      type: http
     cookieAuth:
       in: cookie
       name: sessionid
@@ -3704,7 +3701,6 @@ paths:
           description: Convite inexistente, expirado, usado ou revogado.
       security:
       - cookieAuth: []
-      - basicAuth: []
       - {}
       summary: Abrir link de convite (sem sessão)
       tags:
@@ -3750,7 +3746,6 @@ paths:
           description: Limite de tentativas de aceite (10 por hora).
       security:
       - cookieAuth: []
-      - basicAuth: []
       summary: Aceitar convite (exige sessão; uso único; 10 tentativas por hora)
       tags:
       - convites
@@ -3782,7 +3777,6 @@ paths:
           description: ''
       security:
       - cookieAuth: []
-      - basicAuth: []
       summary: Grupos do usuário (RN01)
       tags:
       - grupos
@@ -3835,7 +3829,6 @@ paths:
           description: Nome vazio
       security:
       - cookieAuth: []
-      - basicAuth: []
       summary: Criar grupo; o criador vira o único admin (RF04, RN04)
       tags:
       - grupos
@@ -3887,7 +3880,6 @@ paths:
           description: Grupo, membro, casa ou convite fora do seu acesso.
       security:
       - cookieAuth: []
-      - basicAuth: []
       summary: 'Página do grupo: admin, membro e observador (pagador recebe 403)'
       tags:
       - grupos
@@ -3933,7 +3925,6 @@ paths:
           description: Grupo, membro, casa ou convite fora do seu acesso.
       security:
       - cookieAuth: []
-      - basicAuth: []
       summary: Convites pendentes (admin)
       tags:
       - grupos
@@ -3991,7 +3982,6 @@ paths:
           description: Grupo, membro, casa ou convite fora do seu acesso.
       security:
       - cookieAuth: []
-      - basicAuth: []
       summary: Gerar link de convite (admin; RN24, RN31). O link só aparece nesta
         resposta.
       tags:
@@ -4029,7 +4019,6 @@ paths:
           description: Grupo, membro, casa ou convite fora do seu acesso.
       security:
       - cookieAuth: []
-      - basicAuth: []
       summary: Revogar convite pendente (admin; RN31)
       tags:
       - grupos
@@ -4072,7 +4061,6 @@ paths:
           description: 'Regra de negócio (ex.: RN04, o grupo ficaria sem admin).'
       security:
       - cookieAuth: []
-      - basicAuth: []
       summary: Remover membro (admin; RN04, RN21)
       tags:
       - grupos
@@ -4134,7 +4122,6 @@ paths:
           description: 'Regra de negócio (ex.: RN04, o grupo ficaria sem admin).'
       security:
       - cookieAuth: []
-      - basicAuth: []
       summary: Alterar papel de um membro (admin; RN04)
       tags:
       - grupos
@@ -4165,7 +4152,6 @@ paths:
           description: 'Regra de negócio (ex.: RN04, o grupo ficaria sem admin).'
       security:
       - cookieAuth: []
-      - basicAuth: []
       summary: Sair do grupo (qualquer papel; RN04, RN21)
       tags:
       - grupos
@@ -4223,7 +4209,6 @@ paths:
           description: Grupo, membro, casa ou convite fora do seu acesso.
       security:
       - cookieAuth: []
-      - basicAuth: []
       summary: Criar casa (admin; CU04)
       tags:
       - grupos
@@ -4279,7 +4264,6 @@ paths:
           description: Grupo, membro, casa ou convite fora do seu acesso.
       security:
       - cookieAuth: []
-      - basicAuth: []
       summary: Renomear ou arquivar casa (admin; CU04). Arquivada sai da lista e fica
         no banco.
       tags:
@@ -4301,7 +4285,6 @@ paths:
           description: ''
       security:
       - cookieAuth: []
-      - basicAuth: []
       - {}
       tags:
       - health
@@ -4332,7 +4315,6 @@ paths:
           description: ''
       security:
       - cookieAuth: []
-      - basicAuth: []
       tags:
       - me
 tags:

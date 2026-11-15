@@ -7,6 +7,16 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   // Django routes end in "/"; keep the slash so the proxy does not bounce between redirects.
   skipTrailingSlashRedirect: true,
+  // RN31: invite tokens are bearer credentials; keep them out of the dev request log.
+  logging: { incomingRequests: { ignore: [/\/c\//, /\/api\/convites\//] } },
+  async headers() {
+    return [
+      { source: "/:path*", headers: [{ key: "X-Frame-Options", value: "DENY" }] },
+      // Pages that may carry an invite token in the URL never send it as Referer.
+      { source: "/c/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
+      { source: "/(entrar|criar-conta)/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
+    ];
+  },
   // Same-origin /api keeps the auth cookies first-party (allauth headless, stage 02).
   async rewrites() {
     return [

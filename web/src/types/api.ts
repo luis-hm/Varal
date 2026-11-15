@@ -2294,8 +2294,7 @@ export interface components {
             nome: string;
         };
         Membro: {
-            /** Format: email */
-            readonly email: string;
+            readonly email: string | null;
             /** Format: uuid */
             readonly id: string;
             readonly nome: string;

@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import logging
 import threading
@@ -755,3 +756,50 @@ def test_rnf02_retorno_google_preserva_proximo_local(settings):
     final = finish_google(client, state)
     assert final.status_code == 302
     assert parse_qs(urlsplit(final["Location"]).query)["proximo"] == ["/c/abc"]
+
+
+@pytest.mark.parametrize("saida", ["remover", "rebaixar", "sair"])
+def test_rn21_rn31_saida_do_admin_revoga_convites_que_ele_gerou(g, saida):
+    # Security review I1: a removed/demoted admin must not re-enter with a link they kept.
+    ex_admin = g.u["membro"]
+    Membro.objects.filter(pk=g.m["membro"].pk).update(papel="admin")
+    _, token = servicos.gerar_convite(ex_admin, g.grupo, "admin")
+    _, token_outro = servicos.gerar_convite(g.u["admin"], g.grupo, "membro")
+    admin = cliente(g.u["admin"])
+    if saida == "remover":
+        assert admin.delete(g.url + f"membros/{g.m['membro'].pk}/").status_code == 204
+    elif saida == "rebaixar":
+        assert (
+            admin.patch(
+                g.url + f"membros/{g.m['membro'].pk}/", {"papel": "membro"}, "application/json"
+            ).status_code
+            == 200
+        )
+    else:
+        assert cliente(ex_admin).post(g.url + "sair/").status_code == 204
+    assert Client().get(f"/api/convites/{token}/").status_code == 410
+    assert Client().get(f"/api/convites/{token_outro}/").status_code == 200  # others' links stay
+
+
+def test_rnf01_basic_auth_nao_autentica():
+    # Security review B1: HTTP Basic would bypass allauth's login rate limit and CSRF.
+    Usuario.objects.create_user(username="basic", email="basic@example.com", password=PASSWORD)
+    resposta = Client().get(
+        "/api/me/",
+        HTTP_AUTHORIZATION="Basic "
+        + base64.b64encode(f"basic@example.com:{PASSWORD}".encode()).decode(),
+    )
+    assert resposta.status_code == 403
+
+
+def test_rnf04_email_de_membros_so_para_admin_ou_sem_nome(g):
+    # Security review M3 (LGPD minimisation).
+    Usuario.objects.filter(pk=g.u["observador"].pk).update(nome="Olga")
+
+    def emails(quem):
+        membros = cliente(g.u[quem]).get(g.url).json()["membros"]
+        return {m["nome"] or m["email"]: m["email"] for m in membros}
+
+    assert emails("admin")["Olga"] == "observador@example.com"
+    assert emails("membro")["Olga"] is None
+    assert emails("membro")["admin@example.com"] == "admin@example.com"  # no name: e-mail shown
