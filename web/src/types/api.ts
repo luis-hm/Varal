@@ -2493,6 +2493,8 @@ export interface components {
             readonly nome: string;
             papel: components["schemas"]["PapelEnum"];
             readonly sou_eu: boolean;
+            /** Format: uuid */
+            readonly usuario: string;
         };
         Opcoes: {
             casas: components["schemas"]["Ref"][];

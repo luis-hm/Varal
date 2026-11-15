@@ -56,13 +56,15 @@ class CriarGrupoSerializer(serializers.Serializer):
 
 
 class MembroSerializer(serializers.ModelSerializer):
+    # The bill form needs user ids: `pagador` and `acesso` reference users, not memberships.
+    usuario = serializers.UUIDField(source="usuario_id", read_only=True)
     nome = serializers.CharField(source="usuario.nome", read_only=True)
     email = serializers.SerializerMethodField()
     sou_eu = serializers.SerializerMethodField()
 
     class Meta:
         model = Membro
-        fields = ["id", "nome", "email", "papel", "sou_eu"]
+        fields = ["id", "usuario", "nome", "email", "papel", "sou_eu"]
 
     def get_email(self, obj) -> str | None:
         # LGPD minimisation: admins see every e-mail; others only when there is no name to show.

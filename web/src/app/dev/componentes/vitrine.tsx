@@ -1,9 +1,10 @@
 // Doop: k0kB5dc-Vo / componentes Icon, StatusBadge, Button, Chip, Field, TopBar, TabItem, TabBar, NavItem,
-// SideNav, RadioCard, MemberRow, HouseCard (página 04 · Componentes), folha/modal de 11/M05 e frame Logo (t4pHch9UDR).
+// SideNav, RadioCard, MemberRow, HouseCard, BillCard (Mwqabjlc2s) (página 04 · Componentes), folha/modal de 11/M05 e frame Logo (t4pHch9UDR).
 // Sample copy taken from the Doop frames.
 "use client";
 
 import { useState } from "react";
+import { BillCard } from "@/components/bills/bill-card";
 import { StatusBadge, type Status } from "@/components/bills/status-badge";
 import { HouseCard } from "@/components/groups/house-card";
 import { MemberRow } from "@/components/groups/member-row";
@@ -187,9 +188,29 @@ export function Vitrine() {
       <section className={styles.sec}>
         <h2>HouseCard</h2>
         <div className={styles.row}>
-          <HouseCard label="Casa 1" caption="R$ 1.479,60" caption-2="3 de 4 pagas" progress={75} />
-          <HouseCard label="Casa 2" caption="Sem contas ainda" onClick={() => setFolha(true)} />
+          <HouseCard label="Casa 1" caption="R$ 1.479,60" caption-2="4 contas em novembro" />
+          <HouseCard label="Casa 2" caption="R$ 0,00" caption-2="0 contas em novembro" onClick={() => setFolha(true)} />
         </div>
+      </section>
+
+      <section className={styles.sec}>
+        <h2>BillCard</h2>
+        <ul className={styles.fields}>
+          {statuses.map((s, i) => (
+            <li key={s}>
+              <BillCard
+                title={["Energia · Enel", "Internet", "Água · Cagece", "Condomínio", "Gás", "Escola", "Seguro"][i]}
+                meta={s === "vencida" ? "Venceu 08/11 · Pai paga" : "Vence 14/11 · Mãe paga"}
+                value={["R$ 189,90", "R$ 119,90", "R$ 84,35", "R$ 620,00", "R$ 95,00", "R$ 1.250,00", "R$ 210,40"][i]}
+                icon={<Icon name={i % 2 ? "manual" : "casa"} size="md" />}
+                status={<StatusBadge status={s} />}
+                href="#"
+                selected={s === "vence"}
+                cancelled={s === "cancelada"}
+              />
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className={styles.sec}>

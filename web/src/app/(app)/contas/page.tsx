@@ -1,8 +1,13 @@
-// Doop: k0kB5dc-Vo / 03 · Contas (bdiED7Q0I-) + D03 · Contas + Detalhe (cWdVUX2y8H): "Em breve" until stage 04.
-import { EmBreve } from "@/components/layout/em-breve";
+// Doop: k0kB5dc-Vo / 03 · Contas (bdiED7Q0I-) + D03 · Contas + Detalhe (cWdVUX2y8H); CU06; RF13, RN12, D2, Q14.
+import { Suspense } from "react";
+import { ContasPagina } from "@/components/bills/contas-pagina";
 
 export const instant = false;
 
 export default function Contas() {
-  return <EmBreve title="Contas" />;
+  return (
+    <Suspense>
+      <ContasPagina />
+    </Suspense>
+  );
 }
