@@ -28,7 +28,7 @@ test-web:
 	cd web && npm test
 
 e2e: env ## Run Playwright e2e with the real API (390x844 and 1440x900)
-	$(COMPOSE) up --build -d api worker
+	ACCOUNT_RATE_LIMIT_SIGNUP=1000/m/ip $(COMPOSE) up --build -d api worker
 	@attempt=0; until $(COMPOSE) exec -T api python -c 'from urllib.request import urlopen; urlopen("http://127.0.0.1:8000/api/health/", timeout=2)' >/dev/null 2>&1; do \
 		attempt=$$((attempt + 1)); \
 		if [ "$$attempt" -ge 60 ]; then echo "API healthcheck failed; inspect docker compose logs api" >&2; exit 1; fi; \

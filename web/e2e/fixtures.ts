@@ -19,20 +19,13 @@ export async function csrf(request: APIRequestContext) {
 }
 
 export async function createAccount(request: APIRequestContext, email = uniqueEmail()) {
-  // allauth allows 20 signups per minute per IP and every test client shares 127.0.0.1:
-  // on 429, wait for the window to slide instead of failing (the limit itself is correct).
-  for (let wait = 0; ; wait += 5) {
-    const response = await request.post(`${AUTH}auth/signup`, {
-      headers: { Origin: ORIGIN, "X-CSRFToken": await csrf(request) },
-      data: { email, password: TEST_PASSWORD },
-    });
-    if (response.status() === 429 && wait < 70) {
-      await new Promise((resolve) => setTimeout(resolve, 5_000));
-      continue;
-    }
-    expect(response.status(), await response.text()).toBe(200);
-    return email;
-  }
+  // `make e2e`/CI raise allauth's signup limit (ACCOUNT_RATE_LIMIT_SIGNUP): every client is 127.0.0.1.
+  const response = await request.post(`${AUTH}auth/signup`, {
+    headers: { Origin: ORIGIN, "X-CSRFToken": await csrf(request) },
+    data: { email, password: TEST_PASSWORD },
+  });
+  expect(response.status(), await response.text()).toBe(200);
+  return email;
 }
 
 export async function me(request: APIRequestContext) {

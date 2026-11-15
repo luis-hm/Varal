@@ -21,9 +21,6 @@ const semBadge = () =>
     document.head.append(style);
   });
 
-// Signups share allauth's 20/min/IP limit with the other specs; createAccount waits on 429.
-test.describe.configure({ timeout: 150_000 });
-
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(semBadge);
   page.on("dialog", (d) => d.accept()); // window.confirm of remove/leave/archive
@@ -161,12 +158,7 @@ test("ca01/ca04/ca05/ca17 rf04/rf05/rf07 rn04/rn24/rn31: admin cria grupo e casa
     const email = uniqueEmail();
     await visitante.getByLabel("E-mail", { exact: true }).filter({ visible: true }).fill(email);
     await visitante.getByLabel("Senha", { exact: true }).filter({ visible: true }).fill(TEST_PASSWORD);
-    // A 429 (signup limit shared with parallel tests) leaves the form on screen: submit again later.
-    await expect(async () => {
-      if (!visitante.url().includes("/criar-conta")) return;
-      await visitante.getByRole("button", { name: "Criar conta", exact: true }).click();
-      await expect(visitante).toHaveURL(`${ORIGIN}/c/${token}`, { timeout: 5_000 });
-    }).toPass({ intervals: [10_000], timeout: 80_000 });
+    await visitante.getByRole("button", { name: "Criar conta", exact: true }).click();
     await expect(visitante).toHaveURL(`${ORIGIN}/c/${token}`);
     await visivel(visitante, "Aceitar convite").click();
     // RN07 / decision 6: the payer lands on the simple mode.
