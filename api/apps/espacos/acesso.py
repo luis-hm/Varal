@@ -123,6 +123,13 @@ def lancamento_ou_404(usuario, lancamento_id, acao=None, travar=False):
     return conta
 
 
+def membros_ids(espaco):
+    """User ids of the space's current members (personal space: only the owner). One query."""
+    if espaco.tipo == Espaco.Tipo.PESSOAL:
+        return {espaco.dono_id}
+    return set(Membro.objects.filter(espaco=espaco).values_list("usuario_id", flat=True))
+
+
 def quem_ve(conta, sem=None):
     """Ids of the users who see `conta`, by the same rule as `lancamentos_visiveis`, leaving out
     `sem` (someone leaving: with RN21 they stop counting as payer and as chosen). Base of RN32."""

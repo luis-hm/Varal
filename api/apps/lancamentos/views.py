@@ -1,5 +1,5 @@
 import calendar
-from datetime import date
+from datetime import date, timedelta
 
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
@@ -16,12 +16,18 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.espacos.acesso import espaco_ou_404, lancamento_ou_404, lancamentos_visiveis, pode
+from apps.espacos.acesso import (
+    espaco_ou_404,
+    lancamento_ou_404,
+    lancamentos_visiveis,
+    membros_ids,
+    pode,
+)
 from apps.espacos.models import Espaco
 from apps.espacos.views import ErroSerializer
 
 from . import servicos
-from .models import ABERTOS, STATUS_EXIBIDOS, VENCE, VENCIDA, Historico, Lancamento, Status
+from .models import ABERTOS, STATUS_EXIBIDOS, VENCIDA, Historico, Lancamento, Status
 from .models import Visibilidade as Vis
 
 ESPACO_ID = "1b4e28ba-2fa1-11d2-883f-0016d3cca427"
@@ -32,10 +38,6 @@ OUTRA_ID = "c4a7d1e2-9b3f-4a6c-8d2e-1f0a9b8c7d6e"
 
 
 # ---- serializers ---------------------------------------------------------------------------
-
-
-def _nome(usuario):
-    return usuario.nome or usuario.email
 
 
 class RefSerializer(serializers.Serializer):
@@ -56,10 +58,16 @@ class CriadorSerializer(serializers.Serializer):
     sou_eu = serializers.BooleanField()
 
 
-def _pessoa(usuario, request):
+def _nome(usuario, contexto):
+    """Decision 23, live data: `contexto["membros"]` holds the space's current member ids."""
+    return servicos.rotulo(usuario, contexto["membros"])
+
+
+def _pessoa(usuario, contexto):
     if usuario is None:
         return None
-    return {"id": usuario.pk, "nome": _nome(usuario), "sou_eu": usuario.pk == request.user.pk}
+    eu = usuario.pk == contexto["request"].user.pk
+    return {"id": usuario.pk, "nome": _nome(usuario, contexto), "sou_eu": eu}
 
 
 class ContaSerializer(serializers.Serializer):
@@ -81,7 +89,7 @@ class ContaSerializer(serializers.Serializer):
 
     @extend_schema_field(PessoaSerializer(allow_null=True))
     def get_pagador(self, obj):
-        return _pessoa(obj.pagador, self.context["request"])
+        return _pessoa(obj.pagador, self.context)
 
 
 class HistoricoSerializer(serializers.Serializer):
@@ -98,7 +106,8 @@ class HistoricoSerializer(serializers.Serializer):
     def get_autor(self, obj) -> str | None:
         if obj.acao in Historico.AUTOMATICAS:
             return None
-        return servicos.rotulo(obj.usuario)  # RN30: "Ex-membro"; never the e-mail
+        # RN30 / decision 23: "Ex-membro" or "Pessoa sem nome"; never the e-mail.
+        return servicos.rotulo(obj.usuario, self.context["membros"], historico=True)
 
     def get_sou_eu(self, obj) -> bool:
         return obj.usuario_id == self.context["request"].user.pk
@@ -112,16 +121,14 @@ class ContaDetalheSerializer(ContaSerializer):
 
     @extend_schema_field(CriadorSerializer)
     def get_criador(self, obj):
-        if obj.criador is None:
-            return {"nome": servicos.EX_MEMBRO, "sou_eu": False}  # RN30
         return {
-            "nome": _nome(obj.criador),
+            "nome": _nome(obj.criador, self.context),  # RN30: deleted or gone -> "Ex-membro"
             "sou_eu": obj.criador_id == self.context["request"].user.pk,
         }
 
     @extend_schema_field(RefSerializer(many=True))
     def get_acesso(self, obj):
-        return [{"id": u.pk, "nome": _nome(u)} for u in obj.acesso.all()]
+        return [{"id": u.pk, "nome": _nome(u, self.context)} for u in obj.acesso.all()]
 
     def get_pode_editar(self, obj) -> bool:
         return obj.status != Status.CANCELADA and pode(self.context["papel"], "editar_conta")
@@ -295,8 +302,9 @@ def _detalhe(request, conta_id, espaco, codigo=status.HTTP_200_OK):
         .prefetch_related("acesso", "historico__usuario")
         .get(pk=conta_id)
     )
-    servicos.resolver_pessoas(conta.historico.all())
-    contexto = {"request": request, "papel": espaco.meu_papel}
+    membros = membros_ids(espaco)
+    servicos.resolver_pessoas(conta.historico.all(), membros)
+    contexto = {"request": request, "papel": espaco.meu_papel, "membros": membros}
     return Response(ContaDetalheSerializer(conta, context=contexto).data, status=codigo)
 
 
@@ -357,18 +365,21 @@ class LancamentosView(APIView):
         com_pagador = do_mes.filter(pagador__isnull=False).select_related("pagador")
         casas = {c.subgrupo for c in com_casa}
         pagadores = {c.pagador for c in com_pagador}
+        contexto = {"request": request, "membros": membros_ids(espaco)}
         corpo = {
             "mes": rotulo,
             "total_centavos": numeros.pop("total"),
             "contagens": numeros,
             "opcoes": {
                 "casas": [{"id": c.pk, "nome": c.nome} for c in sorted(casas, key=str)],
-                "pagadores": [_pessoa(u, request) for u in sorted(pagadores, key=_nome)],
+                "pagadores": sorted(
+                    (_pessoa(u, contexto) for u in pagadores), key=lambda p: p["nome"]
+                ),
                 "sem_pagador": do_mes.filter(pagador__isnull=True).exists(),
             },
             "itens": itens.order_by("vencimento", "criado_em"),
         }
-        return Response(ListaSerializer(corpo, context={"request": request}).data)
+        return Response(ListaSerializer(corpo, context=contexto).data)
 
     @extend_schema(
         operation_id="lancamentos_criar",
@@ -414,9 +425,14 @@ class ResumoView(APIView):
         visiveis = lancamentos_visiveis(request.user, espaco)
         do_mes = visiveis.filter(NAO_CANCELADA, vencimento__range=(inicio, fim))
         numeros = do_mes.aggregate(total=Sum("valor_centavos", default=0), qtd=Count("pk"))
-        # Q9: overdue from any month plus due within the window; never cancelled (D2).
+        # Q9 / decision 26: every open bill (pendente or aguardando) overdue from any month or
+        # due within the window, by date; the badge keeps the real status. Never cancelled (D2).
+        hoje = timezone.localdate()
         atencao = list(
-            visiveis.filter(status_exibido__in=(VENCIDA, VENCE))
+            visiveis.filter(
+                status__in=ABERTOS,
+                vencimento__lte=hoje + timedelta(days=espaco.janela_alerta_dias),
+            )
             .select_related(*COM_DADOS)
             .order_by("vencimento", "criado_em")
         )
@@ -434,12 +450,13 @@ class ResumoView(APIView):
             "janela_alerta_dias": espaco.janela_alerta_dias,
             "total_centavos": numeros["total"],
             "qtd": numeros["qtd"],
-            "vencidas_qtd": sum(c.status_exibido == VENCIDA for c in atencao),
-            "vence_qtd": sum(c.status_exibido == VENCE for c in atencao),
+            "vencidas_qtd": sum(c.vencimento < hoje for c in atencao),
+            "vence_qtd": sum(c.vencimento >= hoje for c in atencao),
             "atencao": atencao,
             "por_casa": por_casa,
         }
-        return Response(ResumoSerializer(corpo, context={"request": request}).data)
+        contexto = {"request": request, "membros": membros_ids(espaco)}
+        return Response(ResumoSerializer(corpo, context=contexto).data)
 
 
 class LancamentoView(APIView):

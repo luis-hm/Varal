@@ -20,10 +20,14 @@ CAMPOS = ["descricao", "valor_centavos", "vencimento", "subgrupo_id", "pagador_i
 SEM_NOME, EX_MEMBRO = "Pessoa sem nome", "Ex-membro"
 
 
-def rotulo(usuario):
-    """How a person is shown in bills and their history: never the e-mail (LGPD); a deleted
-    account is "Ex-membro" (RN30)."""
-    return EX_MEMBRO if usuario is None else usuario.nome or SEM_NOME
+def rotulo(usuario, membros, historico=False):
+    """How a person is shown, by context (decision 23). `membros`: user ids of the bill's space
+    (`acesso.membros_ids`). Deleted or no longer a member: "Ex-membro", never the e-mail (RN30).
+    A current member: the name; without one, the e-mail in live data (as in the member list)
+    and "Pessoa sem nome" in the history, which never shows an e-mail."""
+    if usuario is None or usuario.pk not in membros:
+        return EX_MEMBRO
+    return usuario.nome or (SEM_NOME if historico else usuario.email)
 
 
 def _ids(usuario_ids):
@@ -74,10 +78,10 @@ def validar(espaco, dados, conta=None):
     return dados
 
 
-def resolver_pessoas(historicos):
+def resolver_pessoas(historicos, membros):
     """RN22/RN30: `dados` stores user ids, never names or e-mails (LGPD), so nothing about a
-    person outlives their account. Sets `dados_exibidos` with names, in one query; the stored
-    `dados` is left untouched."""
+    person outlives their account. Sets `dados_exibidos` with labels resolved now against the
+    space's current `membros`, in one query; the stored `dados` is left untouched."""
     from apps.contas_usuario.models import Usuario
 
     ids = set()
@@ -86,7 +90,9 @@ def resolver_pessoas(historicos):
         ids.update(i for lado in h.dados.get("acesso", ()) for i in lado)
         if h.dados.get("pessoa"):
             ids.add(h.dados["pessoa"])
-    nomes = {str(u.pk): rotulo(u) for u in Usuario.objects.filter(pk__in=ids)}
+    nomes = {
+        str(u.pk): rotulo(u, membros, historico=True) for u in Usuario.objects.filter(pk__in=ids)
+    }
 
     def nome(i):
         return None if i is None else nomes.get(i, EX_MEMBRO)
@@ -220,8 +226,8 @@ def pessoas_para_escolher(grupo, sem):
         .select_related("usuario")
         .order_by("usuario__nome", "usuario__email")
     )
-    # Names only, never e-mail (LGPD): someone leaving may not see the group page.
-    return [{"id": m.usuario_id, "nome": rotulo(m.usuario)} for m in membros]
+    # Live data (decision 23): current members only, so the name or, without one, the e-mail.
+    return [{"id": m.usuario_id, "nome": rotulo(m.usuario, {m.usuario_id})} for m in membros]
 
 
 def resolver_na_saida(usuario, grupo, resolucoes, orfas):

@@ -601,6 +601,34 @@ def test_rf13_resumo_total_do_mes_atencao_e_por_casa(f):
     assert resumo(cliente(a), f.pessoal["admin"])["por_casa"] == []
 
 
+def test_rn13_atencao_inclui_aguardando_na_janela(f):
+    """Decision 26: every open bill overdue or within the window, pendente or aguardando, by
+    date; the badge keeps the real status. Only visible bills (RN06)."""
+    a = f.u["admin"]
+
+    def aguardando(delta, **campos):  # not created through the API until Etapa 05/06
+        return Lancamento.objects.create(
+            espaco=f.grupo,
+            criador=a,
+            descricao="Água",
+            valor_centavos=500,
+            vencimento=dias(delta),
+            status="aguardando",
+            **campos,
+        )
+
+    na_janela, vencida = aguardando(3), aguardando(-2)
+    aguardando(30)  # out by date
+    aguardando(1, visibilidade="restrita")  # RN06: membro is not among who sees it
+    corpo = resumo(cliente(f.u["membro"]), f.grupo)
+    assert corpo["janela_alerta_dias"] == 3
+    assert [c["id"] for c in corpo["atencao"]] == [str(vencida.pk), str(na_janela.pk)]
+    assert {(c["status"], c["status_exibido"]) for c in corpo["atencao"]} == {
+        ("aguardando", "aguardando")
+    }
+    assert (corpo["vencidas_qtd"], corpo["vence_qtd"]) == (1, 1)
+
+
 # ---- CA18 / RN21 ---------------------------------------------------------------------------
 
 
@@ -631,7 +659,7 @@ def test_rn21_abertas_perdem_pagador_pagas_mantem_e_criadas_ficam(f, saida):
     body = admin.get(url(aberta)).json()
     assert body["pagador"] is None
     assert (body["historico"][-1]["autor"], body["historico"][-1]["automatica"]) == (None, True)
-    assert admin.get(url(criada)).json()["criador"]["nome"] == "Membro"
+    assert admin.get(url(criada)).json()["criador"]["nome"] == "Ex-membro"  # decision 23
     for conta in (aberta, criada, escolhido):
         assert cliente(m).get(url(conta)).status_code == 404
 
@@ -677,8 +705,8 @@ def test_rn32_sair_bloqueado_lista_contas_e_nada_muda(f):
     assert body["pessoas"] == [
         {"id": str(f.u["admin"].pk), "nome": "Admin"},
         {"id": str(f.u["observador"].pk), "nome": "Observador"},
-    ]  # the payer-by-role cannot be chosen; names only, never e-mail
-    assert "@" not in response.content.decode()
+    ]  # the payer-by-role cannot be chosen; current members: the name (decision 23)
+    assert "@" not in response.content.decode()  # everyone here has a name
     assert Membro.objects.filter(pk=f.m["membro"].pk).exists()
     assert estado(orfa) == antes
     # After choosing someone else to see it, leaving goes through.
@@ -936,7 +964,9 @@ def test_rn05_rn32_excecao_so_na_saida(f):
     assert editada.dados["acesso"] == [[str(o.pk)], sorted([str(o.pk), str(f.u["admin"].pk)])]
     linhas = cliente(f.u["admin"]).get(url(conta)).json()["historico"]
     linha = next(h for h in linhas if h["acao"] == "editada")
-    assert linha["dados"]["acesso"] == [["Observador"], ["Admin", "Observador"]]
+    # The observer has left: "Ex-membro" now (decision 23), author included.
+    assert linha["dados"]["acesso"] == [["Ex-membro"], ["Admin", "Ex-membro"]]
+    assert linha["autor"] == "Ex-membro"
     cancelada = Historico.objects.get(lancamento=outra, acao="cancelada")
     assert cancelada.usuario == o and cancelada.dados == {"motivo": "saida_rn32"}
     assert cliente(f.u["admin"]).get(url(conta)).status_code == 200
@@ -1057,8 +1087,10 @@ def test_rn32_admin_removendo_a_si_mesmo_e_saida_voluntaria(f):
     assert estado(orfa)[0] == "pendente" and Membro.objects.filter(pk=f.m["admin"].pk).exists()
 
 
-def test_rn30_historico_sem_email_e_ex_membro_apos_exclusao(f):
-    """LGPD: the history keeps user ids only; names are resolved on read, never the e-mail."""
+def test_rn30_historico_sem_email_ex_membro_apos_saida_ou_exclusao(f):
+    """LGPD: the history keeps user ids only; labels are resolved on read, never the e-mail:
+    a current member without a name is "Pessoa sem nome"; who left or was deleted, "Ex-membro"
+    (decision 23)."""
     a = f.u["admin"]
     anonimo = usuario("anonimo@example.com")  # no name
     Membro.objects.create(espaco=f.grupo, usuario=anonimo, papel="membro")
@@ -1076,16 +1108,52 @@ def test_rn30_historico_sem_email_e_ex_membro_apos_exclusao(f):
             ("criada", {}),
             ("editada", {"pagador": [None, rotulo], "acesso": [["Admin"], ["Admin", rotulo]]}),
             ("editada", {"pagador": [rotulo, "Membro"]}),
-            ("acesso_removido", {"pessoa": rotulo}),
         ]
 
     contas.editar(a, conta.pk, {"pagador": anonimo.pk, "acesso": [a.pk, anonimo.pk]})
     _, consultas_antes = linhas()
     contas.editar(a, conta.pk, {"pagador": f.u["membro"].pk})
+    historico_lido, consultas_depois = linhas()
+    assert historico_lido == com("Pessoa sem nome")  # still a member
+    assert consultas_depois == consultas_antes  # labels in one query, no N+1
     assert sair(anonimo, f).status_code == 204
     assert "anonimo" not in str(list(Historico.objects.values_list("dados", flat=True)))
-    historico_lido, consultas_depois = linhas()
-    assert historico_lido == com("Pessoa sem nome")
-    assert consultas_depois == consultas_antes  # names in one query, no N+1
+    saiu = [*com("Ex-membro"), ("acesso_removido", {"pessoa": "Ex-membro"})]
+    assert linhas()[0] == saiu
     anonimo.delete()
-    assert linhas()[0] == com("Ex-membro")
+    assert linhas()[0] == saiu
+
+
+def test_rn30_nome_por_contexto_membro_sem_nome_ex_membro(f):
+    """Decision 23, live data: a current member without a name shows the e-mail (as in the
+    member list); who left or was deleted is "Ex-membro", never the e-mail."""
+    a = f.u["admin"]
+    anonimo = usuario("anonimo@example.com")  # no name
+    Membro.objects.create(espaco=f.grupo, usuario=anonimo, papel="membro")
+    saiu = entrar(f, "saiu")
+    acesso = [a.pk, anonimo.pk]
+    conta = restrita(saiu, f.grupo, acesso=acesso, pagador=anonimo.pk)
+    paga = nova(a, f.grupo, pagador=saiu.pk)
+    Lancamento.objects.filter(pk=paga.pk).update(status="paga")  # Q7: keeps its payer
+    assert sair(saiu, f).status_code == 204
+    admin = cliente(a)
+
+    response = admin.get(url(conta))
+    body = response.json()
+    assert body["criador"] == {"nome": "Ex-membro", "sou_eu": False}
+    assert body["pagador"]["nome"] == "anonimo@example.com"
+    assert {p["nome"] for p in body["acesso"]} == {"Admin", "anonimo@example.com"}
+    assert body["historico"][0]["autor"] == "Ex-membro"
+    assert admin.get(url(paga)).json()["pagador"]["nome"] == "Ex-membro"
+    corpo = lista(admin, f.grupo)
+    pagadores = corpo["opcoes"]["pagadores"]
+    assert [p["nome"] for p in pagadores] == ["Ex-membro", "anonimo@example.com"]
+    vistos = response.content.decode() + str(corpo) + str(admin.get(url(paga)).json())
+    assert "saiu@" not in vistos
+
+    saiu.delete()
+    assert admin.get(url(conta)).json()["criador"] == {"nome": "Ex-membro", "sou_eu": False}
+    # Personal space: the only member is the owner.
+    propria = nova(anonimo, Espaco.objects.get(dono=anonimo))
+    body = cliente(anonimo).get(url(propria)).json()
+    assert body["criador"]["nome"] == body["pagador"]["nome"] == "anonimo@example.com"
