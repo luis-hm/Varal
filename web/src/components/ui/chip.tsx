@@ -19,7 +19,10 @@ export function Chip({ state = "off", label, count, onClick }: Props) {
     >
       {/* The pill is 40px like the Doop; the button around it keeps the 44px touch target (RNF08). */}
       <span className={styles.pill}>
-        {label}
+        {/* A long name (an e-mail when there is none) is cut with an ellipsis instead of leaving the sheet. */}
+        <span className={styles.lbl} title={label}>
+          {label}
+        </span>
         {count != null && (
           <>
             {" "}

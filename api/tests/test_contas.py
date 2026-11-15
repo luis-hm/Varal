@@ -292,7 +292,8 @@ def consultas(client, f, *extra):
 def test_rn06_admin_nao_escolhido_404_e_agregados_sem_a_conta(f):
     visivel = nova(f.u["membro"], f.grupo, subgrupo=f.casa.pk, pagador=f.u["membro"].pk)
     nova(f.u["membro"], f.grupo, vencimento=dias(-40))
-    nao_escolhidos = {q: cliente(f.u[q]) for q in ("admin", "observador")}
+    entrar(f, "outro")  # CA07: admin, member and observer, none of them chosen
+    nao_escolhidos = {q: cliente(f.u[q]) for q in ("admin", "outro", "observador")}
     antes = {q: consultas(c, f, url(visivel)) for q, c in nao_escolhidos.items()}
     escondidas = [
         restrita(
@@ -310,7 +311,7 @@ def test_rn06_admin_nao_escolhido_404_e_agregados_sem_a_conta(f):
     escolhida = restrita(f.u["membro"], f.grupo, acesso=[f.u["observador"].pk])
     for q, client in nao_escolhidos.items():
         depois = consultas(client, f, url(visivel))
-        if q == "admin":
+        if q != "observador":  # the observer is chosen in `escolhida` below
             assert depois == antes[q]
         for conta in escondidas:
             assert client.get(url(conta)).status_code == 404
@@ -643,6 +644,8 @@ def test_rn32_sair_bloqueado_lista_contas_e_nada_muda(f):
     orfa = restrita(m, f.grupo, descricao="Presente", pagador=m.pk)
     paga = restrita(m, f.grupo, descricao="Paga")
     Lancamento.objects.filter(pk=paga.pk).update(status="paga")
+    confirmada = restrita(m, f.grupo, descricao="Confirmada")
+    Lancamento.objects.filter(pk=confirmada.pk).update(status="confirmada")
     contas.cancelar(m, restrita(m, f.grupo, descricao="Cancelada").pk)
     antes = estado(orfa)
     response = sair(m, f)
@@ -822,6 +825,20 @@ def test_rn05_rn32_excecao_so_na_saida(f):
     assert Lancamento.objects.get(pk=outra.pk).status == "cancelada"
 
 
+def test_rn05_rn32_pagador_resolve_na_saida(f):
+    """CA23 for the payer role: the last one who sees a restricted bill cancels it while leaving."""
+    p = f.u["pagador"]
+    conta = restrita(f.u["membro"], f.grupo, pagador=p.pk, descricao="Presente")
+    assert sair(f.u["membro"], f).status_code == 204
+    assert cliente(p).post(url(conta, "cancelar/")).status_code == 403  # outside the exit: RN05
+    assert sair(p, f).status_code == 409
+    assert sair(p, f, [{"lancamento": str(conta.pk), "acao": "cancelar"}]).status_code == 204
+    cancelada = Historico.objects.get(lancamento=conta, acao="cancelada")
+    assert cancelada.usuario == p and cancelada.dados == {"motivo": "saida_rn32"}
+    conta.refresh_from_db()
+    assert conta.status == "cancelada" and conta.pagador == p  # Q7: cancelled bills keep the payer
+
+
 def test_rn05_fora_da_saida_observador_403_404(f):
     obs = cliente(f.u["observador"])
     vista = nova(f.u["admin"], f.grupo)
@@ -885,6 +902,14 @@ def test_rn32_editar_sem_quem_veja_400(f):
     assert estado(conta) == antes
     troca = {"acesso": [str(f.u["observador"].pk)]}
     assert cliente(m).patch(url(conta), troca, content_type=JSON).status_code == 200
+    # Another way: the only one who sees it is its payer, who takes themselves out as payer.
+    entrar(f, "terceiro")
+    paga_so_ele = restrita(f.u["terceiro"], f.grupo, pagador=m.pk)
+    assert sair(f.u["terceiro"], f).status_code == 204
+    antes = estado(paga_so_ele)
+    response = cliente(m).patch(url(paga_so_ele), {"pagador": None}, content_type=JSON)
+    assert response.status_code == 400 and contas.SO_VOCE_VE in str(response.json())
+    assert estado(paga_so_ele) == antes
 
 
 # ---- CA26 / RN30 ---------------------------------------------------------------------------

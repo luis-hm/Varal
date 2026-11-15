@@ -1,9 +1,12 @@
 // Etapa 02: RF01–RF03, RN03, RNF01/02/08/09. API and PostgreSQL are real.
 import path from "node:path";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { AUTH, ORIGIN, TEST_PASSWORD, createAccount, me, uniqueEmail } from "./fixtures";
 
 const SCREENS = path.join(__dirname, "__screens__");
+// Etapa 04 (D02): Início greets by the first name, or the e-mail's local part when there is none.
+const inicio = (page: Page, email: string) =>
+  page.getByRole("heading", { level: 1, name: new RegExp(`^(Bom dia|Boa tarde|Boa noite), ${email.split("@")[0]}$`) });
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => addEventListener("DOMContentLoaded", () => {
@@ -36,7 +39,7 @@ test("rf01/rf02 rn03 ca01/ca03/ca09/ca10/ca11: cadastro, sessão persistente, is
   await page.getByLabel("Senha", { exact: true }).fill(TEST_PASSWORD);
   await page.getByRole("button", { name: "Criar conta", exact: true }).click();
   await expect(page).toHaveURL(`${ORIGIN}/`);
-  await expect(page.getByRole("heading", { name: "Início", exact: true })).toBeVisible();
+  await expect(inicio(page, email)).toBeVisible();
 
   const first = await me(context.request);
   expect(first.email).toBe(email);
@@ -48,7 +51,7 @@ test("rf01/rf02 rn03 ca01/ca03/ca09/ca10/ca11: cadastro, sessão persistente, is
   expect(await page.evaluate(() => ({ local: { ...localStorage }, session: { ...sessionStorage } }))).toEqual({ local: {}, session: {} });
 
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Início", exact: true })).toBeVisible();
+  await expect(inicio(page, email)).toBeVisible();
   expect((await me(context.request)).espaco_pessoal.id).toBe(first.espaco_pessoal.id);
 
   const other = await playwright.request.newContext({ baseURL: ORIGIN });

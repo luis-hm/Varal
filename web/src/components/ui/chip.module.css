@@ -2,6 +2,7 @@
 .chip {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   min-height: 44px;
   padding: 0;
   border: 0;
@@ -23,7 +24,14 @@
   font-weight: 600;
   color: var(--color-ink);
   white-space: nowrap;
+  max-width: 100%;
   transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.lbl {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .n {
