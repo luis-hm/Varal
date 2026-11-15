@@ -1,0 +1,168 @@
+/* Doop: k0kB5dc-Vo / folha de 11 · Convidar membro + modal M05 */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes modal-pop {
+  from {
+    opacity: 0.001;
+    transform: scale(0.96);
+  }
+}
+
+.folha {
+  /* Mobile: bottom sheet (11). */
+  margin: auto 0 0;
+  width: 100%;
+  max-width: 100%;
+  max-height: 92dvh;
+  padding: 33px var(--spacing-5) 28px;
+  border: 0;
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.folha[open] {
+  animation: sheet-up 0.5s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+.folha::backdrop {
+  background: var(--scrim-sheet);
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-height: 100%;
+}
+
+/* The 40×5 grab bar of frame 11 inside a 44px button: the sheet closes with a tap (mobile has no ×). */
+.handle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 88px;
+  height: 44px;
+  transform: translateX(-50%);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.handle span {
+  position: absolute;
+  top: var(--spacing-3);
+  left: 24px;
+  width: 40px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--color-line);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+.sub {
+  margin-top: 4px;
+  font-size: var(--text-base);
+  color: var(--color-ink-muted);
+}
+
+.close {
+  display: none;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.handle:focus-visible,
+.close:focus-visible {
+  outline: 3px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.actions > * {
+  width: 100%;
+}
+
+.actions .cancel {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  /* Desktop: centred modal (M05). */
+  .folha {
+    margin: auto;
+    width: var(--modal-width);
+    max-height: calc(100dvh - 2 * var(--spacing-8));
+    padding: var(--spacing-6) 28px;
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-modal);
+  }
+
+  .folha[data-size="convite"] .inner {
+    min-height: calc(var(--modal-height-invite) - 2 * var(--spacing-6));
+  }
+
+  .folha[open] {
+    animation: modal-pop 0.3s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  }
+
+  .handle {
+    display: none;
+  }
+
+  .close {
+    display: flex;
+  }
+
+  .actions {
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-top: auto;
+  }
+
+  .actions > * {
+    width: auto;
+  }
+
+  .actions .cancel {
+    display: inline-flex;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .folha[open] {
+    animation: none;
+  }
+}

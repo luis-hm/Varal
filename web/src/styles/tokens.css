@@ -61,4 +61,14 @@
   --shadow-cta: 0 8px 20px color-mix(in srgb, var(--color-amber) 35%, transparent); /* SideNav .new */
   --shadow-navitem: 0 1px 0 var(--color-line), 0 0 0 1px var(--color-line); /* NavItem on */
   --shadow-focus: 0 0 0 4px var(--color-neutral-soft); /* Field .bx:focus-within */
+  /* Etapa 03 */
+  --text-invite-link: 14px; /* 11/M05 link box */
+  --leading-radio-text: 18px; /* RadioCard .tx */
+  --tracking-display: -0.02em; /* D04 h1 */
+  --tracking-label: 0.04em; /* MemberRow role pill */
+  --shadow-modal: 0 24px 64px color-mix(in srgb, var(--color-ink) 25%, transparent); /* M05 .modal */
+  --shine-invite: color-mix(in srgb, var(--color-amber) 18%, transparent); /* 11/M05 shine, rgba(245,165,36,.18) */
+  --scrim-sheet: color-mix(in srgb, var(--color-ink) 60%, transparent); /* backdrop behind 11/M05; frame 11 paints it ink */
+  --modal-width: 560px; /* M05 */
+  --modal-height-invite: 480px; /* M05 */
 }

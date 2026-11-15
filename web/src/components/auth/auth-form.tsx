@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { AuthError, csrfToken, getSession, validateResetKey } from "@/lib/auth/client";
 import { useAuthConfig, useLogin, useRequestPassword, useResetPassword, useSignup } from "@/lib/auth/hooks";
 import { useHydrated } from "@/lib/auth/hydration";
+import { comProximo, proximoDaUrl, useProximo } from "@/lib/auth/proximo";
 import styles from "./auth.module.css";
 
 type Mode = "login" | "signup" | "request" | "reset";
@@ -20,6 +21,7 @@ function completedSession(data: Awaited<ReturnType<typeof getSession>>) {
 
 export function AuthForm({ mode, resetKey }: { mode: Mode; resetKey?: string }) {
   const hydrated = useHydrated();
+  const proximo = useProximo();
   const config = useAuthConfig();
   const login = useLogin();
   const signup = useSignup();
@@ -53,7 +55,7 @@ export function AuthForm({ mode, resetKey }: { mode: Mode; resetKey?: string }) 
   function enterApp() {
     queryClient.clear();
     // A fresh request discards prefetched pages from the previous authentication state.
-    window.location.replace("/");
+    window.location.replace(proximoDaUrl() ?? "/");
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -93,7 +95,7 @@ export function AuthForm({ mode, resetKey }: { mode: Mode; resetKey?: string }) 
         return;
       }
       (form.elements.namedItem("csrfmiddlewaretoken") as HTMLInputElement).value = csrfToken();
-      (form.elements.namedItem("callback_url") as HTMLInputElement).value = `${window.location.origin}/entrar/retorno`;
+      (form.elements.namedItem("callback_url") as HTMLInputElement).value = `${window.location.origin}${comProximo("/entrar/retorno", proximoDaUrl())}`;
       form.submit();
     } catch {
       setNotice("Não foi possível iniciar o login com Google. Tente novamente.");
@@ -148,7 +150,7 @@ export function AuthForm({ mode, resetKey }: { mode: Mode; resetKey?: string }) 
           <Button type="submit" width="full" label={mutation.isPending ? "Aguarde…" : mode === "request" ? "Enviar link" : mode === "reset" ? "Salvar nova senha" : titles[mode]} disabled={!hydrated || mutation.isPending || (mode === "reset" && keyStatus.isPending)} />
         </form>
       )}
-      {mode === "login" ? <p className={styles.footer}>Ainda não tem conta? <Link className={styles.link} href="/criar-conta">Criar conta</Link></p> : mode === "signup" ? <p className={styles.footer}>Já tem conta? <Link className={styles.link} href="/entrar">Entrar</Link></p> : !done && <p className={styles.footer}><Link className={styles.link} href="/entrar">Voltar para Entrar</Link></p>}
+      {mode === "login" ? <p className={styles.footer}>Ainda não tem conta? <Link className={styles.link} href={comProximo("/criar-conta", proximo)}>Criar conta</Link></p> : mode === "signup" ? <p className={styles.footer}>Já tem conta? <Link className={styles.link} href={comProximo("/entrar", proximo)}>Entrar</Link></p> : !done && <p className={styles.footer}><Link className={styles.link} href="/entrar">Voltar para Entrar</Link></p>}
     </>
   );
 }
@@ -159,7 +161,7 @@ export function GoogleReturn() {
   useEffect(() => {
     if (session.data?.meta.is_authenticated) {
       queryClient.clear();
-      window.location.replace("/");
+      window.location.replace(proximoDaUrl() ?? "/");
     }
   }, [session.data, queryClient]);
   const failed = session.isError || (session.data && !session.data.meta.is_authenticated);

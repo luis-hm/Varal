@@ -15,6 +15,7 @@
   background: var(--color-ink);
   color: var(--color-surface);
   white-space: nowrap;
+  text-decoration: none; /* also styles links that look like buttons */
   transition: transform 0.15s ease, filter 0.15s ease;
 }
 
