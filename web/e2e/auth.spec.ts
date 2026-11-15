@@ -42,7 +42,7 @@ test("rf01/rf02 rn03 ca01/ca03/ca09/ca10/ca11: cadastro, sessão persistente, is
   expect(first.email).toBe(email);
   expect(first.espaco_pessoal).toMatchObject({ tipo: "pessoal", nome: "Pessoal" });
   expect(first.espaco_pessoal.id).toMatch(/^[\da-f-]{36}$/);
-  expect(Object.keys(first).sort()).toEqual(["email", "espaco_pessoal", "id", "nome"]);
+  expect(Object.keys(first).sort()).toEqual(["email", "espaco_pessoal", "grupos", "id", "nome"]);
   const session = (await context.cookies()).find((cookie) => cookie.name === "sessionid");
   expect(session).toMatchObject({ httpOnly: true, sameSite: "Lax" });
   expect(await page.evaluate(() => ({ local: { ...localStorage }, session: { ...sessionStorage } }))).toEqual({ local: {}, session: {} });

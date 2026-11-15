@@ -154,7 +154,7 @@ test("ca15 (controle): sem reduced motion o selo pulsa e o botão encolhe", asyn
   await page.mouse.up();
 });
 
-test("ca18: navegação entre as páginas Em breve com um único item ativo", async ({ page }, info) => {
+test("ca18: navegação entre as seções com um único item ativo", async ({ page }, info) => {
   const mobile = info.project.name === "mobile";
   const menu = mobile
     ? page.getByRole("navigation", { name: "Navegação principal" })
@@ -167,7 +167,8 @@ test("ca18: navegação entre as páginas Em breve com um único item ativo", as
     await menu.getByRole("link", { name: titulo, exact: true }).click();
     await expect(page).toHaveURL(href);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(titulo);
-    await expect(page.getByText("Em breve", { exact: true }).filter({ visible: true })).toBeVisible();
+    // Etapa 03: /grupos is the real group list now.
+    if (href !== "/grupos") await expect(page.getByText("Em breve", { exact: true }).filter({ visible: true })).toBeVisible();
 
     const ativos = page.locator('[aria-current="page"]:visible');
     await expect(ativos).toHaveCount(1);

@@ -10,7 +10,7 @@
 | 00 | Fundação | concluída | `etapa/00-fundacao` | 12/11/2026 | [relatorio](etapas/00-fundacao/relatorio.md) |
 | 01 | Design system no código | concluída | `etapa/01-design-system` | 12/11/2026 | [relatorio](etapas/01-design-system/relatorio.md) |
 | 02 | Autenticação | concluída | `etapa/02-autenticacao` | 13/11/2026 | [relatorio](etapas/02-autenticacao/relatorio.md) |
-| 03 | Espaços e grupos | pendente | — | — | — |
+| 03 | Espaços e grupos | concluída | `etapa/03-espacos-grupos` | 15/11/2026 | [relatorio](etapas/03-espacos-grupos/relatorio.md) |
 | 04 | Contas (núcleo) | pendente | — | — | — |
 | 05 | Boleto e Pix | pendente | — | — | — |
 | 06 | PDF do boleto | pendente | — | — | — |
@@ -30,7 +30,9 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 | # | Assunto | Bloqueia |
 | --- | --- | --- |
 | P1 | Rodar uma vez o serviço `minio` (`pgsty/silo`) para verificar o comando e as variáveis: a checagem de segurança do agente bloqueou executar a imagem. O dono do projeto sobe manualmente (`docker compose -f infra/docker-compose.yml --profile storage up -d minio`) ou libera a permissão. | Etapa 06 |
-| P3 | Configurar a cadeia de proxies confiáveis e testar spoofing antes do deploy. Allauth mantém `trusted_proxy_count=0` enquanto a API 8000 está exposta; limite por IP vê o Next como origem. | Deploy da Etapa 11; não bloqueia a Etapa 02 |
+| P3 | Configurar a cadeia de proxies confiáveis e testar spoofing antes do deploy. Allauth mantém `trusted_proxy_count=0` enquanto a API 8000 está exposta; limite por IP vê o Next como origem. Ativar também o limite de aceite de convite por IP (RN31). | Deploy da Etapa 11 |
+| P4 | Produção: com `DJANGO_DEBUG=0` a API liga `SECURE_SSL_REDIRECT`, e o Next consulta `/api/me/` pela rede interna em HTTP sem `X-Forwarded-Proto`; provável redirecionamento para https e falha das páginas protegidas. Definir como o Next fala com a API em produção (cabeçalho, exceção de rota ou proxy). Omitir também o token de convite do access log do proxy/servidor de produção (RN31). | Deploy da Etapa 11 |
+| P5 | Tornar o limite de cadastro configurável só no E2E/CI (flakiness do E2E): `ACCOUNT_RATE_LIMITS` com `signup` por env. O E2E cria ~40 contas contra o limite de 20/min por IP do allauth. Não é bug de produção. | Não bloqueia |
 
 ### Resolvidas
 
@@ -47,6 +49,28 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 ## Log
 
 Ordem cronológica inversa.
+
+### 15/11/2026 — Etapa 03 (Espaços e grupos) concluída
+
+- Grupo sem dono, `Membro`, `Convite`, `Subgrupo`; migrações 0003–0005 sem perda de dados. Filtro central `acesso.py` (404 fora, 403 sem papel) com a RN05 completa; invariante ≥ 1 admin com `select_for_update` e guarda na exclusão de `Usuario`.
+- Convite RN31: só SHA-256 no banco, uso único, 7 dias, revogável, 410 uniforme, 10 aceites/h por usuário. `/api/me/` com grupos; seed com os quatro papéis.
+- Web: `/grupos`, `/grupos/[id]` (10 ↔ D04) em três níveis, `/grupos/[id]/simples`, `/c/[token]`, folha/modal `<dialog>`, convite 11 ↔ M05, seletor de espaço. Dez variáveis fora do Doop, nenhuma cor nova. Canvas não alterado.
+- Segurança: **B1** (DRF aceitava HTTP Basic desde a Etapa 02, contornando limite de login e CSRF) e **I1** (admin desligado voltava com convite próprio) corrigidos com testes; M1–M3 corrigidos; M4–M6 registrados.
+- `make test` 143 pytest + 57 Vitest; lint verde; tipos sincronizados; E2E 51 passaram e 1 ignorado de propósito. Uma execução seguida de outra suíte teve 3 falhas pelo limite de cadastro do allauth; reexecução 51/51 (P5).
+- Ajustes rev 24 relidos ao vivo: nenhum item novo. Decisões a confirmar no [relatório](etapas/03-espacos-grupos/relatorio.md#decisões-para-o-dono-confirmar). Sem push.
+
+### 14/11/2026 — Ok do dono à Etapa 03, com correções
+
+- Oito decisões resolvidas na [spec](etapas/03-espacos-grupos/spec.md#decisões-resolvidas-ok-do-dono-14112026): telas sem frame pelo guia `varal-ui`; convite sem nome; página do grupo em três níveis (pagador vai para `/grupos/[id]/simples`, "Em breve" até a Etapa 10); grupo sem dono com pelo menos um admin sempre, inclusive na exclusão de conta; dados futuros escondidos.
+- Regra nova **RN31** (link de convite: token só como hash, uso único, 7 dias, revogável, limite de aceite, link encurtado) pelo [ADR 0004](arquitetura/adr/0004-rn31-link-de-convite.md). Limite de 10 aceites por usuário por hora agora; por IP depois da P3. A confirmar no relatório: limite por usuário e rota do pagador.
+- Doop relido: D04 e M05 ready_for_dev; 11 e M05 sem o campo de nome e com o link encurtado; M05 agora 560×480. Canvas não alterado. Cinco perguntas (Q1–Q5) com padrão provisório na spec.
+
+### 14/11/2026 — Merge da Etapa 02 e preparação da Etapa 03 (Espaços e grupos)
+
+- Merge local da `etapa/02-autenticacao` na `main` (`--no-ff`); criada `etapa/03-espacos-grupos`. Sem push.
+- "Varal — Ajustes" rev 24 lido ao vivo: nenhum item desmarcado; "Variáveis do Google" marcado no documento remoto como feito na etapa 02.
+- `spec.md`, `plano.md` e `tarefas.md` em `etapas/03-espacos-grupos/`. Frames 10 (`SfhuKVOQIF`), D04 (`5UzCB5yNaI`), 11 (`bkv_O9ohNO`) e M05 (`8XSFrkwy2d`) lidos, todos draft; canvas não alterado.
+- Proposto: grupo sem `dono` (admin só por `Membro`), filtro central em `api/apps/espacos/acesso.py`, convite só por link. Oito decisões aguardam o ok do dono antes do código. Nova pendência P4 (HTTPS interno em produção).
 
 ### 13/11/2026 — Etapa 02 (Autenticação) concluída
 

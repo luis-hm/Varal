@@ -194,3 +194,61 @@
     transform: none;
   }
 }
+
+/* Space selector menu: no frame (guide varal-ui "Telas sem frame"), same card and row look as .sp. */
+.selector {
+  position: relative;
+}
+
+.menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + var(--spacing-1));
+  left: 0;
+  right: 0;
+  padding: var(--spacing-1);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  box-shadow: var(--shadow-modal);
+}
+
+.menu[hidden] {
+  display: none;
+}
+
+.menu ul {
+  list-style: none;
+  padding: 0 0 var(--spacing-1);
+  margin-bottom: var(--spacing-1);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.opt:hover,
+.opt[aria-current="true"] {
+  background: var(--color-bg);
+}
+
+.opt .av {
+  width: 34px;
+  height: 34px;
+  font-size: var(--text-xs);
+}
+
+.opt:focus-visible {
+  outline: 3px solid var(--color-amber);
+  outline-offset: -3px;
+}

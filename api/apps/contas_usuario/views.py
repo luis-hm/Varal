@@ -3,7 +3,9 @@ from rest_framework import serializers
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from apps.espacos.acesso import espacos_do_usuario
 from apps.espacos.models import Espaco
+from apps.espacos.views import GrupoResumoSerializer
 
 
 class EspacoPessoalSerializer(serializers.ModelSerializer):
@@ -17,6 +19,7 @@ class MeSerializer(serializers.Serializer):
     nome = serializers.CharField()
     email = serializers.EmailField()
     espaco_pessoal = EspacoPessoalSerializer()
+    grupos = GrupoResumoSerializer(many=True)
 
 
 @extend_schema(
@@ -33,6 +36,13 @@ class MeSerializer(serializers.Serializer):
                     "tipo": "pessoal",
                     "nome": "Pessoal",
                 },
+                "grupos": [
+                    {
+                        "id": "1b4e28ba-2fa1-11d2-883f-0016d3cca427",
+                        "nome": "Família",
+                        "papel": "admin",
+                    }
+                ],
             },
         )
     ],
@@ -47,6 +57,10 @@ def me(request):
                 "nome": request.user.nome,
                 "email": request.user.email,
                 "espaco_pessoal": espaco,
+                # Only the user's own groups, for the space selector (RN01).
+                "grupos": espacos_do_usuario(request.user)
+                .filter(tipo=Espaco.Tipo.GRUPO)
+                .order_by("nome"),
             }
         ).data
     )

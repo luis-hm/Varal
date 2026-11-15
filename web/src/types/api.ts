@@ -1377,6 +1377,179 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/convites/{token}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Abrir link de convite (sem sessão) */
+        get: operations["convites_ver"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/convites/{token}/aceitar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Aceitar convite (exige sessão; uso único; 10 tentativas por hora) */
+        post: operations["convites_aceitar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/grupos/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Grupos do usuário (RN01) */
+        get: operations["grupos_listar"];
+        put?: never;
+        /** Criar grupo; o criador vira o único admin (RF04, RN04) */
+        post: operations["grupos_criar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/grupos/{grupo_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Página do grupo: admin, membro e observador (pagador recebe 403) */
+        get: operations["grupos_detalhe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/grupos/{grupo_id}/convites/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Convites pendentes (admin) */
+        get: operations["grupos_convites_listar"];
+        put?: never;
+        /** Gerar link de convite (admin; RN24, RN31). O link só aparece nesta resposta. */
+        post: operations["grupos_convites_criar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/grupos/{grupo_id}/convites/{convite_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revogar convite pendente (admin; RN31) */
+        delete: operations["grupos_convites_revogar"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/grupos/{grupo_id}/membros/{membro_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remover membro (admin; RN04, RN21) */
+        delete: operations["grupos_membros_remover"];
+        options?: never;
+        head?: never;
+        /** Alterar papel de um membro (admin; RN04) */
+        patch: operations["grupos_membros_alterar_papel"];
+        trace?: never;
+    };
+    "/api/grupos/{grupo_id}/sair/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sair do grupo (qualquer papel; RN04, RN21) */
+        post: operations["grupos_sair"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/grupos/{grupo_id}/subgrupos/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Criar casa (admin; CU04) */
+        post: operations["grupos_casas_criar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/grupos/{grupo_id}/subgrupos/{casa_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Renomear ou arquivar casa (admin; CU04). Arquivada sai da lista e fica no banco. */
+        patch: operations["grupos_casas_alterar"];
+        trace?: never;
+    };
     "/api/health/": {
         parameters: {
             query?: never;
@@ -1413,6 +1586,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Aceite: {
+            /** Format: uuid */
+            grupo_id: string;
+            papel: components["schemas"]["PapelEnum"];
+        };
         /**
          * @description The access token.
          * @example eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdW
@@ -2037,11 +2215,71 @@ export interface components {
              */
             request_options: Record<string, never>;
         };
+        Casa: {
+            arquivado?: boolean;
+            /** Format: uuid */
+            readonly id: string;
+            nome: string;
+        };
+        ConviteCriado: {
+            /** Format: date-time */
+            expira_em: string;
+            /** Format: uuid */
+            id: string;
+            papel: components["schemas"]["PapelEnum"];
+            /** Format: uri */
+            url: string;
+        };
+        ConvitePendente: {
+            /** Format: date-time */
+            criado_em: string;
+            readonly criado_por_nome: string | null;
+            /** Format: date-time */
+            expira_em: string;
+            /** Format: uuid */
+            id: string;
+            papel: components["schemas"]["PapelEnum"];
+        };
+        ConvitePublico: {
+            /** Format: date-time */
+            expira_em: string;
+            grupo_nome: string;
+            papel: components["schemas"]["PapelEnum"];
+        };
+        CriarGrupo: {
+            casas?: string[];
+            nome: string;
+        };
+        Erro: {
+            detail: string;
+        };
         EspacoPessoal: {
             /** Format: uuid */
             readonly id: string;
             nome: string;
             tipo: components["schemas"]["TipoEnum"];
+        };
+        GrupoDetalhe: {
+            readonly casas: components["schemas"]["Casa"][];
+            /** Format: uuid */
+            id: string;
+            readonly membros: components["schemas"]["Membro"][];
+            meu_papel: components["schemas"]["PapelEnum"];
+            nome: string;
+        };
+        GrupoLista: {
+            casas_qtd: number | null;
+            /** Format: uuid */
+            id: string;
+            membros_qtd: number | null;
+            nome: string;
+            papel: components["schemas"]["PapelEnum"];
+        };
+        GrupoResumo: {
+            /** Format: uuid */
+            id: string;
+            nome: string;
+            papel: components["schemas"]["PapelEnum"];
         };
         Health: {
             status: string;
@@ -2050,9 +2288,38 @@ export interface components {
             /** Format: email */
             email: string;
             espaco_pessoal: components["schemas"]["EspacoPessoal"];
+            grupos: components["schemas"]["GrupoResumo"][];
             /** Format: uuid */
             id: string;
             nome: string;
+        };
+        Membro: {
+            readonly email: string | null;
+            /** Format: uuid */
+            readonly id: string;
+            readonly nome: string;
+            papel: components["schemas"]["PapelEnum"];
+            readonly sou_eu: boolean;
+        };
+        Papel: {
+            papel: components["schemas"]["PapelEnum"];
+        };
+        /**
+         * @description * `admin` - Admin
+         *     * `membro` - Membro
+         *     * `pagador` - Pagador
+         *     * `observador` - Observador
+         * @enum {string}
+         */
+        PapelEnum: "admin" | "membro" | "pagador" | "observador";
+        PatchedCasa: {
+            arquivado?: boolean;
+            /** Format: uuid */
+            readonly id?: string;
+            nome?: string;
+        };
+        PatchedPapel: {
+            papel?: components["schemas"]["PapelEnum"];
         };
         /**
          * @description * `pessoal` - Pessoal
@@ -2657,6 +2924,529 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    convites_ver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConvitePublico"];
+                };
+            };
+            /** @description Convite inexistente, expirado, usado ou revogado. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    convites_aceitar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Aceite"];
+                };
+            };
+            /** @description Regra de negócio (ex.: RN04, o grupo ficaria sem admin). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Convite inexistente, expirado, usado ou revogado. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Limite de tentativas de aceite (10 por hora). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    grupos_listar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrupoLista"][];
+                };
+            };
+        };
+    };
+    grupos_criar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CriarGrupo"];
+                "application/x-www-form-urlencoded": components["schemas"]["CriarGrupo"];
+                "multipart/form-data": components["schemas"]["CriarGrupo"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrupoDetalhe"];
+                };
+            };
+            /** @description Nome vazio */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    grupos_detalhe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                grupo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrupoDetalhe"];
+                };
+            };
+            /** @description Seu papel não permite esta ação. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Grupo, membro, casa ou convite fora do seu acesso. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    grupos_convites_listar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                grupo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConvitePendente"][];
+                };
+            };
+            /** @description Seu papel não permite esta ação. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Grupo, membro, casa ou convite fora do seu acesso. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    grupos_convites_criar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                grupo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Papel"];
+                "application/x-www-form-urlencoded": components["schemas"]["Papel"];
+                "multipart/form-data": components["schemas"]["Papel"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteCriado"];
+                };
+            };
+            /** @description Seu papel não permite esta ação. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Grupo, membro, casa ou convite fora do seu acesso. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    grupos_convites_revogar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                convite_id: string;
+                grupo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Seu papel não permite esta ação. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Grupo, membro, casa ou convite fora do seu acesso. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    grupos_membros_remover: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                grupo_id: string;
+                membro_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Seu papel não permite esta ação. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Grupo, membro, casa ou convite fora do seu acesso. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Regra de negócio (ex.: RN04, o grupo ficaria sem admin). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    grupos_membros_alterar_papel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                grupo_id: string;
+                membro_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedPapel"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPapel"];
+                "multipart/form-data": components["schemas"]["PatchedPapel"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Membro"];
+                };
+            };
+            /** @description Seu papel não permite esta ação. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Grupo, membro, casa ou convite fora do seu acesso. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Regra de negócio (ex.: RN04, o grupo ficaria sem admin). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    grupos_sair: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                grupo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Grupo, membro, casa ou convite fora do seu acesso. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Regra de negócio (ex.: RN04, o grupo ficaria sem admin). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    grupos_casas_criar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                grupo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Casa"];
+                "application/x-www-form-urlencoded": components["schemas"]["Casa"];
+                "multipart/form-data": components["schemas"]["Casa"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Casa"];
+                };
+            };
+            /** @description Seu papel não permite esta ação. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Grupo, membro, casa ou convite fora do seu acesso. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    grupos_casas_alterar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                casa_id: string;
+                grupo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedCasa"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedCasa"];
+                "multipart/form-data": components["schemas"]["PatchedCasa"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Casa"];
+                };
+            };
+            /** @description Seu papel não permite esta ação. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Grupo, membro, casa ou convite fora do seu acesso. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
     health: {
         parameters: {
             query?: never;

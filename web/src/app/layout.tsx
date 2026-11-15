@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Inter } from "next/font/google";
+import { Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
 import "@/styles/globals.css";
 import { Providers } from "./providers";
 
@@ -11,6 +11,8 @@ const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
 });
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
+// Doop: 11 · Convidar membro + M05 use JetBrains Mono for the invite link only; not preloaded elsewhere.
+const mono = JetBrains_Mono({ subsets: ["latin"], weight: "700", display: "swap", preload: false, variable: "--font-jetbrains" });
 
 export const metadata: Metadata = {
   title: "Varal",
@@ -19,7 +21,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className={`${bricolage.variable} ${inter.variable}`}>
+    <html lang="pt-BR" className={`${bricolage.variable} ${inter.variable} ${mono.variable}`}>
       <body>
         <Providers>{children}</Providers>
       </body>

@@ -1,15 +1,21 @@
 // Doop: k0kB5dc-Vo / componentes Icon, StatusBadge, Button, Chip, Field, TopBar, TabItem, TabBar, NavItem,
-// SideNav (página 04 · Componentes) e frame Logo (t4pHch9UDR). Sample copy taken from the Doop frames.
+// SideNav, RadioCard, MemberRow, HouseCard (página 04 · Componentes), folha/modal de 11/M05 e frame Logo (t4pHch9UDR).
+// Sample copy taken from the Doop frames.
 "use client";
 
 import { useState } from "react";
 import { StatusBadge, type Status } from "@/components/bills/status-badge";
+import { HouseCard } from "@/components/groups/house-card";
+import { MemberRow } from "@/components/groups/member-row";
 import { SideNav, NavItem } from "@/components/layout/side-nav";
 import { TabBar, TabItem } from "@/components/layout/tab-bar";
 import { TopBar } from "@/components/layout/top-bar";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Field } from "@/components/ui/field";
+import { Folha } from "@/components/ui/folha";
+import { RadioCard } from "@/components/ui/radio-card";
+import { ordemPapeis, papeis } from "@/lib/grupos/papeis";
 import { Icon, iconNames } from "@/components/ui/icon";
 import { Logo } from "@/components/ui/logo";
 import styles from "./vitrine.module.css";
@@ -25,6 +31,8 @@ const chips = [
 
 export function Vitrine() {
   const [chip, setChip] = useState("Vencidas");
+  const [papel, setPapel] = useState<(typeof ordemPapeis)[number]>("pagador");
+  const [folha, setFolha] = useState(false);
   return (
     <div className={styles.page}>
       <TopBar title="Componentes" backHref="/" />
@@ -154,6 +162,44 @@ export function Vitrine() {
             usuario={{ iniciais: "LM", nome: "Luis Martins", detalhe: "luis@email.com" }}
           />
         </div>
+      </section>
+
+      <section className={styles.sec}>
+        <h2>RadioCard</h2>
+        <div role="radiogroup" aria-label="Papel" className={styles.fields}>
+          {ordemPapeis.map((p) => (
+            <RadioCard key={p} name="vitrine-papel" value={p} state={p === papel ? "on" : "off"} onChange={() => setPapel(p)} {...papeis[p]} />
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.sec}>
+        <h2>MemberRow</h2>
+        <div className={styles.box}>
+          <MemberRow role="admin" initials="LM" name="Luis (você)" detail="Criou o grupo" />
+          <MemberRow role="admin" initials="RM" name="Pai" detail="Paga 7 contas" />
+          <MemberRow role="pagador" initials="LB" name="Mãe" detail="Paga 4 contas · modo simples" />
+          <MemberRow role="observador" initials="AN" name="Ana" detail="Só acompanha" />
+          <MemberRow role="membro" initials="JS" name="João" onClick={() => setFolha(true)} />
+        </div>
+      </section>
+
+      <section className={styles.sec}>
+        <h2>HouseCard</h2>
+        <div className={styles.row}>
+          <HouseCard label="Casa 1" caption="R$ 1.479,60" caption-2="3 de 4 pagas" progress={75} />
+          <HouseCard label="Casa 2" caption="Sem contas ainda" onClick={() => setFolha(true)} />
+        </div>
+      </section>
+
+      <section className={styles.sec}>
+        <h2>Folha / modal</h2>
+        <div className={styles.row}>
+          <Button tone="secondary" label="Abrir folha" onClick={() => setFolha(true)} />
+        </div>
+        <Folha open={folha} onClose={() => setFolha(false)} title="Convidar para o grupo" subtitle="Família Martins · escolha o que a pessoa poderá fazer" actions={<Button label="Compartilhar convite" icon="pedir" width="full" onClick={() => setFolha(false)} />}>
+          <p>Folha abaixo de 1024px (sheet-up), modal centralizado a partir de 1024px (modal-pop).</p>
+        </Folha>
       </section>
     </div>
   );

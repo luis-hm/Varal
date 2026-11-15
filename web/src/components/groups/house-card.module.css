@@ -1,0 +1,84 @@
+/* Doop: k0kB5dc-Vo / componente HouseCard */
+.house {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  text-align: left;
+}
+
+button.house {
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+button.house:hover {
+  border-color: var(--color-ink-subtle);
+}
+
+button.house:focus-visible {
+  outline: 3px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+.ib {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lb {
+  max-width: 100%;
+  font-size: var(--text-base);
+  overflow-wrap: anywhere;
+}
+
+.house small {
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+}
+
+@keyframes grow {
+  from {
+    width: 0;
+  }
+}
+
+.bar {
+  align-self: stretch;
+  height: 6px;
+  margin-top: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-neutral-soft);
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  width: var(--progress);
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--color-green);
+  animation: grow 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.4s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar i {
+    animation: none;
+  }
+
+  button.house {
+    transition: none;
+  }
+}

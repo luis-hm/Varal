@@ -1101,6 +1101,17 @@ components:
             type: object
       description: WebAuthn credential request options.
   schemas:
+    Aceite:
+      properties:
+        grupo_id:
+          format: uuid
+          type: string
+        papel:
+          $ref: '#/components/schemas/PapelEnum'
+      required:
+      - grupo_id
+      - papel
+      type: object
     AllauthAccessToken:
       description: 'The access token.
 
@@ -2283,6 +2294,99 @@ components:
       required:
       - request_options
       type: object
+    Casa:
+      properties:
+        arquivado:
+          type: boolean
+        id:
+          format: uuid
+          readOnly: true
+          type: string
+        nome:
+          maxLength: 150
+          type: string
+      required:
+      - id
+      - nome
+      type: object
+    ConviteCriado:
+      properties:
+        expira_em:
+          format: date-time
+          type: string
+        id:
+          format: uuid
+          type: string
+        papel:
+          $ref: '#/components/schemas/PapelEnum'
+        url:
+          format: uri
+          type: string
+      required:
+      - expira_em
+      - id
+      - papel
+      - url
+      type: object
+    ConvitePendente:
+      properties:
+        criado_em:
+          format: date-time
+          type: string
+        criado_por_nome:
+          nullable: true
+          readOnly: true
+          type: string
+        expira_em:
+          format: date-time
+          type: string
+        id:
+          format: uuid
+          type: string
+        papel:
+          $ref: '#/components/schemas/PapelEnum'
+      required:
+      - criado_em
+      - criado_por_nome
+      - expira_em
+      - id
+      - papel
+      type: object
+    ConvitePublico:
+      properties:
+        expira_em:
+          format: date-time
+          type: string
+        grupo_nome:
+          type: string
+        papel:
+          $ref: '#/components/schemas/PapelEnum'
+      required:
+      - expira_em
+      - grupo_nome
+      - papel
+      type: object
+    CriarGrupo:
+      properties:
+        casas:
+          items:
+            maxLength: 150
+            type: string
+          maxItems: 20
+          type: array
+        nome:
+          maxLength: 150
+          type: string
+      required:
+      - nome
+      type: object
+    Erro:
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+      type: object
     EspacoPessoal:
       properties:
         id:
@@ -2299,6 +2403,68 @@ components:
       - nome
       - tipo
       type: object
+    GrupoDetalhe:
+      properties:
+        casas:
+          items:
+            $ref: '#/components/schemas/Casa'
+          readOnly: true
+          type: array
+        id:
+          format: uuid
+          type: string
+        membros:
+          items:
+            $ref: '#/components/schemas/Membro'
+          readOnly: true
+          type: array
+        meu_papel:
+          $ref: '#/components/schemas/PapelEnum'
+        nome:
+          type: string
+      required:
+      - casas
+      - id
+      - membros
+      - meu_papel
+      - nome
+      type: object
+    GrupoLista:
+      properties:
+        casas_qtd:
+          nullable: true
+          type: integer
+        id:
+          format: uuid
+          type: string
+        membros_qtd:
+          nullable: true
+          type: integer
+        nome:
+          type: string
+        papel:
+          $ref: '#/components/schemas/PapelEnum'
+      required:
+      - casas_qtd
+      - id
+      - membros_qtd
+      - nome
+      - papel
+      type: object
+    GrupoResumo:
+      properties:
+        id:
+          format: uuid
+          type: string
+        nome:
+          type: string
+        papel:
+          $ref: '#/components/schemas/PapelEnum'
+      required:
+      - id
+      - nome
+      - papel
+      type: object
     Health:
       properties:
         status:
@@ -2313,6 +2479,10 @@ components:
           type: string
         espaco_pessoal:
           $ref: '#/components/schemas/EspacoPessoal'
+        grupos:
+          items:
+            $ref: '#/components/schemas/GrupoResumo'
+          type: array
         id:
           format: uuid
           type: string
@@ -2321,8 +2491,72 @@ components:
       required:
       - email
       - espaco_pessoal
+      - grupos
       - id
       - nome
+      type: object
+    Membro:
+      properties:
+        email:
+          nullable: true
+          readOnly: true
+          type: string
+        id:
+          format: uuid
+          readOnly: true
+          type: string
+        nome:
+          readOnly: true
+          type: string
+        papel:
+          $ref: '#/components/schemas/PapelEnum'
+        sou_eu:
+          readOnly: true
+          type: boolean
+      required:
+      - email
+      - id
+      - nome
+      - papel
+      - sou_eu
+      type: object
+    Papel:
+      properties:
+        papel:
+          $ref: '#/components/schemas/PapelEnum'
+      required:
+      - papel
+      type: object
+    PapelEnum:
+      description: '* `admin` - Admin
+
+        * `membro` - Membro
+
+        * `pagador` - Pagador
+
+        * `observador` - Observador'
+      enum:
+      - admin
+      - membro
+      - pagador
+      - observador
+      type: string
+    PatchedCasa:
+      properties:
+        arquivado:
+          type: boolean
+        id:
+          format: uuid
+          readOnly: true
+          type: string
+        nome:
+          maxLength: 150
+          type: string
+      type: object
+    PatchedPapel:
+      properties:
+        papel:
+          $ref: '#/components/schemas/PapelEnum'
       type: object
     TipoEnum:
       description: '* `pessoal` - Pessoal
@@ -2338,9 +2572,6 @@ components:
       in: header
       name: X-Session-Token
       type: apiKey
-    basicAuth:
-      scheme: basic
-      type: http
     cookieAuth:
       in: cookie
       name: sessionid
@@ -3440,6 +3671,603 @@ paths:
       summary: Get configuration
       tags:
       - Configuration
+  /api/convites/{token}/:
+    get:
+      operationId: convites_ver
+      parameters:
+      - in: path
+        name: token
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              examples:
+                Válido:
+                  value:
+                    expira_em: '2026-11-21T12:00:00Z'
+                    grupo_nome: Família Martins
+                    papel: pagador
+              schema:
+                $ref: '#/components/schemas/ConvitePublico'
+          description: ''
+        '410':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Convite inexistente, expirado, usado ou revogado.
+      security:
+      - cookieAuth: []
+      - {}
+      summary: Abrir link de convite (sem sessão)
+      tags:
+      - convites
+  /api/convites/{token}/aceitar/:
+    post:
+      operationId: convites_aceitar
+      parameters:
+      - in: path
+        name: token
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          content:
+            application/json:
+              examples:
+                Aceito:
+                  value:
+                    grupo_id: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+                    papel: pagador
+              schema:
+                $ref: '#/components/schemas/Aceite'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: 'Regra de negócio (ex.: RN04, o grupo ficaria sem admin).'
+        '410':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Convite inexistente, expirado, usado ou revogado.
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Limite de tentativas de aceite (10 por hora).
+      security:
+      - cookieAuth: []
+      summary: Aceitar convite (exige sessão; uso único; 10 tentativas por hora)
+      tags:
+      - convites
+  /api/grupos/:
+    get:
+      operationId: grupos_listar
+      responses:
+        '200':
+          content:
+            application/json:
+              examples:
+                AdminEPagador:
+                  summary: Admin e pagador
+                  value:
+                  - - casas_qtd: 2
+                      id: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+                      membros_qtd: 4
+                      nome: Família
+                      papel: admin
+                    - casas_qtd: null
+                      id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
+                      membros_qtd: null
+                      nome: Condomínio
+                      papel: pagador
+              schema:
+                items:
+                  $ref: '#/components/schemas/GrupoLista'
+                type: array
+          description: ''
+      security:
+      - cookieAuth: []
+      summary: Grupos do usuário (RN01)
+      tags:
+      - grupos
+    post:
+      operationId: grupos_criar
+      requestBody:
+        content:
+          application/json:
+            examples:
+              ComCasas:
+                summary: Com casas
+                value:
+                  casas:
+                  - Casa da praia
+                  nome: Família Martins
+            schema:
+              $ref: '#/components/schemas/CriarGrupo'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CriarGrupo'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CriarGrupo'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              examples:
+                GrupoVistoPeloAdmin:
+                  summary: Grupo visto pelo admin
+                  value:
+                    casas:
+                    - arquivado: false
+                      id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
+                      nome: Casa da praia
+                    id: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+                    membros:
+                    - email: ana@example.com
+                      id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Ana
+                      papel: admin
+                      sou_eu: true
+                    meu_papel: admin
+                    nome: Família Martins
+              schema:
+                $ref: '#/components/schemas/GrupoDetalhe'
+          description: ''
+        '400':
+          description: Nome vazio
+      security:
+      - cookieAuth: []
+      summary: Criar grupo; o criador vira o único admin (RF04, RN04)
+      tags:
+      - grupos
+  /api/grupos/{grupo_id}/:
+    get:
+      operationId: grupos_detalhe
+      parameters:
+      - in: path
+        name: grupo_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              examples:
+                GrupoVistoPeloAdmin:
+                  summary: Grupo visto pelo admin
+                  value:
+                    casas:
+                    - arquivado: false
+                      id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
+                      nome: Casa da praia
+                    id: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+                    membros:
+                    - email: ana@example.com
+                      id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Ana
+                      papel: admin
+                      sou_eu: true
+                    meu_papel: admin
+                    nome: Família Martins
+              schema:
+                $ref: '#/components/schemas/GrupoDetalhe'
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Seu papel não permite esta ação.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Grupo, membro, casa ou convite fora do seu acesso.
+      security:
+      - cookieAuth: []
+      summary: 'Página do grupo: admin, membro e observador (pagador recebe 403)'
+      tags:
+      - grupos
+  /api/grupos/{grupo_id}/convites/:
+    get:
+      operationId: grupos_convites_listar
+      parameters:
+      - in: path
+        name: grupo_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              examples:
+                UmPendente:
+                  summary: Um pendente
+                  value:
+                  - - criado_em: '2026-11-14T12:00:00Z'
+                      criado_por_nome: Ana
+                      expira_em: '2026-11-21T12:00:00Z'
+                      id: 9a1f7c2e-5b3d-4e8a-9c6f-0d2b4a7e1f35
+                      papel: pagador
+              schema:
+                items:
+                  $ref: '#/components/schemas/ConvitePendente'
+                type: array
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Seu papel não permite esta ação.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Grupo, membro, casa ou convite fora do seu acesso.
+      security:
+      - cookieAuth: []
+      summary: Convites pendentes (admin)
+      tags:
+      - grupos
+    post:
+      operationId: grupos_convites_criar
+      parameters:
+      - in: path
+        name: grupo_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            examples:
+              Pagador:
+                value:
+                  papel: pagador
+            schema:
+              $ref: '#/components/schemas/Papel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Papel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Papel'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              examples:
+                LinkGerado:
+                  summary: Link gerado
+                  value:
+                    expira_em: '2026-11-21T12:00:00Z'
+                    id: 9a1f7c2e-5b3d-4e8a-9c6f-0d2b4a7e1f35
+                    papel: pagador
+                    url: https://varal.app/c/9fKq2mXbExemploDeTokenNaoReal0000000000R4dT
+              schema:
+                $ref: '#/components/schemas/ConviteCriado'
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Seu papel não permite esta ação.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Grupo, membro, casa ou convite fora do seu acesso.
+      security:
+      - cookieAuth: []
+      summary: Gerar link de convite (admin; RN24, RN31). O link só aparece nesta
+        resposta.
+      tags:
+      - grupos
+  /api/grupos/{grupo_id}/convites/{convite_id}/:
+    delete:
+      operationId: grupos_convites_revogar
+      parameters:
+      - in: path
+        name: convite_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: grupo_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: No response body
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Seu papel não permite esta ação.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Grupo, membro, casa ou convite fora do seu acesso.
+      security:
+      - cookieAuth: []
+      summary: Revogar convite pendente (admin; RN31)
+      tags:
+      - grupos
+  /api/grupos/{grupo_id}/membros/{membro_id}/:
+    delete:
+      operationId: grupos_membros_remover
+      parameters:
+      - in: path
+        name: grupo_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: membro_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: No response body
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Seu papel não permite esta ação.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Grupo, membro, casa ou convite fora do seu acesso.
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: 'Regra de negócio (ex.: RN04, o grupo ficaria sem admin).'
+      security:
+      - cookieAuth: []
+      summary: Remover membro (admin; RN04, RN21)
+      tags:
+      - grupos
+    patch:
+      operationId: grupos_membros_alterar_papel
+      parameters:
+      - in: path
+        name: grupo_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: membro_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            examples:
+              VirarAdmin:
+                summary: Virar admin
+                value:
+                  papel: admin
+            schema:
+              $ref: '#/components/schemas/PatchedPapel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPapel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPapel'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membro'
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Seu papel não permite esta ação.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Grupo, membro, casa ou convite fora do seu acesso.
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: 'Regra de negócio (ex.: RN04, o grupo ficaria sem admin).'
+      security:
+      - cookieAuth: []
+      summary: Alterar papel de um membro (admin; RN04)
+      tags:
+      - grupos
+  /api/grupos/{grupo_id}/sair/:
+    post:
+      operationId: grupos_sair
+      parameters:
+      - in: path
+        name: grupo_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: No response body
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Grupo, membro, casa ou convite fora do seu acesso.
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: 'Regra de negócio (ex.: RN04, o grupo ficaria sem admin).'
+      security:
+      - cookieAuth: []
+      summary: Sair do grupo (qualquer papel; RN04, RN21)
+      tags:
+      - grupos
+  /api/grupos/{grupo_id}/subgrupos/:
+    post:
+      operationId: grupos_casas_criar
+      parameters:
+      - in: path
+        name: grupo_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            examples:
+              NovaCasa:
+                summary: Nova casa
+                value:
+                  nome: Casa da praia
+            schema:
+              $ref: '#/components/schemas/Casa'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Casa'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Casa'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              examples:
+                Criada:
+                  value:
+                    arquivado: false
+                    id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
+                    nome: Casa da praia
+              schema:
+                $ref: '#/components/schemas/Casa'
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Seu papel não permite esta ação.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Grupo, membro, casa ou convite fora do seu acesso.
+      security:
+      - cookieAuth: []
+      summary: Criar casa (admin; CU04)
+      tags:
+      - grupos
+  /api/grupos/{grupo_id}/subgrupos/{casa_id}/:
+    patch:
+      operationId: grupos_casas_alterar
+      parameters:
+      - in: path
+        name: casa_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: grupo_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            examples:
+              Arquivar:
+                value:
+                  arquivado: true
+            schema:
+              $ref: '#/components/schemas/PatchedCasa'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCasa'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCasa'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Casa'
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Seu papel não permite esta ação.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Grupo, membro, casa ou convite fora do seu acesso.
+      security:
+      - cookieAuth: []
+      summary: Renomear ou arquivar casa (admin; CU04). Arquivada sai da lista e fica
+        no banco.
+      tags:
+      - grupos
   /api/health/:
     get:
       operationId: health
@@ -3457,7 +4285,6 @@ paths:
           description: ''
       security:
       - cookieAuth: []
-      - basicAuth: []
       - {}
       tags:
       - health
@@ -3477,6 +4304,10 @@ paths:
                       id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
                       nome: Pessoal
                       tipo: pessoal
+                    grupos:
+                    - id: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+                      nome: Família
+                      papel: admin
                     id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
                     nome: Ana
               schema:
@@ -3484,7 +4315,6 @@ paths:
           description: ''
       security:
       - cookieAuth: []
-      - basicAuth: []
       tags:
       - me
 tags:
