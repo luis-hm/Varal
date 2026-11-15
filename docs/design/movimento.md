@@ -13,6 +13,10 @@ Autenticação usa `swing` nas três contas, entrada `drop`, `sheet-up` na folha
 
 Convite usa `sheet-up` (11) e `modal-pop` (M05), primeira folha/modal reutilizável do app, e `shine` na caixa do link. O dono aprovou em 14/11/2026 seguir o frame no `shine`: 2,4s, atraso 0,6s (M05) a 0,8s (11), **2 repetições e para**; o guia `varal-ui` passou a listá-lo. Página do grupo usa `rise`; `grow` não roda enquanto as casas não têm contas (barra escondida). Movimento reduzido desliga tudo.
 
+## Aplicação na Etapa 04
+
+Início usa `count-up` no total do mês, `swing` nas contas do varal e `rise` em "Precisa de atenção"; Contas usa `rise` na lista, `swing` na conta pendurada do detalhe e `slide-in` no painel do D03; o selo Vencida usa `badge-pulse`; formulário e "Configurações" usam `sheet-up`/`modal-pop`. `grow` não roda: a barra de pagas só entra na 07. Movimento reduzido desliga tudo.
+
 ## Tabela do guia varal-ui (usar esta no código; conferida em 14/11/2026)
 
 No mobile as ações sobem em folhas (`sheet-up`); a partir de 1024px viram modais (`modal-pop`), e o detalhe e a gaveta de avisos entram com `slide-in`. Regra responsiva em [README.md](README.md#regra-responsiva).
