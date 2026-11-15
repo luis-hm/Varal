@@ -91,6 +91,7 @@ Implementadas com o padrão abaixo; nada bloqueia.
 Comparação de `web/e2e/__screens__/` com 10/D04 e 11/M05 em 390×844 e 1440×900. Composição, componentes, cores, fontes e espaçamentos correspondem, com estas diferenças:
 
 - **Esperadas pela spec (decisão 4):** casas com "Sem contas ainda" e sem barra; MemberRow só com o papel (sem "Paga N contas", "modo simples", "Só acompanha"); sem "Contas que se repetem", "+ Nova recorrente", "Ver todas"; sem "Configurações" (botão em D04, ícone em 10); sem "Gerenciar papéis"; cabeçalho sem "N contas que se repetem"; dados reais no lugar de "Família Martins".
+  - _Nota de 15/11/2026:_ na Etapa 04 o dono decidiu (Q10) que "Configurações" volta no D04 (e no ícone do 10), só para admin, com "Avisar N dias antes" (1–7, RN13). Isso substitui só a parte da decisão 4 que mandava esconder "Configurações". Ver [spec da Etapa 04](../04-contas/spec.md#decisões-resolvidas-ok-do-dono-15112026).
 - **Acréscimos sem frame:** "Convites pendentes" abaixo de Membros (só admin, só quando há); "Sair do grupo" (Q3).
 - **Listadas por QA e frontend:** fundo da folha translúcido (`--scrim-sheet`) em vez do sólido do frame 11; detalhe do seletor `Grupo · <papel>`; confirmações por `window.confirm`; nomes longos de casa quebrando no mobile; membros sem nome exibidos pelo e-mail. Detalhes em [decisões](#decisões-para-o-dono-confirmar).
 
