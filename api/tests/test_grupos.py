@@ -332,6 +332,15 @@ def test_rn31_revogar_convite_pendente(g):
     assert obj.revogado_em is not None  # kept in the database
 
 
+def test_rn31_revogar_so_vale_para_pendente_usado_da_404_e_membro_fica(g):
+    obj, token = convite(g.grupo, "membro")
+    assert cliente(g.u["fora"]).post(f"/api/convites/{token}/aceitar/").status_code == 201
+    assert cliente(g.u["admin"]).delete(g.url + f"convites/{obj.pk}/").status_code == 404
+    obj.refresh_from_db()
+    assert obj.revogado_em is None
+    assert Membro.objects.get(espaco=g.grupo, usuario=g.u["fora"]).papel == "membro"
+
+
 @pytest.mark.parametrize("quem", ["membro", "pagador", "observador"])
 def test_rn31_revogar_e_listar_convites_sem_ser_admin_403(g, quem):
     obj, _ = convite(g.grupo)
