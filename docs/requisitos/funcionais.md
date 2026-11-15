@@ -19,7 +19,7 @@ Vinte e cinco requisitos, agrupados por módulo; "Essencial" é obrigatório par
 | RF08 | Contas | Cadastrar conta pela linha digitável, com leitura de valor e vencimento | Essencial | CU05 |
 | RF09 | Contas | Cadastrar conta Pix por chave ou copia e cola | Essencial | CU05 |
 | RF10 | Contas | Cadastrar conta manual | Essencial | CU05 |
-| RF11 | Contas | Definir espaço, subgrupo, pagador, categoria e visibilidade | Essencial | CU05 |
+| RF11 | Contas | Definir espaço, subgrupo, pagador e visibilidade | Essencial | CU05 |
 | RF12 | Contas | Editar e cancelar conta, com histórico | Essencial | CU07 |
 | RF13 | Contas | Listar e filtrar por status, subgrupo, pagador e mês | Essencial | CU06 |
 | RF14 | Contas | Copiar o código de pagamento com um toque | Essencial | CU08 |

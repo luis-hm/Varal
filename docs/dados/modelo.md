@@ -1,7 +1,7 @@
 # Modelo de dados
 
 > **Contém:** entidades, campos, decisões de modelagem e diagrama ER.
-> **Origem:** `docs/especificacao-varal.md`, seção 8 (diagrama ER derivado das entidades), mais as seções de implementação das Etapas 02 e 03.
+> **Origem:** `docs/especificacao-varal.md`, seção 8 (diagrama ER derivado das entidades), mais as seções de implementação das Etapas 02 e 03 e o ADR 0005 (sem categoria).
 
 ## 8. Modelo de dados
 
@@ -39,6 +39,8 @@ notificacao        id, usuario_id, lancamento_id, tipo, canal, agendada_para,
 - **`chave_idempotencia` única** em `notificacao` garante RN19 e RNF07.
 - **UUID** como chave em tudo; índice em `(espaco_id, vencimento)`.
 
+**Categoria fora** ([ADR 0005](../arquitetura/adr/0005-rf11-sem-categoria.md)): a entidade `categoria` e `lancamento.categoria_id` do bloco acima (cópia da origem) não serão implementados no MVP, nem reservados para depois; categoria é conceito da v3.
+
 ## Implementação da Etapa 02
 
 O bloco acima preserva a especificação. No código, `Usuario` mantém UUID/username legado e acrescenta `nome` (150 caracteres), `telefone` (30) e `prefs_notificacao` (JSON, padrão `{}`). O e-mail é normalizado ao salvar e tem restrição de unicidade sem distinguir maiúsculas.
@@ -63,11 +65,9 @@ erDiagram
     espaco ||--o{ membro : tem
     espaco ||--o{ convite : emite
     espaco ||--o{ subgrupo : tem
-    espaco ||--o{ categoria : tem
     espaco ||--o{ lancamento : contem
     espaco ||--o{ recorrencia : tem
     subgrupo |o--o{ lancamento : agrupa
-    categoria |o--o{ lancamento : classifica
     recorrencia |o--o{ lancamento : gera
     lancamento |o--o| lancamento : "origem (solicitação)"
     lancamento ||--o{ lancamento_acesso : "restrita: quem vê"
