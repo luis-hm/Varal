@@ -1,7 +1,7 @@
 # Design — canvas do Doop
 
 > **Contém:** onde está cada tela e componente no Doop, como lê-los, a regra responsiva e as telas e ícones da especificação.
-> **Origem:** canvas Doop `k0kB5dc-Vo` (lido em 12/11/2026), guia `varal-ui`, `docs/especificacao-varal.md`, seções 11 e 12, e o código da Etapa 01.
+> **Origem:** canvas Doop `k0kB5dc-Vo` (autenticação relida em 13/11/2026), guia `varal-ui`, especificação seções 11–12 e código das Etapas 01–02.
 
 ## Regras
 
@@ -88,7 +88,15 @@ Tamanhos: telas mobile 390×844 (06: 390×1090; 07: 390×1220; 10: 390×944); te
 | NoticeRow | `tone: info\|vence\|vencida\|aguardando\|pago`, `unread: no\|yes`, `title`, `text`, `time`, slot `icon` | `web/src/components/notifications/notice-row.tsx` | 09 |
 
 Fora da página 04, também da Etapa 01: logo (`web/src/components/ui/logo.tsx`), shell responsivo (`web/src/components/layout/app-shell.tsx`) e "Em breve" (`web/src/components/layout/em-breve.tsx`).
-**Vitrine** `/dev/componentes` (`web/src/app/(app)/dev/componentes/`): todos os componentes feitos e seus estados, para teste e comparação com o Doop; só em desenvolvimento (404 em produção).
+**Vitrine** `/dev/componentes` (`web/src/app/dev/componentes/`): todos os componentes feitos e seus estados, para teste e comparação com o Doop; só em desenvolvimento, com sessão autenticada desde a Etapa 02. A checagem de produção ocorre antes do `ProtectedShell` para devolver HTTP 404 real, sem iniciar o streaming da sessão.
+
+### Autenticação implementada (Etapa 02)
+
+`web/src/components/auth/auth-frame.tsx` e `auth-form.tsx` atendem 01 · Entrar ↔ D01: folha branca abaixo da marca no mobile e duas metades com formulário de 400px no desktop. Rotas `/entrar`, `/criar-conta`, `/recuperar-senha`, `/recuperar-senha/[key]` e `/entrar/retorno` compartilham layout e lógica.
+
+O dono aprovou no chat (13/11/2026) cadastro/recuperação como estados desse layout e a animação mobile do guia (`100%`, `0,5s`). Os frames foram lidos em HTML e screenshots e continuam `draft`; aprovação no chat não alterou o canvas. Comparação nas duas resoluções: composição, cores, fontes e curva do varal correspondem. Diferença deliberada: senha começa vazia com placeholder cinza; os bullets preenchidos do exemplo do Doop não são uma senha fictícia no formulário.
+
+O shell recebe usuário/espaço próprios da API. Perfil continua “Em breve”, com a ação “Sair da conta”; a tela Perfil/LGPD permanece para a Etapa 11.
 
 ### Conta cancelada (D2)
 

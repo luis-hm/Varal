@@ -50,6 +50,10 @@
 :root {
   --text-2xs: 11.5px; /* TabItem label */
   --text-logo: 30px; /* SideNav wordmark */
+  --text-auth-wordmark: 96px; /* D01 wordmark */
+  --text-auth-tagline: 22px; /* D01 tagline */
+  --leading-auth-tagline: 30px; /* D01 tagline */
+  --leading-auth-title: 1.2; /* 01/D01 heading, browser normal metrics */
   --leading-none: 1; /* SideNav wordmark */
   --leading-body: 22px; /* "Corpo" 15/22, frame Paleta e tipografia */
   --shadow-tabbar: 0 -10px 30px color-mix(in srgb, var(--color-ink) 7%, transparent); /* TabBar .tb */

@@ -9,7 +9,11 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
   // Same-origin /api keeps the auth cookies first-party (allauth headless, stage 02).
   async rewrites() {
-    return [{ source: "/api/:path*/", destination: `${apiUrl}/api/:path*/` }];
+    return [
+      // allauth's native endpoints have no trailing slash; preserve method, body and cookies.
+      { source: "/api/auth/:path*", destination: `${apiUrl}/api/auth/:path*` },
+      { source: "/api/:path*/", destination: `${apiUrl}/api/:path*/` },
+    ];
   },
 };
 

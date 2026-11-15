@@ -46,7 +46,7 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: uv sync --frozen
         working-directory: api
-      - run: uv run python manage.py spectacular --file openapi.yaml --validate
+      - run: uv run python manage.py export_schema --file openapi.yaml
         working-directory: api
       - run: npm ci && npm run types
         working-directory: web

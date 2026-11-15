@@ -72,9 +72,9 @@ export function SideNav({ active, espaco, usuario, avisos }: Props) {
       {usuario && (
         <div className={styles.me}>
           <span className={styles.av}>{usuario.iniciais}</span>
-          <span>
-            <b>{usuario.nome}</b>
-            <small>{usuario.detalhe}</small>
+          <span className={styles.identity}>
+            <b title={usuario.nome}>{usuario.nome}</b>
+            <small title={usuario.detalhe}>{usuario.detalhe}</small>
           </span>
         </div>
       )}
