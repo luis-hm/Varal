@@ -89,7 +89,7 @@ class HistoricoSerializer(serializers.Serializer):
     automatica = serializers.SerializerMethodField()
     autor = serializers.SerializerMethodField(help_text="null em ação automática")
     sou_eu = serializers.SerializerMethodField()
-    dados = serializers.DictField()
+    dados = serializers.DictField(source="dados_exibidos", help_text="Pessoas já como nomes")
     criado_em = serializers.DateTimeField()
 
     def get_automatica(self, obj) -> bool:
@@ -98,7 +98,7 @@ class HistoricoSerializer(serializers.Serializer):
     def get_autor(self, obj) -> str | None:
         if obj.acao in Historico.AUTOMATICAS:
             return None
-        return _nome(obj.usuario) if obj.usuario else "Ex-membro"  # RN30
+        return servicos.rotulo(obj.usuario)  # RN30: "Ex-membro"; never the e-mail
 
     def get_sou_eu(self, obj) -> bool:
         return obj.usuario_id == self.context["request"].user.pk
@@ -113,7 +113,7 @@ class ContaDetalheSerializer(ContaSerializer):
     @extend_schema_field(CriadorSerializer)
     def get_criador(self, obj):
         if obj.criador is None:
-            return {"nome": "Ex-membro", "sou_eu": False}  # RN30
+            return {"nome": servicos.EX_MEMBRO, "sou_eu": False}  # RN30
         return {
             "nome": _nome(obj.criador),
             "sou_eu": obj.criador_id == self.context["request"].user.pk,
@@ -295,6 +295,7 @@ def _detalhe(request, conta_id, espaco, codigo=status.HTTP_200_OK):
         .prefetch_related("acesso", "historico__usuario")
         .get(pk=conta_id)
     )
+    servicos.resolver_pessoas(conta.historico.all())
     contexto = {"request": request, "papel": espaco.meu_papel}
     return Response(ContaDetalheSerializer(conta, context=contexto).data, status=codigo)
 

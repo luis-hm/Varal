@@ -1,6 +1,8 @@
 """Etapa 04: bills (contas). Rule ids in test names; CA ids in the section headers."""
 
+import threading
 import time
+import uuid
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -11,9 +13,12 @@ from django.contrib.messages.storage.cookie import CookieStorage
 from django.db import IntegrityError, connection, transaction
 from django.db.migrations.executor import MigrationExecutor
 from django.test import RequestFactory
+from django.test.utils import CaptureQueriesContext
+from rest_framework.exceptions import ValidationError
 
 from apps.contas_usuario.models import Usuario
 from apps.espacos import servicos as grupos
+from apps.espacos.acesso import quem_ve
 from apps.espacos.models import Espaco, Membro, Subgrupo
 from apps.lancamentos import servicos as contas
 from apps.lancamentos.models import Historico, Lancamento
@@ -617,7 +622,7 @@ def test_rn21_abertas_perdem_pagador_pagas_mantem_e_criadas_ficam(f, saida):
     assert aberta.pagador is None and paga.pagador == m
     assert historico(aberta) == ["criada", "pagador_removido"]
     automatico = Historico.objects.get(lancamento=aberta, acao="pagador_removido")
-    assert automatico.usuario is None and automatico.dados == {"pagador": ["Membro", None]}
+    assert automatico.usuario is None and automatico.dados == {"pagador": [str(m.pk), None]}
     assert historico(paga) == ["criada"]
     assert Lancamento.objects.get(pk=criada.pk).espaco == f.grupo
     assert set(escolhido.acesso.values_list("pk", flat=True)) == {f.u["observador"].pk}
@@ -629,6 +634,22 @@ def test_rn21_abertas_perdem_pagador_pagas_mantem_e_criadas_ficam(f, saida):
     assert admin.get(url(criada)).json()["criador"]["nome"] == "Membro"
     for conta in (aberta, criada, escolhido):
         assert cliente(m).get(url(conta)).status_code == 404
+
+
+def test_rn01_rf11_editar_com_dados_de_outro_grupo_400_e_nada_grava(f):
+    outro = grupos.criar_grupo(f.u["fora"], "Outro", ["Casa alheia"])
+    conta = restrita(f.u["membro"], f.grupo, acesso=[f.u["observador"].pk])
+    antes = estado(conta)
+    alheios = {
+        "subgrupo": str(outro.subgrupos.get().pk),
+        "pagador": str(f.u["fora"].pk),
+        "acesso": [str(f.u["fora"].pk)],
+    }
+    client = cliente(f.u["membro"])
+    for extra in [*({k: v} for k, v in alheios.items()), alheios]:
+        response = client.patch(url(conta), {"descricao": "Gás", **extra}, content_type=JSON)
+        assert response.status_code == 400 and response.json().keys() == extra.keys(), extra
+    assert estado(conta) == antes
 
 
 # ---- CA19 / RN32: the person acts ----------------------------------------------------------
@@ -726,6 +747,98 @@ def test_rn32_concorrencia_os_dois_unicos_que_veem_saem_juntos(f):
     assert Lancamento.objects.get(pk=conta.pk).status == "pendente"
 
 
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("modo", ["sair", "remover"])
+def test_rn32_concorrencia_editar_e_sair(f, modo):
+    """Y, the only one who sees the bill, swaps themselves for X while X leaves (or is removed).
+    Y's edit is held right after its RN32 check; the exit must wait for the bill and see X."""
+    y, x = f.u["membro"], f.u["observador"]
+    entrar(f, "outro")
+    conta = restrita(f.u["outro"], f.grupo, acesso=[y.pk])
+    grupos.sair(f.u["outro"], f.grupo)  # y is now the only one who sees it
+    checado, segue, res = threading.Event(), threading.Event(), {}
+
+    def quem_ve_segurando(c, sem=None):
+        resultado = quem_ve(c, sem)
+        if threading.current_thread().name == "editar":
+            checado.set()
+            segue.wait(10)
+        return resultado
+
+    def rodar(nome, funcao):
+        try:
+            res[nome] = funcao()
+        except Exception as exc:  # noqa: BLE001 - collected for assertions
+            res[nome] = exc
+        finally:
+            connection.close()
+
+    if modo == "sair":
+        saida = lambda: grupos.sair(x, f.grupo)  # noqa: E731
+    else:
+        saida = lambda: grupos.remover_membro(f.grupo, f.m["observador"].pk)  # noqa: E731
+    editar = lambda: contas.editar(y, conta.pk, {"acesso": [x.pk]})  # noqa: E731
+    with patch("apps.lancamentos.servicos.quem_ve", quem_ve_segurando):
+        editor = threading.Thread(target=rodar, args=("editar", editar), name="editar")
+        editor.start()
+        assert checado.wait(10)
+        saindo = threading.Thread(target=rodar, args=("saida", saida))
+        saindo.start()
+        saindo.join(1)  # with the bug the exit finishes here, before the edit commits
+        segue.set()
+        editor.join(10)
+        saindo.join(10)
+    conta.refresh_from_db()
+    editou = isinstance(res["editar"], Lancamento)
+    if modo == "sair":
+        assert (editou and isinstance(res["saida"], grupos.ContaRestritaSemQuemVeja)) or (
+            res["saida"] is None and isinstance(res["editar"], ValidationError)
+        ), res
+    else:
+        assert res["saida"] is None, res
+    assert conta.status == "cancelada" or quem_ve(conta), (res, conta.status)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_rn32_concorrencia_excluir_conta_e_remocao_admin(f):
+    """Deleting one's own account while an admin removes the same person: both lock member ->
+    bills, so the removal waits (then 404) instead of deadlocking."""
+    m = f.u["membro"]
+    restrita(m, f.grupo, acesso=[f.u["observador"].pk])  # an open restricted bill to lock
+    travou, segue, res = threading.Event(), threading.Event(), {}
+    real = contas.restritas_sem_quem_veja
+
+    def segurando(*args, **kwargs):
+        resultado = real(*args, **kwargs)
+        if threading.current_thread().name == "excluir":
+            travou.set()
+            segue.wait(10)
+        return resultado
+
+    def rodar(nome, funcao):
+        try:
+            res[nome] = funcao()
+        except Exception as exc:  # noqa: BLE001 - collected for assertions
+            res[nome] = exc
+        finally:
+            connection.close()
+
+    with patch("apps.lancamentos.servicos.restritas_sem_quem_veja", segurando):
+        excluir = threading.Thread(target=rodar, args=("excluir", m.delete), name="excluir")
+        excluir.start()
+        assert travou.wait(10)
+        remover = lambda: grupos.remover_membro(f.grupo, f.m["membro"].pk)  # noqa: E731
+        removendo = threading.Thread(target=rodar, args=("remover", remover))
+        removendo.start()
+        removendo.join(1)
+        segue.set()
+        excluir.join(10)
+        removendo.join(10)
+    assert isinstance(res["excluir"], tuple), res  # Model.delete() returns (count, per model)
+    assert type(res["remover"]).__name__ == "Http404", res
+    assert not Usuario.objects.filter(pk=m.pk).exists()
+
+
 # ---- CA20 / CA21 / RN32: removal by the admin ----------------------------------------------
 
 
@@ -808,6 +921,8 @@ def test_rn05_rn32_excecao_so_na_saida(f):
         {"lancamento": str(conta.pk), "acao": "acesso", "usuarios": [str(f.u["pagador"].pk)]}
     ]
     assert sair(o, f, pagador).status_code == 400
+    demais = sair(o, f, [{"lancamento": str(uuid.uuid4()), "acao": "cancelar"}] * 51)
+    assert demais.status_code == 400 and "impede" not in demais.content.decode()  # max 50
     assert (estado(conta), estado(outra)) == antes
     assert Membro.objects.filter(pk=f.m["observador"].pk).exists()
     resolucoes = [
@@ -818,7 +933,10 @@ def test_rn05_rn32_excecao_so_na_saida(f):
     assert not Membro.objects.filter(pk=f.m["observador"].pk).exists()
     editada = Historico.objects.get(lancamento=conta, acao="editada")
     assert editada.usuario == o and editada.dados["motivo"] == "saida_rn32"
-    assert editada.dados["acesso"] == [["Observador"], ["Admin", "Observador"]]
+    assert editada.dados["acesso"] == [[str(o.pk)], sorted([str(o.pk), str(f.u["admin"].pk)])]
+    linhas = cliente(f.u["admin"]).get(url(conta)).json()["historico"]
+    linha = next(h for h in linhas if h["acao"] == "editada")
+    assert linha["dados"]["acesso"] == [["Observador"], ["Admin", "Observador"]]
     cancelada = Historico.objects.get(lancamento=outra, acao="cancelada")
     assert cancelada.usuario == o and cancelada.dados == {"motivo": "saida_rn32"}
     assert cliente(f.u["admin"]).get(url(conta)).status_code == 200
@@ -937,3 +1055,37 @@ def test_rn32_admin_removendo_a_si_mesmo_e_saida_voluntaria(f):
     response = cliente(f.u["admin"]).delete(f"/api/grupos/{f.grupo.pk}/membros/{f.m['admin'].pk}/")
     assert response.status_code == 409 and response.json()["code"] == "conta_restrita_orfa"
     assert estado(orfa)[0] == "pendente" and Membro.objects.filter(pk=f.m["admin"].pk).exists()
+
+
+def test_rn30_historico_sem_email_e_ex_membro_apos_exclusao(f):
+    """LGPD: the history keeps user ids only; names are resolved on read, never the e-mail."""
+    a = f.u["admin"]
+    anonimo = usuario("anonimo@example.com")  # no name
+    Membro.objects.create(espaco=f.grupo, usuario=anonimo, papel="membro")
+    conta = restrita(a, f.grupo, acesso=[a.pk])
+    admin = cliente(a)
+
+    def linhas():
+        with CaptureQueriesContext(connection) as queries:
+            body = admin.get(url(conta)).json()["historico"]
+        assert "anonimo" not in str(body)
+        return [(h["acao"], h["dados"]) for h in body], len(queries)
+
+    def com(rotulo):
+        return [
+            ("criada", {}),
+            ("editada", {"pagador": [None, rotulo], "acesso": [["Admin"], ["Admin", rotulo]]}),
+            ("editada", {"pagador": [rotulo, "Membro"]}),
+            ("acesso_removido", {"pessoa": rotulo}),
+        ]
+
+    contas.editar(a, conta.pk, {"pagador": anonimo.pk, "acesso": [a.pk, anonimo.pk]})
+    _, consultas_antes = linhas()
+    contas.editar(a, conta.pk, {"pagador": f.u["membro"].pk})
+    assert sair(anonimo, f).status_code == 204
+    assert "anonimo" not in str(list(Historico.objects.values_list("dados", flat=True)))
+    historico_lido, consultas_depois = linhas()
+    assert historico_lido == com("Pessoa sem nome")
+    assert consultas_depois == consultas_antes  # names in one query, no N+1
+    anonimo.delete()
+    assert linhas()[0] == com("Ex-membro")

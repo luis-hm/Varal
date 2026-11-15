@@ -2724,6 +2724,7 @@ components:
           type: string
         dados:
           additionalProperties: {}
+          description: Pessoas já como nomes
           type: object
         sou_eu:
           readOnly: true
