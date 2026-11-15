@@ -1,0 +1,366 @@
+/* Doop: k0kB5dc-Vo / 10 · Grupo (SfhuKVOQIF) + D04 · Grupo (5UzCB5yNaI); 11 + M05 (link do convite) */
+@keyframes rise {
+  from {
+    opacity: 0.001;
+    transform: translateY(14px);
+  }
+}
+
+.in {
+  animation: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.d1 {
+  animation-delay: 0.08s;
+}
+
+.d2 {
+  animation-delay: 0.16s;
+}
+
+.d3 {
+  animation-delay: 0.24s;
+}
+
+.page {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: var(--spacing-5) var(--spacing-5) 0;
+}
+
+.mark {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border-radius: var(--radius-lg);
+  background: var(--color-ink);
+  color: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ident {
+  flex: 1;
+  min-width: 0;
+}
+
+.ident h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.ident p {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.headerAction {
+  display: none;
+}
+
+.body {
+  padding: 0 var(--spacing-3) var(--spacing-6);
+}
+
+.sec {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  padding: 0 var(--spacing-2);
+  margin: 22px 0 10px;
+}
+
+.sec h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+/* Text action of a section ("+ Nova casa", "+ Convidar"): a 44px target without growing the row. */
+.secAction {
+  min-height: 44px;
+  margin: -12px calc(-1 * var(--spacing-2));
+  padding: 0 var(--spacing-2);
+  border: 0;
+  background: transparent;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink-muted);
+  cursor: pointer;
+}
+
+.secAction:focus-visible,
+.round:focus-visible {
+  outline: 3px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+.houses {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-2);
+}
+
+.card {
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  overflow: hidden;
+}
+
+.card > * + * {
+  border-top: 1px solid var(--color-line);
+}
+
+.empty {
+  padding: var(--spacing-4);
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.pending {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-2) var(--spacing-2) var(--spacing-4);
+}
+
+.pending span {
+  flex: 1;
+  min-width: 0;
+}
+
+.pending b {
+  display: block;
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.pending small {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.privacy {
+  display: none;
+}
+
+.leave {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-6);
+  padding: 0 var(--spacing-5);
+}
+
+.erro {
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--color-red-text);
+}
+
+/* ---- invite sheet (11 / M05) ---- */
+.papeis {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+@keyframes shine {
+  from {
+    background-position: -200px 0, 0 0;
+  }
+
+  to {
+    background-position: 600px 0, 0 0;
+  }
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px var(--spacing-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+/* shine: amber glint crosses the new link twice and stops (guide varal-ui). */
+.link[data-shine="on"] {
+  background: linear-gradient(90deg, transparent 0, var(--shine-invite) 50%, transparent 100%) no-repeat, var(--color-bg);
+  background-size: 160px 100%, auto;
+  background-position: -200px 0, 0 0;
+  animation: shine 2.4s ease-in-out 0.8s 2;
+}
+
+.linkText {
+  flex: 1;
+  min-width: 0;
+}
+
+.linkText b {
+  display: block;
+  min-height: 1.4em;
+  font-family: var(--font-mono);
+  font-size: var(--text-invite-link);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkMeta {
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+}
+
+.round {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.round:disabled {
+  cursor: wait;
+  color: var(--color-ink-subtle);
+}
+
+.aviso {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+/* Keep the live region in the tree but take no room while empty. */
+.aviso:empty {
+  margin-top: calc(-1 * var(--spacing-4));
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+@media (min-width: 1024px) {
+  .page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-6);
+  }
+
+  .header {
+    gap: var(--spacing-4);
+    padding: 0;
+  }
+
+  .mark {
+    width: 64px;
+    height: 64px;
+  }
+
+  .ident h1 {
+    font-size: var(--text-2xl);
+    font-weight: 800;
+    letter-spacing: var(--tracking-display);
+  }
+
+  .ident p {
+    font-size: var(--text-base);
+  }
+
+  .headerAction {
+    display: inline-flex;
+  }
+
+  .body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: var(--spacing-6);
+    padding: 0;
+  }
+
+  .sec {
+    padding: 0;
+    margin: 0 0 var(--spacing-3);
+  }
+
+  .secAction {
+    margin: -12px calc(-1 * var(--spacing-2));
+  }
+
+  .mobileOnly {
+    display: none;
+  }
+
+  .houses {
+    gap: var(--spacing-3);
+  }
+
+  .colB > * + * {
+    margin-top: var(--spacing-3);
+  }
+
+  .colB > section + section {
+    margin-top: var(--spacing-6);
+  }
+
+  .privacy {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    padding: 14px var(--spacing-4);
+    border-radius: var(--radius-lg);
+    border: 1.5px dashed var(--color-ink-subtle);
+    color: var(--color-ink-muted);
+    font-size: var(--text-sm);
+  }
+
+  .leave {
+    margin-top: 0;
+    padding: 0;
+  }
+
+  .papeis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .link[data-shine="on"] {
+    animation-delay: 0.6s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .in,
+  .link[data-shine="on"] {
+    animation: none;
+  }
+}

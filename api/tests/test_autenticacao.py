@@ -346,6 +346,7 @@ def test_rnf01_ca10_dados_proprios_sem_vazamento():
             "tipo": "pessoal",
             "nome": "Pessoal",
         },
+        "grupos": [],
     }
     assert response["Cache-Control"] == "private, no-store"
 
