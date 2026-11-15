@@ -1,7 +1,7 @@
 # API e OpenAPI
 
 > **Contém:** endpoints, sessão/CSRF e geração do contrato composto e dos tipos do frontend.
-> **Origem:** RNF12, seção 9 de `docs/especificacao-varal.md` e implementação das Etapas 00 e 02.
+> **Origem:** RNF12, seção 9 de `docs/especificacao-varal.md` e implementação das Etapas 00, 02 e 03.
 
 ## Fluxo
 
@@ -23,7 +23,7 @@ O front só usa tipos de `@/types/api` (ex.: `components["schemas"]["Health"]`);
 ## Convenções
 
 - Rotas próprias sob `/api/`, terminando em `/`. **Exceção:** endpoints nativos allauth em `/api/auth/browser/v1/` preservam os sufixos sem barra final; o proxy Next mantém método, body e cookies, sem redirecionar o POST.
-- Autenticação exigida por padrão; rota pública declara `AllowAny`.
+- Autenticação exigida por padrão, **só por sessão** (`SessionAuthentication`; sem HTTP Basic desde a Etapa 03); rota pública declara `AllowAny`.
 - Dinheiro em centavos (`int`), ids UUID, datas ISO 8601 em UTC.
 
 ## Endpoints
@@ -32,6 +32,28 @@ O front só usa tipos de `@/types/api` (ex.: `components["schemas"]["Health"]`);
 | --- | --- | --- |
 | `GET /api/health/` | 00 | `{"status": "ok"}` se a API alcança o banco |
 | `GET /api/me/` | 02 | `id`, `nome`, `email`, `espaco_pessoal: {id, tipo, nome}` do solicitante; `Cache-Control: private, no-store` |
+| `GET /api/me/` | 03 | acrescenta `grupos: [{id, nome, papel}]` |
+
+## Grupos e convites (Etapa 03)
+
+Toda rota de grupo passa por `api/apps/espacos/acesso.py`: **404** se não participa (sem revelar existência), **403** se o papel não tem a ação. Ids aninhados (membro, casa, convite) são buscados dentro do grupo da URL. **409** quando a RN04 barra (último admin).
+
+| Método e rota | Permissão | Entrada / resultado |
+| --- | --- | --- |
+| `GET /api/grupos/` | autenticado | `id, nome, papel, membros_qtd, casas_qtd` (contagens `null` para pagador) |
+| `POST /api/grupos/` | autenticado | `{nome, casas?}` → 201; criador único admin |
+| `GET /api/grupos/{id}/` | `ver_grupo` (pagador 403) | `meu_papel`, `membros [{id, nome, email, papel, sou_eu}]`, `casas` não arquivadas. `email` é `null` para não admin quando o membro tem nome (RNF04) |
+| `POST /api/grupos/{id}/sair/` | participante | 204; 409 |
+| `POST /api/grupos/{id}/convites/` | `gerenciar_grupo` | `{papel}` → `{id, url, expira_em, papel}`; `url` com o token **só aqui** |
+| `GET /api/grupos/{id}/convites/` | `gerenciar_grupo` | pendentes `[{id, papel, criado_em, expira_em, criado_por_nome}]` |
+| `DELETE /api/grupos/{id}/convites/{cid}/` | `gerenciar_grupo` | 204 (revoga) |
+| `PATCH` / `DELETE /api/grupos/{id}/membros/{mid}/` | `gerenciar_grupo` | `{papel}` / remove; 409. Admin que deixa de ser admin perde os convites pendentes que gerou |
+| `POST /api/grupos/{id}/subgrupos/` | `gerenciar_grupo` | `{nome}` → 201 |
+| `PATCH /api/grupos/{id}/subgrupos/{sid}/` | `gerenciar_grupo` | `{nome?, arquivado?}` |
+| `GET /api/convites/{token}/` | público | `{grupo_nome, papel, expira_em}`; 410 igual para expirado, usado, revogado ou inexistente |
+| `POST /api/convites/{token}/aceitar/` | autenticado; throttle `convite_aceite` 10/h por usuário | 201 `{grupo_id, papel}`; 410; 409 já membro; 429 |
+
+O token de convite não aparece em log do Django nem do `next dev`; o access log de produção fica na P4.
 
 ## Autenticação (Etapa 02)
 

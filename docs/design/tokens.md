@@ -1,7 +1,7 @@
 # Tokens de design
 
 > **Contém:** os tokens do Doop, o nome equivalente na especificação e como viram variáveis CSS no web.
-> **Origem:** `get_tokens` do canvas Doop `k0kB5dc-Vo` (12/11/2026), especificação seção 10 e `web/src/styles/tokens.css` (Etapas 01–02).
+> **Origem:** `get_tokens` do canvas Doop `k0kB5dc-Vo` (12/11/2026), especificação seção 10 e `web/src/styles/tokens.css` (Etapas 01–03).
 
 ## Regra
 
@@ -39,6 +39,20 @@ Número-herói: 48px (`--text-3xl`) no mobile e 64px (`--text-4xl`) no desktop (
 Medidas que o CSS do Doop usa sem token (sombras, `--text-2xs`, `--text-logo`, alturas de linha) ficam num bloco comentado **"fora do Doop"** no fim de `tokens.css`, nunca soltas nos componentes. Sombras usam `color-mix` sobre os tokens de cor (nenhuma cor nova). Lista e origem: [relatório da Etapa 01](../etapas/01-design-system/relatorio.md#variáveis-fora-do-doop).
 
 Etapa 02 acrescenta nesse bloco `--text-auth-wordmark: 96px`, `--text-auth-tagline: 22px` e `--leading-auth-tagline: 30px` (D01), além de `--leading-auth-title: 1.2` para a métrica dos títulos de autenticação. Sem novas cores nem alteração dos tokens do canvas.
+
+Etapa 03 acrescenta (sem cor nova; translúcidos por `color-mix`):
+
+| Variável | Valor | Origem |
+| --- | --- | --- |
+| `--text-invite-link` | 14px | caixa do link (11/M05) |
+| `--leading-radio-text` | 18px | texto do RadioCard |
+| `--tracking-display` | -0.02em | título de D04 |
+| `--tracking-label` | 0.04em | pílula de papel do MemberRow |
+| `--shadow-modal` | ink 25% | `.modal` de M05 |
+| `--shine-invite` | amber 18% | `shine` do link (11/M05) |
+| `--scrim-sheet` | ink 60% | fundo atrás da folha/modal; o frame 11 pinta sólido |
+| `--modal-width` / `--modal-height-invite` | 560px / 480px | M05 |
+| `--font-mono` (`globals.css`) | JetBrains Mono via `next/font` | link do convite (11/M05) |
 
 ## Da especificação
 

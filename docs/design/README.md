@@ -1,7 +1,7 @@
 # Design — canvas do Doop
 
 > **Contém:** onde está cada tela e componente no Doop, como lê-los, a regra responsiva e as telas e ícones da especificação.
-> **Origem:** canvas Doop `k0kB5dc-Vo` (autenticação relida em 13/11/2026), guia `varal-ui`, especificação seções 11–12 e código das Etapas 01–02.
+> **Origem:** canvas Doop `k0kB5dc-Vo` (autenticação relida em 13/11/2026), guia `varal-ui`, especificação seções 11–12 e código das Etapas 01–03.
 
 ## Regras
 
@@ -81,9 +81,9 @@ Tamanhos: telas mobile 390×844 (06: 390×1090; 07: 390×1220; 10: 390×944); te
 | NavItem | `state: off\|on`, `label`, `count`, slot `icon` | `web/src/components/layout/side-nav.tsx` | 01 (feito) |
 | SideNav | `active: inicio\|contas\|grupos\|avisos\|perfil` (≥ 1024px) | `web/src/components/layout/side-nav.tsx` | 01 (feito) |
 | BillCard | `title`, `meta`, `value`, slots `icon`, `status` | `web/src/components/bills/bill-card.tsx` | 04 |
-| RadioCard | `state: off\|on`, `title`, `text` | `web/src/components/ui/radio-card.tsx` | 03 |
-| MemberRow | `role: admin\|membro\|pagador\|observador`, `initials`, `name`, `detail` | `web/src/components/groups/member-row.tsx` | 03 |
-| HouseCard | `house-link`, `label`, `caption`, `caption-2` | `web/src/components/groups/house-card.tsx` | 03 |
+| RadioCard | `state: off\|on`, `title`, `text` | `web/src/components/ui/radio-card.tsx` | 03 (feito) |
+| MemberRow | `role: admin\|membro\|pagador\|observador`, `initials`, `name`, `detail` | `web/src/components/groups/member-row.tsx` | 03 (feito) |
+| HouseCard | `house-link`, `label`, `caption`, `caption-2` | `web/src/components/groups/house-card.tsx` | 03 (feito) |
 | RecurringRow | `text`, `caption`, `vl` | `web/src/components/recurrences/recurring-row.tsx` | 08 |
 | NoticeRow | `tone: info\|vence\|vencida\|aguardando\|pago`, `unread: no\|yes`, `title`, `text`, `time`, slot `icon` | `web/src/components/notifications/notice-row.tsx` | 09 |
 
@@ -97,6 +97,13 @@ Fora da página 04, também da Etapa 01: logo (`web/src/components/ui/logo.tsx`)
 O dono aprovou no chat (13/11/2026) cadastro/recuperação como estados desse layout e a animação mobile do guia (`100%`, `0,5s`). Os frames foram lidos em HTML e screenshots e continuam `draft`; aprovação no chat não alterou o canvas. Comparação nas duas resoluções: composição, cores, fontes e curva do varal correspondem. Diferença deliberada: senha começa vazia com placeholder cinza; os bullets preenchidos do exemplo do Doop não são uma senha fictícia no formulário.
 
 O shell recebe usuário/espaço próprios da API. Perfil continua “Em breve”, com a ação “Sair da conta”; a tela Perfil/LGPD permanece para a Etapa 11.
+
+### Grupos implementados (Etapa 03)
+
+- **Folha/modal** `web/src/components/ui/folha.tsx`: `<dialog>` nativo, `sheet-up` < 1024px e `modal-pop` ≥ 1024px; base de 11 ↔ M05 e das telas sem frame (criar grupo, gestão de membro, casa).
+- **Convite** `web/src/components/groups/convite-folha.tsx` (11 ↔ M05): RadioCard de papel, link encurtado em JetBrains Mono, `shine` 2×.
+- **Página do grupo** `grupo-pagina.tsx` (10 ↔ D04), **lista** `grupos-lista.tsx`, **aceite** `aceite-convite.tsx` (layout de 01 ↔ D01), **sair** `sair-do-grupo.tsx`; seletor de espaço no SideNav (`side-nav.tsx`, menu sem frame).
+- Diferenças em relação aos frames: [relatório da Etapa 03](../etapas/03-espacos-grupos/relatorio.md#diferenças-visuais-ca18). 10 e 11 seguem draft; D04 e M05 `ready_for_dev`. Canvas não alterado.
 
 ### Conta cancelada (D2)
 
