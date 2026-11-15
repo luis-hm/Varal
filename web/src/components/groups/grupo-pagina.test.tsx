@@ -18,6 +18,7 @@ const grupo = (meu_papel: Papel): GrupoDetalhe => ({
   id: "g1",
   nome: "Família",
   meu_papel,
+  janela_alerta_dias: 3,
   membros: [
     { id: "m1", nome: "Dev", email: "dev@varal.local", papel: "admin", sou_eu: meu_papel === "admin" },
     { id: "m2", nome: "", email: "observador@varal.local", papel: "observador", sou_eu: meu_papel === "observador" },
