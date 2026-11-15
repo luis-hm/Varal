@@ -13,7 +13,7 @@ Telas: frame mobile ↔ frame desktop no canvas `k0kB5dc-Vo` (ids e equivalênci
 | RF02 | CU01 | RN03 | 01 · Entrar ↔ D01 | 02 | `test_rf01_rf02_ca01_cadastro_email_sessao_hash_e_dois_usuarios`, `test_rn03_ca04_*`, `test_rn03_ca05_seed_idempotente_preserva_usuario_e_senha` (`api/tests/test_autenticacao.py`); `test_rn03_ca05_migracao_preserva_legado_e_cria_espaco_unico` (`api/tests/test_migracao_autenticacao.py`); E2E de cadastro/recarga/isolamento em `auth.spec.ts` |
 | RF03 | CU01 | — | 01 · Entrar ↔ D01 | 02 | `test_rf03_ca07_recuperacao_resposta_generica_email_async`, `test_rf03_ca08_token_valido_troca_senha_e_nao_reutiliza`, `test_rf03_ca08_token_invalido_expirado_e_senha_fraca` (`api/tests/test_autenticacao.py`); Vitest `ca07`, `ca08` (`auth-form.test.tsx`, `client.test.ts`); E2E `rf03 ca07/ca08…` (`web/e2e/auth.spec.ts`) |
 | RF04 | CU02 | RN04 | 10 · Grupo ↔ D04 | 03 | — |
-| RF05 | CU03 | RN05, RN24 | 11 · Convidar membro ↔ M05 | 03 | — |
+| RF05 | CU03 | RN05, RN24, RN31 | 11 · Convidar membro ↔ M05 | 03 | — |
 | RF06 | CU03 | RN04, RN05, RN21 | 10 · Grupo ↔ D04 | 03 | — |
 | RF07 | CU04 | — | 10 · Grupo ↔ D04 | 03 | — |
 | RF08 | CU05 | RN08, RN09, RN10, RN11 | 05 · Nova conta ↔ M01, 06 · Conferir conta ↔ M02 | 05 | — |
@@ -57,6 +57,7 @@ Telas: frame mobile ↔ frame desktop no canvas `k0kB5dc-Vo` (ids e equivalênci
 | RN | Origem | Tela | Etapa | Testes |
 | --- | --- | --- | --- | --- |
 | RN30 | RNF04, ADR 0003 | Perfil (ainda não existe no Doop) | 11 | — |
+| RN31 | RF05, CU03, RN24, ADR 0004 | 11 · Convidar membro ↔ M05; aceite `/c/[token]` (sem frame) | 03 | — |
 
 ## Fundação (Etapa 00)
 

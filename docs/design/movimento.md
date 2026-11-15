@@ -9,7 +9,11 @@ Toda animação é CSS e é desligada com `@media (prefers-reduced-motion: reduc
 
 Autenticação usa `swing` nas três contas, entrada `drop`, `sheet-up` na folha mobile e `rise` no formulário desktop. Em 13/11/2026, o dono aprovou seguir o **guia** para a folha: `translateY(100%) → 0`, `0,5s`, resolvendo a diferença do HTML do frame (40px, 0,6s). Nenhum frame foi alterado. O reduced motion desliga essas animações e o efeito de pressão.
 
-## Tabela do guia varal-ui (usar esta no código; conferida em 12/11/2026)
+## Aplicação na Etapa 03
+
+Convite usa `sheet-up` (11) e `modal-pop` (M05), primeira folha/modal reutilizável do app, e `shine` na caixa do link. O dono aprovou em 14/11/2026 seguir o frame no `shine`: 2,4s, atraso 0,6s (M05) a 0,8s (11), **2 repetições e para**; o guia `varal-ui` passou a listá-lo. Página do grupo usa `rise`; `grow` não roda enquanto as casas não têm contas (barra escondida). Movimento reduzido desliga tudo.
+
+## Tabela do guia varal-ui (usar esta no código; conferida em 14/11/2026)
 
 No mobile as ações sobem em folhas (`sheet-up`); a partir de 1024px viram modais (`modal-pop`), e o detalhe e a gaveta de avisos entram com `slide-in`. Regra responsiva em [README.md](README.md#regra-responsiva).
 
@@ -23,6 +27,7 @@ No mobile as ações sobem em folhas (`sheet-up`); a partir de 1024px viram moda
 | modal-pop | Modais (desktop) | scale .96→1 + fade, .3s |
 | slide-in | Painel de detalhe e gaveta (desktop) | translateX 24px→0 + fade, .45s |
 | scan | Leitura do PDF | linha verde percorre a prévia; campos lidos ganham moldura âmbar com rótulo |
+| shine | Link de convite recém-gerado | brilho âmbar (rgba(245,165,36,.18)) atravessa a caixa, 2.4s ease-in-out, delay .6–.8s, **2 repetições e para** |
 | pop + draw | Check de sucesso | scale .3→1.12→1 (.6s) e stroke-dashoffset do check (.5s) |
 | badge-pulse | Ícone do selo Vencida | scale 1→1.18, 1.8s infinite |
 | press | Botões | :active scale(.97) |
