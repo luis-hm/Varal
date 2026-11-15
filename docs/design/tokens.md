@@ -1,7 +1,7 @@
 # Tokens de design
 
 > **Contém:** os tokens do Doop, o nome equivalente na especificação e como viram variáveis CSS no web.
-> **Origem:** `get_tokens` do canvas Doop `k0kB5dc-Vo` (12/11/2026), especificação seção 10 e `web/src/styles/tokens.css` (Etapas 01–03).
+> **Origem:** `get_tokens` do canvas Doop `k0kB5dc-Vo` (12/11/2026), especificação seção 10 e `web/src/styles/tokens.css` (Etapas 01–04).
 
 ## Regra
 
@@ -53,6 +53,17 @@ Etapa 03 acrescenta (sem cor nova; translúcidos por `color-mix`):
 | `--scrim-sheet` | ink 60% | fundo atrás da folha/modal; o frame 11 pinta sólido |
 | `--modal-width` / `--modal-height-invite` | 560px / 480px | M05 |
 | `--font-mono` (`globals.css`) | JetBrains Mono via `next/font` | link do convite (11/M05) |
+
+Etapa 04 acrescenta (sem cor nova):
+
+| Variável | Valor | Origem |
+| --- | --- | --- |
+| `--tracking-hero` | -0.03em | número-herói de 02/D02/07/D03 |
+| `--text-tag` / `--text-tag-desktop` | 28px / 40px | números nas contas do varal (02 / D02) |
+| `--leading-small` | 18px | "Pequeno" 13/18: meta do BillCard, histórico |
+| `--shadow-selected` | ink 8% | card aberto na lista do D03 (`.sel .bill`) |
+| `--opacity-cancelled` | 0.6 | BillCard cancelado (D2: "opacidade reduzida", sem valor no Doop) |
+| `--list-width` | 540px | coluna da lista do D03 |
 
 ## Da especificação
 

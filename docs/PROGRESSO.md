@@ -11,7 +11,7 @@
 | 01 | Design system no código | concluída | `etapa/01-design-system` | 12/11/2026 | [relatorio](etapas/01-design-system/relatorio.md) |
 | 02 | Autenticação | concluída | `etapa/02-autenticacao` | 13/11/2026 | [relatorio](etapas/02-autenticacao/relatorio.md) |
 | 03 | Espaços e grupos | concluída | `etapa/03-espacos-grupos` | 15/11/2026 | [relatorio](etapas/03-espacos-grupos/relatorio.md) |
-| 04 | Contas (núcleo) | em andamento | `etapa/04-contas` | — | — |
+| 04 | Contas (núcleo) | concluída | `etapa/04-contas` | 15/11/2026 | [relatorio](etapas/04-contas/relatorio.md) |
 | 05 | Boleto e Pix | pendente | — | — | — |
 | 06 | PDF do boleto | pendente | — | — | — |
 | 07 | Pagamento | pendente | — | — | — |
@@ -33,7 +33,8 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 | P3 | Configurar a cadeia de proxies confiáveis e testar spoofing antes do deploy. Allauth mantém `trusted_proxy_count=0` enquanto a API 8000 está exposta; limite por IP vê o Next como origem. Ativar também o limite de aceite de convite por IP (RN31). | Deploy da Etapa 11 |
 | P4 | Produção: com `DJANGO_DEBUG=0` a API liga `SECURE_SSL_REDIRECT`, e o Next consulta `/api/me/` pela rede interna em HTTP sem `X-Forwarded-Proto`; provável redirecionamento para https e falha das páginas protegidas. Definir como o Next fala com a API em produção (cabeçalho, exceção de rota ou proxy). Omitir também o token de convite do access log do proxy/servidor de produção (RN31). | Deploy da Etapa 11 |
 | P6 | Reexportar a especificação da origem rev 50 (o dono tirou categoria do passo 3 do CU05, a entidade `categoria` e `lancamento.categoria_id`; Q22 da Etapa 04) e alinhar CU05, `dados/modelo.md` e ADR 0005. | Abertura da Etapa 05 |
-| P7 | Entregar ao removido o aviso das contas canceladas pela RN32 na remoção pelo admin ([ADR 0006](arquitetura/adr/0006-rn32-conta-restrita-orfa.md)). A Etapa 04 só grava no histórico (`cancelada_automaticamente`, `dados.removido`). A confirmar no relatório da 04. | Etapa 09 |
+| P7 | Entregar ao removido o aviso das contas canceladas pela RN32 na remoção pelo admin ([ADR 0006](arquitetura/adr/0006-rn32-conta-restrita-orfa.md)). A Etapa 04 só grava no histórico (`cancelada_automaticamente`, `dados.removido`). Adiamento a confirmar ([relatório da 04](etapas/04-contas/relatorio.md#decisões-para-o-dono-confirmar), decisão 25). | Etapa 09 |
+| P8 | 429 isolado do allauth na partida a frio do `make e2e`: o `cache_lock` espera 1 s no Redis e o primeiro cadastro falha. Visto uma vez na Etapa 04; reexecução limpa. Se repetir, o `varal-devops` aquece a API antes do Playwright. | Nada (E2E instável se repetir) |
 
 ### Resolvidas
 
@@ -51,6 +52,14 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 ## Log
 
 Ordem cronológica inversa.
+
+### 15/11/2026 — Etapa 04 (Contas, núcleo) concluída
+
+- `Lancamento` e `Historico` sem categoria; visibilidade só por `acesso.py` (RN06 ao pé da letra, 404 para quem não vê, agregados só sobre o visível); status calculado em Fortaleza com a janela 1–7 (RN13, só admin). RN21 e RN32 nos dois modos, exceção da saída (ADR 0007) e acesso preservado (ADR 0008).
+- Web: Início, Contas e Detalhe (02/D02, 03/07/D03), formulário em folha/modal com aviso de visibilidade, espaço atual por cookie, "Configurações" do grupo, folha de saída barrada, lista do pagador. Sete variáveis fora do Doop, nenhuma cor nova. Canvas não alterado.
+- Segurança sem bloqueantes: I1 (corrida editar × sair, e o deadlock que ela revelou), I2 (histórico só com ids), M1, M3 e M7 corrigidos com testes; M2, M4, M5 e M6 aceitos.
+- `make test` 204 pytest + 65 Vitest; lint verde; tipos sincronizados; E2E 74 passaram e 2 ignorados de propósito. Um 429 isolado numa execução anterior (P8). P5 resolvida.
+- Ajustes rev 24 relidos ao vivo: 18 itens marcados, nenhum novo. 30 decisões a confirmar no [relatório](etapas/04-contas/relatorio.md#decisões-para-o-dono-confirmar). Sem push.
 
 ### 15/11/2026 — Respostas do dono às Q17–Q23 da Etapa 04
 
