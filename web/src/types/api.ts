@@ -1411,6 +1411,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/espacos/{espaco_id}/lancamentos/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contas do espaço por mês, com contagens dos chips (RF13; só o que você vê) */
+        get: operations["lancamentos_listar"];
+        put?: never;
+        /** Nova conta manual; nasce pendente (RF10, RF11, RN11; dono, admin, membro) */
+        post: operations["lancamentos_criar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/espacos/{espaco_id}/resumo/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Início: total do mês, Precisa de atenção e Por casa (só o que você vê) */
+        get: operations["lancamentos_resumo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/grupos/": {
         parameters: {
             query?: never;
@@ -1443,7 +1478,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Configurações do grupo: avisar N dias antes, 1 a 7 (admin; RN13) */
+        patch: operations["grupos_configurar"];
         trace?: never;
     };
     "/api/grupos/{grupo_id}/convites/": {
@@ -1491,7 +1527,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remover membro (admin; RN04, RN21) */
+        /** Remover membro (admin; RN04, RN21, RN32 sem sinal ao admin) */
         delete: operations["grupos_membros_remover"];
         options?: never;
         head?: never;
@@ -1508,7 +1544,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Sair do grupo (qualquer papel; RN04, RN21) */
+        /**
+         * Sair do grupo (qualquer papel; RN04, RN21, RN32). `resolucoes` só aqui (ADR 0007)
+         * @description Se você é a única pessoa que vê uma conta restrita aberta, a saída dá 409 `conta_restrita_orfa` com as contas e as pessoas que podem passar a vê-las. Reenvie com uma resolução por conta (`acesso` com `usuarios`, ou `cancelar`): tudo acontece na mesma transação; se ainda sobrar conta, 409 e nada muda.
+         */
         post: operations["grupos_sair"];
         delete?: never;
         options?: never;
@@ -1560,6 +1599,41 @@ export interface paths {
         get: operations["health"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lancamentos/{lancamento_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detalhe da conta com histórico (404 se você não a vê) */
+        get: operations["lancamentos_detalhe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Editar conta (dono, admin, membro); histórico só do que mudou (RF12, RN22) */
+        patch: operations["lancamentos_editar"];
+        trace?: never;
+    };
+    "/api/lancamentos/{lancamento_id}/cancelar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancelar conta aguardando ou pendente; nada é apagado (RN22, D2) */
+        post: operations["lancamentos_cancelar"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2221,6 +2295,80 @@ export interface components {
             readonly id: string;
             nome: string;
         };
+        /**
+         * @description * `conta_restrita_orfa` - conta_restrita_orfa
+         * @enum {string}
+         */
+        CodeEnum: "conta_restrita_orfa";
+        Conta: {
+            /** Format: date-time */
+            criado_em: string;
+            descricao: string;
+            readonly dias_para_vencer: number;
+            espaco: components["schemas"]["EspacoRef"];
+            /** Format: uuid */
+            id: string;
+            readonly pagador: components["schemas"]["Pessoa"] | null;
+            status: components["schemas"]["StatusEnum"];
+            status_exibido: components["schemas"]["StatusExibidoEnum"];
+            subgrupo: components["schemas"]["Ref"] | null;
+            valor_centavos: number;
+            /** Format: date */
+            vencimento: string;
+            visibilidade: components["schemas"]["VisibilidadeEnum"];
+        };
+        ContaDetalhe: {
+            readonly acesso: components["schemas"]["Ref"][];
+            /** Format: date-time */
+            criado_em: string;
+            readonly criador: components["schemas"]["Criador"];
+            descricao: string;
+            readonly dias_para_vencer: number;
+            espaco: components["schemas"]["EspacoRef"];
+            historico: components["schemas"]["Historico"][];
+            /** Format: uuid */
+            id: string;
+            readonly pagador: components["schemas"]["Pessoa"] | null;
+            readonly pode_editar: boolean;
+            status: components["schemas"]["StatusEnum"];
+            status_exibido: components["schemas"]["StatusExibidoEnum"];
+            subgrupo: components["schemas"]["Ref"] | null;
+            valor_centavos: number;
+            /** Format: date */
+            vencimento: string;
+            visibilidade: components["schemas"]["VisibilidadeEnum"];
+        };
+        ContaEntrada: {
+            /** @description Quem vê (restrita) */
+            acesso?: string[];
+            descricao: string;
+            /** Format: uuid */
+            pagador?: string | null;
+            /** Format: uuid */
+            subgrupo?: string | null;
+            valor_centavos: number;
+            /** Format: date */
+            vencimento: string;
+            visibilidade?: components["schemas"]["VisibilidadeEnum"];
+        };
+        ContaRef: {
+            descricao: string;
+            /** Format: uuid */
+            id: string;
+        };
+        ContaRestritaOrfa: {
+            code: components["schemas"]["CodeEnum"];
+            contas: components["schemas"]["ContaRef"][];
+            detail: string;
+            pessoas: components["schemas"]["PessoaRef"][];
+        };
+        Contagens: {
+            a_pagar: number;
+            canceladas: number;
+            pagas: number;
+            todas: number;
+            vencidas: number;
+        };
         ConviteCriado: {
             /** Format: date-time */
             expira_em: string;
@@ -2246,6 +2394,10 @@ export interface components {
             grupo_nome: string;
             papel: components["schemas"]["PapelEnum"];
         };
+        Criador: {
+            nome: string;
+            sou_eu: boolean;
+        };
         CriarGrupo: {
             casas?: string[];
             nome: string;
@@ -2259,10 +2411,18 @@ export interface components {
             nome: string;
             tipo: components["schemas"]["TipoEnum"];
         };
+        EspacoRef: {
+            /** Format: uuid */
+            id: string;
+            nome: string;
+            tipo: components["schemas"]["TipoEnum"];
+        };
         GrupoDetalhe: {
             readonly casas: components["schemas"]["Casa"][];
             /** Format: uuid */
             id: string;
+            /** @description Avisar N dias antes (RN13) */
+            janela_alerta_dias: number;
             readonly membros: components["schemas"]["Membro"][];
             meu_papel: components["schemas"]["PapelEnum"];
             nome: string;
@@ -2284,6 +2444,39 @@ export interface components {
         Health: {
             status: string;
         };
+        Historico: {
+            acao: components["schemas"]["HistoricoAcaoEnum"];
+            readonly automatica: boolean;
+            /** @description null em ação automática */
+            readonly autor: string | null;
+            /** Format: date-time */
+            criado_em: string;
+            dados: {
+                [key: string]: unknown;
+            };
+            readonly sou_eu: boolean;
+        };
+        /**
+         * @description * `criada` - Criou
+         *     * `editada` - Editou
+         *     * `cancelada` - Cancelou
+         *     * `pagador_removido` - Ficou sem pagador
+         *     * `acesso_removido` - Saiu de quem vê
+         *     * `cancelada_automaticamente` - Cancelada automaticamente
+         *     * `acesso_preservado` - Acesso preservado
+         * @enum {string}
+         */
+        HistoricoAcaoEnum: "criada" | "editada" | "cancelada" | "pagador_removido" | "acesso_removido" | "cancelada_automaticamente" | "acesso_preservado";
+        Lista: {
+            contagens: components["schemas"]["Contagens"];
+            itens: components["schemas"]["Conta"][];
+            /** @description AAAA-MM do total e das contagens */
+            mes: string;
+            /** @description Casas e pagadores das contas visíveis do mês */
+            opcoes: components["schemas"]["Opcoes"];
+            /** @description Não canceladas do mês, com casa/pagador */
+            total_centavos: number;
+        };
         Me: {
             /** Format: email */
             email: string;
@@ -2300,6 +2493,11 @@ export interface components {
             readonly nome: string;
             papel: components["schemas"]["PapelEnum"];
             readonly sou_eu: boolean;
+        };
+        Opcoes: {
+            casas: components["schemas"]["Ref"][];
+            pagadores: components["schemas"]["Pessoa"][];
+            sem_pagador: boolean;
         };
         Papel: {
             papel: components["schemas"]["PapelEnum"];
@@ -2318,15 +2516,108 @@ export interface components {
             readonly id?: string;
             nome?: string;
         };
+        PatchedConfiguracoes: {
+            janela_alerta_dias?: number;
+        };
+        PatchedContaEntrada: {
+            /** @description Quem vê (restrita) */
+            acesso?: string[];
+            descricao?: string;
+            /** Format: uuid */
+            pagador?: string | null;
+            /** Format: uuid */
+            subgrupo?: string | null;
+            valor_centavos?: number;
+            /** Format: date */
+            vencimento?: string;
+            visibilidade?: components["schemas"]["VisibilidadeEnum"];
+        };
         PatchedPapel: {
             papel?: components["schemas"]["PapelEnum"];
         };
+        Pessoa: {
+            /** Format: uuid */
+            id: string;
+            nome: string;
+            sou_eu: boolean;
+        };
+        PessoaRef: {
+            /** Format: uuid */
+            id: string;
+            nome: string;
+        };
+        PorCasa: {
+            /** Format: uuid */
+            id: string;
+            nome: string;
+            qtd: number;
+            total_centavos: number;
+        };
+        Ref: {
+            /** Format: uuid */
+            id: string;
+            nome: string;
+        };
+        Resolucao: {
+            acao: components["schemas"]["ResolucaoAcaoEnum"];
+            /** Format: uuid */
+            lancamento: string;
+            usuarios?: string[];
+        };
+        /**
+         * @description * `acesso` - acesso
+         *     * `cancelar` - cancelar
+         * @enum {string}
+         */
+        ResolucaoAcaoEnum: "acesso" | "cancelar";
+        Resumo: {
+            atencao: components["schemas"]["Conta"][];
+            janela_alerta_dias: number;
+            /** @description AAAA-MM de total_centavos, qtd e por_casa */
+            mes: string;
+            por_casa: components["schemas"]["PorCasa"][];
+            qtd: number;
+            total_centavos: number;
+            /** @description Em atencao (dentro da janela) */
+            vence_qtd: number;
+            /** @description Em atencao (qualquer mês) */
+            vencidas_qtd: number;
+        };
+        Sair: {
+            resolucoes?: components["schemas"]["Resolucao"][];
+        };
+        /**
+         * @description * `aguardando` - Aguardando boleto
+         *     * `pendente` - Pendente
+         *     * `paga` - Paga
+         *     * `confirmada` - Confirmada
+         *     * `cancelada` - Cancelada
+         * @enum {string}
+         */
+        StatusEnum: "aguardando" | "pendente" | "paga" | "confirmada" | "cancelada";
+        /**
+         * @description * `aguardando` - aguardando
+         *     * `pendente` - pendente
+         *     * `paga` - paga
+         *     * `confirmada` - confirmada
+         *     * `cancelada` - cancelada
+         *     * `vence` - vence
+         *     * `vencida` - vencida
+         * @enum {string}
+         */
+        StatusExibidoEnum: "aguardando" | "pendente" | "paga" | "confirmada" | "cancelada" | "vence" | "vencida";
         /**
          * @description * `pessoal` - Pessoal
          *     * `grupo` - Grupo
          * @enum {string}
          */
         TipoEnum: "pessoal" | "grupo";
+        /**
+         * @description * `grupo` - Todo o grupo
+         *     * `restrita` - Só algumas pessoas
+         * @enum {string}
+         */
+        VisibilidadeEnum: "grupo" | "restrita";
     };
     responses: {
         /** @description The account prohibits adding an authenticator, e.g. because of an unverified email address. */
@@ -3002,6 +3293,138 @@ export interface operations {
             };
         };
     };
+    lancamentos_listar: {
+        parameters: {
+            query?: {
+                /** @description AAAA-MM; padrão: mês atual */
+                mes?: string;
+                /** @description id de usuário ou `nenhum` */
+                pagador?: string;
+                /** @description padrão: todas */
+                status?: "a_pagar" | "canceladas" | "pagas" | "todas" | "vencidas";
+                /** @description casa */
+                subgrupo?: string;
+            };
+            header?: never;
+            path: {
+                espaco_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lista"];
+                };
+            };
+            /** @description Valor, casa, pagador ou quem vê inválidos (RN11, RF11, Q19b). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Espaço ou conta fora do seu acesso; igual para inexistente e invisível (RN06). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    lancamentos_criar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                espaco_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContaEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["ContaEntrada"];
+                "multipart/form-data": components["schemas"]["ContaEntrada"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContaDetalhe"];
+                };
+            };
+            /** @description Valor, casa, pagador ou quem vê inválidos (RN11, RF11, Q19b). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Seu papel vê a conta, mas não pode criar, editar nem cancelar (RN05). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Espaço ou conta fora do seu acesso; igual para inexistente e invisível (RN06). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    lancamentos_resumo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                espaco_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Resumo"];
+                };
+            };
+            /** @description Espaço ou conta fora do seu acesso; igual para inexistente e invisível (RN06). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
     grupos_listar: {
         parameters: {
             query?: never;
@@ -3071,6 +3494,58 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["GrupoDetalhe"];
                 };
+            };
+            /** @description Seu papel não permite esta ação. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Grupo, membro, casa ou convite fora do seu acesso. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    grupos_configurar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                grupo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedConfiguracoes"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedConfiguracoes"];
+                "multipart/form-data": components["schemas"]["PatchedConfiguracoes"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrupoDetalhe"];
+                };
+            };
+            /** @description Fora de 1 a 7 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Seu papel não permite esta ação. */
             403: {
@@ -3327,10 +3802,23 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Sair"];
+                "application/x-www-form-urlencoded": components["schemas"]["Sair"];
+                "multipart/form-data": components["schemas"]["Sair"];
+            };
+        };
         responses: {
             /** @description No response body */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Resolução de conta que não impede a saída */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3345,13 +3833,13 @@ export interface operations {
                     "application/json": components["schemas"]["Erro"];
                 };
             };
-            /** @description Regra de negócio (ex.: RN04, o grupo ficaria sem admin). */
+            /** @description RN04 (só `detail`) ou RN32 (`code` conta_restrita_orfa) */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Erro"];
+                    "application/json": components["schemas"]["ContaRestritaOrfa"];
                 };
             };
         };
@@ -3462,6 +3950,147 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    lancamentos_detalhe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lancamento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContaDetalhe"];
+                };
+            };
+            /** @description Espaço ou conta fora do seu acesso; igual para inexistente e invisível (RN06). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    lancamentos_editar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lancamento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedContaEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedContaEntrada"];
+                "multipart/form-data": components["schemas"]["PatchedContaEntrada"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContaDetalhe"];
+                };
+            };
+            /** @description Valor, casa, pagador ou quem vê inválidos (RN11, RF11, Q19b). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Seu papel vê a conta, mas não pode criar, editar nem cancelar (RN05). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Espaço ou conta fora do seu acesso; igual para inexistente e invisível (RN06). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Conta cancelada (editar) ou já paga/cancelada (cancelar). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    lancamentos_cancelar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lancamento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContaDetalhe"];
+                };
+            };
+            /** @description Seu papel vê a conta, mas não pode criar, editar nem cancelar (RN05). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Espaço ou conta fora do seu acesso; igual para inexistente e invisível (RN06). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Conta cancelada (editar) ou já paga/cancelada (cancelar). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
                 };
             };
         };
