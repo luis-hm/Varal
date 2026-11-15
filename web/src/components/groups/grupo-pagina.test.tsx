@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { GrupoDetalhe, Papel } from "@/lib/grupos/client";
@@ -13,6 +13,7 @@ type Chamada = { method: string; url: string; body?: unknown };
 let chamadas: Chamada[] = [];
 let detalhe: { status: number; body?: unknown };
 let conviteN = 0;
+let sair: (body: { resolucoes?: unknown[] }) => Response = () => json(204);
 
 const grupo = (meu_papel: Papel): GrupoDetalhe => ({
   id: "g1",
@@ -20,8 +21,8 @@ const grupo = (meu_papel: Papel): GrupoDetalhe => ({
   meu_papel,
   janela_alerta_dias: 3,
   membros: [
-    { id: "m1", nome: "Dev", email: "dev@varal.local", papel: "admin", sou_eu: meu_papel === "admin" },
-    { id: "m2", nome: "", email: "observador@varal.local", papel: "observador", sou_eu: meu_papel === "observador" },
+    { id: "m1", usuario: "u1", nome: "Dev", email: "dev@varal.local", papel: "admin", sou_eu: meu_papel === "admin" },
+    { id: "m2", usuario: "u2", nome: "", email: "observador@varal.local", papel: "observador", sou_eu: meu_papel === "observador" },
   ],
   casas: [{ id: "c1", nome: "Casa 1" }],
 });
@@ -38,6 +39,10 @@ beforeEach(() => {
     chamadas.push({ method, url: input, body: init?.body ? JSON.parse(String(init.body)) : undefined });
     if (input === "/api/grupos/g1/" && method === "GET") return json(detalhe.status, detalhe.body);
     if (input === "/api/grupos/g1/convites/" && method === "GET") return json(200, []);
+    if (input === "/api/espacos/g1/resumo/")
+      return json(200, { mes: "2026-11", total_centavos: 0, qtd: 0, vencidas_qtd: 0, vence_qtd: 0, janela_alerta_dias: 3, atencao: [], por_casa: [{ id: "c1", nome: "Casa 1", total_centavos: 147960, qtd: 4 }] });
+    if (input === "/api/grupos/g1/" && method === "PATCH") return json(200, { ...grupo("admin"), ...JSON.parse(String(init!.body)) });
+    if (input === "/api/grupos/g1/sair/") return sair(JSON.parse(String(init?.body ?? "{}")));
     if (input === "/api/grupos/g1/convites/" && method === "POST") {
       conviteN += 1;
       const papel = (JSON.parse(String(init!.body)) as { papel: Papel }).papel;
@@ -49,7 +54,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  sair = () => json(204);
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   vi.clearAllMocks();
 });
 
@@ -68,16 +75,20 @@ test("ca11/ca18: admin sees the whole page with management actions; name falls b
   expect(screen.getByRole("button", { name: "+ Nova casa" })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Dev \(você\).*Admin/ })).toBeTruthy();
   expect(screen.getByRole("button", { name: /observador@varal\.local.*Observador/ })).toBeTruthy();
-  expect(screen.getByText("Sem contas ainda")).toBeTruthy();
-  // Stage-04+ content stays hidden (CA18).
-  expect(screen.queryByText(/Contas que se repetem|Configurações|Gerenciar papéis|Paga \d+ contas/)).toBeNull();
+  // Q11/Q12: month total and "N contas", no paid bar.
+  expect(await screen.findByText("R$ 1.479,60")).toBeTruthy();
+  expect(screen.getByText("4 contas em novembro")).toBeTruthy();
+  expect(document.body.textContent).not.toMatch(/pagas/);
+  expect(screen.getAllByRole("button", { name: "Configurações" }).length).toBeGreaterThan(0);
+  // Later stages stay hidden.
+  expect(screen.queryByText(/Contas que se repetem|Gerenciar papéis|Paga \d+ contas/)).toBeNull();
 });
 
 test.each(["membro", "observador"] as const)("ca11: %s sees the page with no management action", async (papel) => {
   detalhe = { status: 200, body: grupo(papel) };
   renderPagina();
   await screen.findByRole("heading", { name: "Família" });
-  expect(screen.queryByRole("button", { name: /Convidar|Nova casa|Admin|Observador|Casa 1/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Convidar|Nova casa|Admin|Observador|Casa 1|Configurações/ })).toBeNull();
   expect(screen.getByRole("button", { name: "Sair do grupo" })).toBeTruthy(); // Q3: leaving is about yourself
   expect(chamadas.some((c) => c.url.includes("convites"))).toBe(false);
 });
@@ -123,4 +134,48 @@ test("ca19/rn31: invite starts as Pagador, shows the short link, copies the full
   await screen.findByText("localhost:3000/c/9fKq2mXb…4dT3");
   fireEvent.click(screen.getAllByRole("button", { name: "Fechar" })[0]);
   await waitFor(() => expect(chamadas.filter((c) => c.method === "DELETE").map((c) => c.url)).toContain("/api/grupos/g1/convites/cv3/"));
+});
+
+test("q10/rn13: admin sets the alert window from 1 to 7 days", async () => {
+  detalhe = { status: 200, body: grupo("admin") };
+  renderPagina();
+  fireEvent.click((await screen.findAllByRole("button", { name: "Configurações" }))[0]);
+  const campo = screen.getByLabelText("Avisar quantos dias antes do vencimento");
+  fireEvent.change(campo, { target: { value: "9" } });
+  expect(screen.getByText("Escolha de 1 a 7 dias.")).toBeTruthy();
+  fireEvent.change(campo, { target: { value: "5" } });
+  fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+  await waitFor(() => expect(chamadas.find((c) => c.method === "PATCH")?.body).toEqual({ janela_alerta_dias: 5 }));
+});
+
+test("ca22/rn32: a blocked exit lists the bills, each resolved before Sair resends with resolucoes", async () => {
+  detalhe = { status: 200, body: grupo("membro") };
+  sair = (body) =>
+    body.resolucoes
+      ? json(204)
+      : json(409, {
+          code: "conta_restrita_orfa",
+          detail: "Você é a única pessoa que vê 2 contas restritas. Escolha quem vê cada uma ou cancele antes de sair.",
+          contas: [{ id: "l1", descricao: "Remédio da vó" }, { id: "l2", descricao: "Presente" }],
+          pessoas: [{ id: "u9", nome: "Ana" }],
+        });
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  renderPagina();
+  fireEvent.click(await screen.findByRole("button", { name: "Sair do grupo" }));
+  expect(await screen.findByText(/Escolha quem vê cada uma/)).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Remédio da vó" }).getAttribute("href")).toBe("/contas/l1");
+  const sairBtn = screen.getByRole("button", { name: "Sair" });
+  expect(sairBtn).toHaveProperty("disabled", true);
+
+  const l1 = screen.getByRole("group", { name: "O que fazer com Remédio da vó" });
+  fireEvent.click(within(l1).getByRole("button", { name: "Escolher quem vê" }));
+  fireEvent.click(within(screen.getByRole("group", { name: "Quem vê Remédio da vó" })).getByRole("button", { name: "Ana" }));
+  fireEvent.click(within(screen.getByRole("group", { name: "O que fazer com Presente" })).getByRole("button", { name: "Cancelar conta" }));
+  expect(sairBtn).toHaveProperty("disabled", false);
+  fireEvent.click(sairBtn);
+  await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/grupos"));
+  expect(chamadas.filter((c) => c.url === "/api/grupos/g1/sair/").map((c) => c.body)).toEqual([
+    undefined,
+    { resolucoes: [{ lancamento: "l1", acao: "acesso", usuarios: ["u9"] }, { lancamento: "l2", acao: "cancelar" }] },
+  ]);
 });

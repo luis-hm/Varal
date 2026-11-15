@@ -71,4 +71,12 @@
   --scrim-sheet: color-mix(in srgb, var(--color-ink) 60%, transparent); /* backdrop behind 11/M05; frame 11 paints it ink */
   --modal-width: 560px; /* M05 */
   --modal-height-invite: 480px; /* M05 */
+  /* Etapa 04 */
+  --tracking-hero: -0.03em; /* 02/D02/07/D03 hero number */
+  --text-tag: 28px; /* 02 numbers on the clothesline tags */
+  --text-tag-desktop: 40px; /* D02 numbers on the clothesline tags */
+  --leading-small: 18px; /* "Pequeno" 13/18: BillCard meta, history */
+  --shadow-selected: 0 8px 24px color-mix(in srgb, var(--color-ink) 8%, transparent); /* D03 .sel .bill */
+  --opacity-cancelled: 0.6; /* D2: cancelled BillCard ("opacidade reduzida", no value in the Doop) */
+  --list-width: 540px; /* D03 list column */
 }

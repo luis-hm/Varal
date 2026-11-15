@@ -1,9 +1,11 @@
-// Doop: k0kB5dc-Vo / mIvLheR2TS (13 · Modo simples) + YTtAtGSyCI (D05) only as reference: "Em breve" until stage 10.
-// CU11 (placeholder), RF06 (leave the group, any role); RN07: the payer has no group page.
+// Doop: k0kB5dc-Vo / mIvLheR2TS (13 · Modo simples) + YTtAtGSyCI (D05) as reference until stage 10.
+// CU11 (Q5: the payer's bills, read only), RF06 (leave the group, any role); RN07: the payer has no group page.
 import { notFound, redirect } from "next/navigation";
+import { ContasPagador } from "@/components/bills/contas-pagador";
 import { SairDoGrupo } from "@/components/groups/sair-do-grupo";
-import { EmBreve } from "@/components/layout/em-breve";
+import { TopBar } from "@/components/layout/top-bar";
 import { requireUser } from "@/lib/auth/server";
+import styles from "./simples.module.css";
 
 export const instant = false;
 
@@ -13,8 +15,12 @@ export default async function ModoSimples({ params }: PageProps<"/grupos/[id]/si
   if (!grupo) notFound();
   if (grupo.papel !== "pagador") redirect(`/grupos/${id}`);
   return (
-    <EmBreve title={grupo.nome}>
-      <SairDoGrupo grupoId={grupo.id} grupoNome={grupo.nome} />
-    </EmBreve>
+    <>
+      <TopBar title={grupo.nome} />
+      <div className={styles.body}>
+        <ContasPagador grupoId={grupo.id} />
+        <SairDoGrupo grupoId={grupo.id} grupoNome={grupo.nome} />
+      </div>
+    </>
   );
 }

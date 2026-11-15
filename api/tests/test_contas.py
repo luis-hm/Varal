@@ -856,6 +856,7 @@ def test_rn06_rn07_alterar_papel_preserva_acesso(f):
     assert com.status_code == sem.status_code == 200
     assert com.json() == {
         "id": str(f.m["membro"].pk),
+        "usuario": str(f.m["membro"].usuario_id),
         "nome": "Membro",
         "email": "membro@example.com",
         "papel": "pagador",

@@ -2825,12 +2825,17 @@ components:
         sou_eu:
           readOnly: true
           type: boolean
+        usuario:
+          format: uuid
+          readOnly: true
+          type: string
       required:
       - email
       - id
       - nome
       - papel
       - sou_eu
+      - usuario
       type: object
     Opcoes:
       properties:

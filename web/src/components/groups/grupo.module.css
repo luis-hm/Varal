@@ -170,6 +170,35 @@
   color: var(--color-red-text);
 }
 
+/* ---- RN32 exit sheet (no frame) ---- */
+.orfas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  list-style: none;
+}
+
+.orfas > li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+}
+
+.orfaNome {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.orfaAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--spacing-2);
+}
+
 /* ---- invite sheet (11 / M05) ---- */
 .papeis {
   display: flex;
