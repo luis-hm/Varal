@@ -64,6 +64,8 @@ Etapa 04 acrescenta (sem cor nova):
 | `--shadow-selected` | ink 8% | card aberto na lista do D03 (`.sel .bill`) |
 | `--opacity-cancelled` | 0.6 | BillCard cancelado (D2: "opacidade reduzida", sem valor no Doop) |
 | `--list-width` | 540px | coluna da lista do D03 |
+| `--hero-padding-y` | 28px | padding vertical do hero do D02; o varal começa na mesma altura (decisão 27, D04-2) |
+| `--hero-varal-width` | 560px | caixa do varal à direita do hero do D02 (decisão 27, D04-2) |
 
 ## Da especificação
 

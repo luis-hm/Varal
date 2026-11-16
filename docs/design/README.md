@@ -1,7 +1,7 @@
 # Design — canvas do Doop
 
 > **Contém:** onde está cada tela e componente no Doop, como lê-los, a regra responsiva e as telas e ícones da especificação.
-> **Origem:** canvas Doop `k0kB5dc-Vo` (autenticação relida em 13/11/2026), guia `varal-ui`, especificação seções 11–12 e código das Etapas 01–04.
+> **Origem:** canvas Doop `k0kB5dc-Vo` (autenticação relida em 13/11/2026), guia `varal-ui`, especificação seções 11–12, código das Etapas 01–04 e decisões 27–30 da Etapa 04 ([decisoes](../etapas/04-contas/decisoes.md)).
 
 ## Regras
 
@@ -109,9 +109,11 @@ O shell recebe usuário/espaço próprios da API. Perfil continua “Em breve”
 
 Mesmas rotas nas duas larguras: `/` (02 ↔ D02), `/contas` (03 ↔ D03), `/contas/[id]` (07 sozinho < 1024px; lista 540px + painel `slide-in` ≥ 1024px). Componentes em `web/src/components/bills/`:
 
-- **Início** `inicio.tsx`: "Total de <mês>" com `count-up`, varal `swing` (sem a conta "pagas" e sem barra até a 07), "Precisa de atenção" com `rise`; D02 com "Por casa".
+- **Início** `inicio.tsx`: "Total de <mês>" com `count-up`, varal `swing` (sem a conta "pagas" e sem barra até a 07), "Precisa de atenção" com `rise`; D02 com "Por casa". O hero do D02 tem a altura do conteúdo, sem reservar a barra ausente (decisão 27).
 - **Contas e Detalhe** `contas-pagina.tsx`, `conta-detalhe.tsx`: chips com contagem, "Casa" e "Quem paga" no desktop, folha "Filtros" no mobile; histórico com ações automáticas sem autor.
-- **Formulário** `conta-folha.tsx` (partes de 05/06 ↔ M01/M02, sobre `ui/folha.tsx`): só a conta manual; aviso "Quem paga também vê esta conta" em `aria-live`.
+- **Detalhe mobile é tela empilhada** (decisão 28): `/contas/[id]` abaixo de 1024px não tem TabBar; tem TopBar com voltar, também nos estados de carregando, erro e "Conta não encontrada" (`app-shell.tsx`).
+- **Formulário** `conta-folha.tsx` (partes de 05/06 ↔ M01/M02, sobre `ui/folha.tsx`): só a conta manual; aviso "Quem paga também vê esta conta" em `aria-live`. "Onde fica" começa pelo espaço atual, já selecionado (Pessoal se a pessoa está no pessoal, o grupo se está num grupo); se o atual não aceita conta (observador), mantém a ordem e seleciona o primeiro; na edição fica o espaço da conta (decisão 30, `espacosParaCriar`).
+- **Nomes em uma linha** (decisão 29): nomes e e-mails de pessoas usam `<Nome>` (`web/src/components/ui/nome.tsx`): uma linha, reticências, valor inteiro no `title` e no nome acessível. Usado em BillCard, detalhe, MemberRow e SideNav; a saudação do Início e o Chip cortam do mesmo jeito pelo CSS. Em aberto: "Quem vê" inteiro numa linha (Q04-38) e nome de grupo cortado (Q04-39).
 - **Grupo:** HouseCard com total e "N contas"; "Configurações" (janela 1–7) só para admin; folha de saída barrada pela RN32 em `sair-do-grupo.tsx`; lista do pagador `contas-pagador.tsx` em `/grupos/[id]/simples`.
 - **Espaço atual:** cookie `espaco` (`web/src/lib/espaco.ts`); seletor no SideNav e no cabeçalho do Início mobile.
 - Diferenças em relação aos frames: [relatório da Etapa 04](../etapas/04-contas/relatorio.md#comparação-com-o-doop-ca29). Canvas não alterado.
