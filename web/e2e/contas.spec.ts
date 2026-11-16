@@ -400,8 +400,8 @@ test("ca19/ca22/ca23 rn32 adr0007: saída barrada mostra a folha com as contas; 
 
   await folha.getByRole("group", { name: "O que fazer com Presente" }).getByRole("button", { name: "Escolher quem vê" }).click();
   await expect(sair).toBeDisabled(); // nobody chosen yet
-  // The admin has no name: the API never sends e-mails here (LGPD).
-  await folha.getByRole("group", { name: "Quem vê Presente" }).getByRole("button", { name: "Pessoa sem nome" }).click();
+  // The admin has no name: a current member without a name shows by e-mail (decision 23).
+  await folha.getByRole("group", { name: "Quem vê Presente" }).getByRole("button", { name: admin.email }).click();
   await expect(sair).toBeDisabled();
   await folha.getByRole("group", { name: "O que fazer com Viagem" }).getByRole("button", { name: "Cancelar conta" }).click();
   await expect(sair).toBeEnabled();
@@ -638,9 +638,151 @@ test("ca29: screenshots de 02/D02, 03/D03 (com e sem painel), 07 e formulário (
   if (desktop(info)) await expect(link(page, /Energia/)).toHaveAttribute("aria-current", "true");
   await foto("conta-detalhe");
 
+  // Decision 28: the stacked 07 has no TabBar (no FAB), so the form opens from Início.
+  await page.goto("/");
+  await expect(link(atencao(page), /Energia/)).toBeVisible();
   await botaoNovaConta(page).click();
   const form = page.getByRole("dialog", { name: "Nova conta" });
   await expect(form.getByRole("group", { name: "Quem paga" })).toBeVisible();
   await form.getByRole("button", { name: "Só algumas pessoas" }).click();
   await foto("conta-form", false);
+});
+
+// ---- Decisions 23, 27–30 (owner's answers to the stage 04 review). Decision 26 is covered by pytest
+// (test_rn13_atencao_inclui_aguardando_na_janela): the API cannot create `aguardando` bills yet.
+
+const tabBar = (page: Page) => page.getByRole("navigation", { name: "Navegação principal" });
+
+test("dec28: abaixo de 1024px /contas/[id] não tem TabBar e tem TopBar com voltar; no desktop o D03 segue com lista, painel e fechar", async ({ page, playwright }, info) => {
+  const { admin, grupo, energia } = await grupoComContas(playwright);
+  await logar(page, admin);
+  await usarEspaco(page, grupo.id);
+  await page.goto("/contas");
+  await link(page, /Energia/).click();
+  await expect(page).toHaveURL(`${ORIGIN}/contas/${energia.id}`);
+  await expect(page.getByRole("heading", { level: 1, name: "Energia · Casa 3" })).toBeVisible();
+
+  if (!desktop(info)) {
+    await expect(tabBar(page)).toHaveCount(0);
+    await expect(botaoNovaConta(page)).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1, name: "Conta", exact: true })).toBeVisible();
+    await link(page, "Voltar").click();
+    await expect(page).toHaveURL(`${ORIGIN}/contas`);
+    await expect(tabBar(page)).toBeVisible();
+    await expect(link(page, /Energia/)).toBeVisible();
+  } else {
+    await expect(page.getByRole("complementary", { name: "Menu principal" })).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Conta aberta" })).toBeVisible();
+    await expect(link(page, /Energia/)).toHaveAttribute("aria-current", "true");
+    await expect(link(page, "Voltar")).toHaveCount(0);
+    await expect(botaoNovaConta(page)).toBeVisible();
+    await link(page, "Fechar detalhe").click();
+    await expect(page).toHaveURL(`${ORIGIN}/contas`);
+    await expect(texto(page, "Escolha uma conta para ver os detalhes.")).toBeVisible();
+  }
+});
+
+/** One line (height under 1.5 lines), actually cut (scrollWidth > clientWidth), whole value in `title`. */
+async function cortadoEmUmaLinha(el: Locator, title: string | RegExp) {
+  await expect(el).toHaveAttribute("title", title);
+  const m = await el.evaluate((e) => {
+    const cs = getComputedStyle(e);
+    return { h: e.getBoundingClientRect().height, linha: parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.25, sw: e.scrollWidth, cw: e.clientWidth };
+  });
+  expect(m.h, "one line").toBeLessThan(m.linha * 1.5);
+  expect(m.sw, "cut with an ellipsis").toBeGreaterThan(m.cw);
+}
+
+const semRolagemHorizontal = async (page: Page) =>
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+test("dec29: e-mail longo sem nome fica em uma linha no BillCard, em Quem paga e na MemberRow, com title inteiro e sem rolagem em 360px", async ({ page, playwright }, info) => {
+  const longo = `e2e-${crypto.randomUUID()}-nome-longo@varal.test`; // 62 characters
+  const [admin, pagador] = await Promise.all([novaConta(playwright), novaConta(playwright, longo)]);
+  const grupo = await criarGrupo(admin);
+  await entrarNoGrupo(admin, grupo.id, "membro", pagador);
+  const conta = await criarConta(admin, grupo.id, { descricao: "Luz", vencimento: hoje(1), pagador: (await me(pagador.request)).id });
+  await logar(page, admin);
+  await usarEspaco(page, grupo.id);
+  if (!desktop(info)) await page.setViewportSize({ width: 360, height: 800 });
+  const escapado = longo.replace(/[.-]/g, "\\$&");
+
+  await page.goto("/contas");
+  await cortadoEmUmaLinha(link(page, /Luz/).locator("[title$=' paga']"), new RegExp(`^Vence \\d{2}/\\d{2} · ${escapado} paga$`));
+  await semRolagemHorizontal(page);
+
+  await page.goto(`/contas/${conta.id}`);
+  const info2 = page.getByRole("region", { name: "Informações" }).filter({ visible: true });
+  await cortadoEmUmaLinha(info2.locator(`[title="${longo}"]`), longo);
+  await semRolagemHorizontal(page);
+
+  await page.goto(`/grupos/${grupo.id}`);
+  const linha = visivel(page, new RegExp(escapado));
+  await expect(linha).toHaveAccessibleName(new RegExp(escapado)); // the accessible name keeps the whole e-mail
+  await cortadoEmUmaLinha(linha.locator(`[title="${longo}"]`), longo);
+  await semRolagemHorizontal(page);
+});
+
+test("dec30: Nova conta abre com o espaço atual primeiro e selecionado: cada grupo a partir dele, Pessoal a partir do pessoal", async ({ page, playwright }) => {
+  const eu = await novaConta(playwright);
+  const primeiro = await criarGrupo(eu);
+  const segundo = await criarGrupo(eu);
+  await logar(page, eu);
+
+  const confere = async (espaco: string, nome: string) => {
+    await usarEspaco(page, espaco);
+    await page.goto("/");
+    await expect(hero(page)).toBeVisible();
+    await botaoNovaConta(page).click();
+    const onde = page.getByRole("dialog", { name: "Nova conta" }).getByRole("group", { name: /Onde fica/ });
+    const chips = onde.getByRole("button");
+    await expect(chips).toHaveCount(3);
+    await expect(chips.first()).toHaveText(nome);
+    await expect(chips.first()).toHaveAttribute("aria-pressed", "true");
+    await expect(onde.locator("[aria-pressed=true]")).toHaveCount(1);
+    await page.keyboard.press("Escape");
+  };
+  await confere(primeiro.id, primeiro.nome);
+  await confere(segundo.id, segundo.nome);
+  await confere((await me(eu.request)).espaco_pessoal.id, "Pessoal");
+});
+
+test("dec23 rn30: quem saiu do grupo aparece como Ex-membro em Criada por e o e-mail dele não aparece na página", async ({ page, playwright }, info) => {
+  const [admin, membro] = await Promise.all([novaConta(playwright), novaConta(playwright)]);
+  const grupo = await criarGrupo(admin);
+  await entrarNoGrupo(admin, grupo.id, "membro", membro);
+  const conta = await criarConta(membro, grupo.id, { descricao: "Internet", pagador: null });
+  expect((await api(membro.request, "POST", `/api/grupos/${grupo.id}/sair/`)).status()).toBe(204);
+  await logar(page, admin);
+  await usarEspaco(page, grupo.id);
+
+  await page.goto(`/contas/${conta.id}`);
+  await expect(page.getByRole("heading", { level: 1, name: "Internet" })).toBeVisible();
+  const criadaPor = page.getByRole("region", { name: "Informações" }).filter({ visible: true }).locator("div", { hasText: "Criada por" });
+  await expect(criadaPor).toContainText("Ex-membro");
+  await expect(texto(page, /Ex-membro criou a conta/)).toBeVisible();
+  if (desktop(info)) await expect(link(page, /Internet/)).toHaveAttribute("aria-current", "true"); // D03 list loaded too
+  // Text, title, aria-label: nothing in the DOM carries the e-mail (or its local part).
+  expect(await page.content()).not.toContain(membro.email.split("@")[0]);
+});
+
+test("dec27: no desktop o hero do Início tem a altura do conteúdo, sem vazio abaixo do valor e do varal", async ({ page, playwright }, info) => {
+  test.skip(!desktop(info), "D02 hero (≥ 1024px)");
+  const { admin, grupo } = await grupoComContas(playwright);
+  await logar(page, admin);
+  await usarEspaco(page, grupo.id);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect(link(atencao(page), /Energia/)).toBeVisible();
+
+  const caixa = async (l: Locator) => (await l.boundingBox())!;
+  const h = await caixa(hero(page));
+  const valor = await caixa(hero(page).locator("p", { has: page.locator("[aria-hidden=true]") }));
+  const varal = await caixa(hero(page).getByRole("img", { name: /Precisa de atenção/ }));
+  const tags = await hero(page).locator("[data-tom]").evaluateAll((els) => Math.max(...els.map((e) => e.getBoundingClientRect().bottom)));
+  const fimHero = h.y + h.height;
+  // Below the value there is less than one clothesline of room...
+  expect(fimHero - (valor.y + valor.height)).toBeLessThan(varal.height);
+  // ...and below the lowest content (value or tags) only the 28px padding (+ rounding).
+  expect(fimHero - Math.max(valor.y + valor.height, tags)).toBeLessThanOrEqual(28 + 4);
 });
