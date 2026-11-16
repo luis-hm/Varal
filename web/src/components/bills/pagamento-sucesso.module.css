@@ -1,0 +1,44 @@
+/* Doop: 09/M04. The green confirmation is one dialog at both sizes. */
+@keyframes pop { 0% { transform: scale(.3); } 70% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes draw { from { stroke-dashoffset: 60; } to { stroke-dashoffset: 0; } }
+@keyframes sair { 0% { opacity: 1; transform: translateY(0) rotate(0); } 100% { opacity: 0; transform: translateY(80px) rotate(12deg); } }
+.dialog { position: fixed; inset: 0; width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; margin: auto; padding: 0; border: 0; background: var(--color-green-text); color: var(--color-surface); font-family: var(--font-sans); overflow: auto; }
+.dialog::backdrop { background: var(--scrim-sheet); }
+.conteudo { position: relative; min-height: 100%; padding: 230px 20px 32px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.varal { position: absolute; top: 40px; left: 0; right: 0; height: 140px; }
+.varal svg { width: 100%; height: 50px; }
+.varal path { fill: none; stroke: var(--color-surface); stroke-opacity: .7; stroke-width: 3; }
+.varal span { position: absolute; top: 22px; width: 48px; height: 64px; border-radius: var(--radius-md); }
+.varal span::before { content: ""; position: absolute; top: -7px; left: calc(50% - 3px); width: 6px; height: 14px; border-radius: 2px; background: var(--color-surface); }
+.varal .vermelha { left: 18%; background: var(--color-red); transform: rotate(5deg); }
+.varal .verde { right: 18%; background: var(--color-green); transform: rotate(-5deg); }
+.varal .vazio { left: calc(50% - 3px); width: 6px; height: 14px; background: var(--color-surface); opacity: .6; }
+.varal .vazio::before { display: none; }
+.varal .saindo { left: calc(50% - 24px); background: var(--color-amber); animation: sair .7s ease-in both; }
+.varal .saindo::before { display: none; }
+.check { width: 132px; height: 132px; flex: none; border-radius: var(--radius-full); background: var(--color-surface); display: grid; place-items: center; animation: pop .6s both; }
+.check svg { width: 64px; height: 64px; }
+.check path { fill: none; stroke: var(--color-green-text); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 60; animation: draw .5s .25s both; }
+.conteudo h2 { margin-top: 28px; font-family: var(--font-display); font-size: var(--text-success-mobile); font-weight: 800; }
+.conteudo p { margin-top: 10px; font-size: var(--text-base); line-height: var(--leading-body); overflow-wrap: anywhere; }
+.conteudo .progresso { margin-top: 20px; padding: 8px 14px; border-radius: var(--radius-full); background: var(--color-green); font-size: var(--text-sm); font-weight: 600; }
+.acoes { width: 100%; margin-top: auto; padding-top: 32px; display: flex; flex-direction: column; gap: 10px; }
+.acoes button { min-height: 52px; border-radius: var(--radius-full); font: inherit; font-weight: 600; cursor: pointer; }
+.anexar { display: flex; justify-content: center; align-items: center; gap: 8px; border: 0; background: var(--color-surface); color: var(--color-green-text); }
+.fechar { border: 1px solid transparent; background: transparent; color: var(--color-surface); }
+.acoes button:focus-visible { outline: 3px solid var(--color-amber); outline-offset: 3px; }
+.desktop { display: none; }
+@media (min-width: 1024px) {
+  .dialog { width: 480px; max-width: calc(100vw - 32px); height: min(520px, calc(100dvh - 32px)); max-height: calc(100dvh - 32px); border-radius: var(--radius-2xl); }
+  .conteudo { min-height: 520px; padding: 140px 36px 28px; }
+  .varal { top: 18px; }
+  .check { width: 112px; height: 112px; }
+  .check svg { width: 56px; height: 56px; }
+  .conteudo h2 { margin-top: 22px; font-size: var(--text-success-desktop); }
+  .acoes { flex-direction: row; }
+  .acoes button { flex: 1; }
+  .fechar { border-color: var(--color-surface); }
+  .mobile { display: none; }
+  .desktop { display: inline; }
+}
+@media (prefers-reduced-motion: reduce) { .check, .check path, .varal .saindo { animation: none; } .varal .saindo { opacity: 0; } }

@@ -1426,6 +1426,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/comprovantes/{documento_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["comprovantes_detalhe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/comprovantes/{documento_id}/arquivo/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["comprovantes_arquivo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/convites/{token}/": {
         parameters: {
             query?: never;
@@ -1699,6 +1731,71 @@ export interface paths {
         put?: never;
         /** Cancelar conta aguardando ou pendente; nada é apagado (RN22, D2) */
         post: operations["lancamentos_cancelar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lancamentos/{lancamento_id}/comprovantes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["comprovantes_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lancamentos/{lancamento_id}/pagamentos/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Registra uma declaração integral */
+        post: operations["pagamentos_marcar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lancamentos/{lancamento_id}/pagamentos/{pagamento_id}/comprovante/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["pagamentos_anexar_comprovante"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lancamentos/{lancamento_id}/pagamentos/{pagamento_id}/desfazer/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["pagamentos_desfazer"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2370,6 +2467,10 @@ export interface components {
              */
             request_options: Record<string, never>;
         };
+        Anexar: {
+            /** Format: uuid */
+            comprovante_id: string;
+        };
         CandidatoPDF: {
             avisos: string[];
             codigo: string;
@@ -2421,7 +2522,12 @@ export interface components {
             id: string;
             readonly instrumento: components["schemas"]["InstrumentoDetalhe"] | null;
             readonly pagador: components["schemas"]["Pessoa"] | null;
+            readonly pagamento_ativo: components["schemas"]["Pagamento"] | null;
+            pagamentos: components["schemas"]["Pagamento"][];
+            readonly pode_anexar_comprovante: boolean;
+            readonly pode_desfazer_pagamento: boolean;
             readonly pode_editar: boolean;
+            readonly pode_pagar: boolean;
             /** @description Acesso efetivo da restrita: criador, pagador e escolhidos; vazio nas demais. */
             readonly quem_ve: components["schemas"]["Ref"][];
             status: components["schemas"]["StatusEnum"];
@@ -2503,6 +2609,16 @@ export interface components {
             casas?: string[];
             nome: string;
         };
+        Documento: {
+            /** Format: date-time */
+            readonly criado_em: string;
+            estado?: components["schemas"]["EstadoEnum"];
+            /** Format: uuid */
+            readonly id: string;
+            mime?: string;
+            nome: string;
+            tamanho: number;
+        };
         DocumentoPDF: {
             avisos: string[];
             estado: string;
@@ -2527,6 +2643,15 @@ export interface components {
             nome: string;
             tipo: components["schemas"]["TipoEspacoEnum"];
         };
+        /**
+         * @description * `pendente` - Aguardando validação
+         *     * `lendo` - Validando
+         *     * `valido` - Validado
+         *     * `invalido` - Arquivo inválido
+         *     * `erro` - Falha na validação
+         * @enum {string}
+         */
+        EstadoEnum: "pendente" | "lendo" | "valido" | "invalido" | "erro";
         GrupoDetalhe: {
             readonly casas: components["schemas"]["Casa"][];
             /** Format: uuid */
@@ -2575,9 +2700,12 @@ export interface components {
          *     * `acesso_removido` - Saiu de quem vê
          *     * `cancelada_automaticamente` - Cancelada automaticamente
          *     * `acesso_preservado` - Acesso preservado
+         *     * `paga` - Marcou como paga
+         *     * `pagamento_desfeito` - Desfez pagamento
+         *     * `comprovante_anexado` - Anexou comprovante
          * @enum {string}
          */
-        HistoricoAcaoEnum: "criada" | "editada" | "cancelada" | "pagador_removido" | "acesso_removido" | "cancelada_automaticamente" | "acesso_preservado";
+        HistoricoAcaoEnum: "criada" | "editada" | "cancelada" | "pagador_removido" | "acesso_removido" | "cancelada_automaticamente" | "acesso_preservado" | "paga" | "pagamento_desfeito" | "comprovante_anexado";
         Instrumento: {
             beneficiario: string | null;
             chave_pix: string | null;
@@ -2614,6 +2742,13 @@ export interface components {
             /** @description Não canceladas do mês, com casa/pagador */
             total_centavos: number;
         };
+        Marcar: {
+            /** Format: uuid */
+            comprovante_id?: string | null;
+            /** Format: date */
+            pago_em: string;
+            valor_centavos_esperado: number;
+        };
         Me: {
             /** Format: email */
             email: string;
@@ -2624,6 +2759,7 @@ export interface components {
             nome: string;
         };
         Membro: {
+            readonly contas_atribuidas_qtd: number;
             readonly email: string | null;
             /** Format: uuid */
             readonly id: string;
@@ -2635,8 +2771,23 @@ export interface components {
         };
         Opcoes: {
             casas: components["schemas"]["Ref"][];
+            ex_membro: boolean;
             pagadores: components["schemas"]["Pessoa"][];
             sem_pagador: boolean;
+        };
+        Pagamento: {
+            /** Format: uuid */
+            readonly comprovante_id: string | null;
+            /** Format: date-time */
+            criado_em: string;
+            /** Format: date-time */
+            desfeito_em: string | null;
+            /** Format: uuid */
+            id: string;
+            readonly marcado_por: string;
+            /** Format: date */
+            pago_em: string;
+            valor_pago_centavos: number;
         };
         Papel: {
             papel: components["schemas"]["PapelEnum"];
@@ -2695,6 +2846,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             nome: string;
+            pagas_qtd: number;
             qtd: number;
             total_centavos: number;
         };
@@ -2732,6 +2884,7 @@ export interface components {
             janela_alerta_dias: number;
             /** @description AAAA-MM de total_centavos, qtd e por_casa */
             mes: string;
+            pagas_qtd: number;
             por_casa: components["schemas"]["PorCasa"][];
             qtd: number;
             total_centavos: number;
@@ -2777,11 +2930,23 @@ export interface components {
          * @enum {string}
          */
         TipoInstrumentoEnum: "boleto_bancario" | "boleto_arrecadacao" | "pix" | "manual";
+        URL: {
+            /** Format: date-time */
+            expira_em: string;
+            /** Format: uri */
+            url: string;
+        };
         URLPDF: {
             /** Format: date-time */
             expira_em: string;
             /** Format: uri */
             url: string;
+        };
+        Upload: {
+            /** Format: uri */
+            arquivo: string;
+            /** Format: uuid */
+            pagamento_id?: string | null;
         };
         UploadPDF: {
             /** Format: uri */
@@ -3471,6 +3636,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["URLPDF"];
+                };
+            };
+        };
+    };
+    comprovantes_detalhe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Documento"];
+                };
+            };
+        };
+    };
+    comprovantes_arquivo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["URL"];
                 };
             };
         };
@@ -4377,6 +4584,109 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    comprovantes_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lancamento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Upload"];
+                "multipart/form-data": components["schemas"]["Upload"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Documento"];
+                };
+            };
+        };
+    };
+    pagamentos_marcar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lancamento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Marcar"];
+                "application/x-www-form-urlencoded": components["schemas"]["Marcar"];
+                "multipart/form-data": components["schemas"]["Marcar"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContaDetalhe"];
+                };
+            };
+        };
+    };
+    pagamentos_anexar_comprovante: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lancamento_id: string;
+                pagamento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Anexar"];
+                "application/x-www-form-urlencoded": components["schemas"]["Anexar"];
+                "multipart/form-data": components["schemas"]["Anexar"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContaDetalhe"];
+                };
+            };
+        };
+    };
+    pagamentos_desfazer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lancamento_id: string;
+                pagamento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContaDetalhe"];
                 };
             };
         };

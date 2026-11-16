@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { GrupoDetalhe, Papel } from "@/lib/grupos/client";
 import { GrupoPagina } from "./grupo-pagina";
+import houseStyles from "./house-card.module.css";
 
 const router = { replace: vi.fn(), push: vi.fn(), refresh: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
@@ -21,8 +22,8 @@ const grupo = (meu_papel: Papel): GrupoDetalhe => ({
   meu_papel,
   janela_alerta_dias: 3,
   membros: [
-    { id: "m1", usuario: "u1", nome: "Dev", email: "dev@varal.local", papel: "admin", sou_eu: meu_papel === "admin" },
-    { id: "m2", usuario: "u2", nome: "", email: "observador@varal.local", papel: "observador", sou_eu: meu_papel === "observador" },
+    { id: "m1", usuario: "u1", nome: "Dev", email: "dev@varal.local", papel: "admin", sou_eu: meu_papel === "admin", contas_atribuidas_qtd: 2 },
+    { id: "m2", usuario: "u2", nome: "", email: "observador@varal.local", papel: "observador", sou_eu: meu_papel === "observador", contas_atribuidas_qtd: 0 },
   ],
   casas: [{ id: "c1", nome: "Casa 1" }],
 });
@@ -40,7 +41,7 @@ beforeEach(() => {
     if (input === "/api/grupos/g1/" && method === "GET") return json(detalhe.status, detalhe.body);
     if (input === "/api/grupos/g1/convites/" && method === "GET") return json(200, []);
     if (input === "/api/espacos/g1/resumo/")
-      return json(200, { mes: "2026-11", total_centavos: 0, qtd: 0, vencidas_qtd: 0, vence_qtd: 0, janela_alerta_dias: 3, atencao: [], por_casa: [{ id: "c1", nome: "Casa 1", total_centavos: 147960, qtd: 4 }] });
+      return json(200, { mes: "2026-11", total_centavos: 0, qtd: 4, pagas_qtd: 3, vencidas_qtd: 0, vence_qtd: 0, janela_alerta_dias: 3, atencao: [], por_casa: [{ id: "c1", nome: "Casa 1", total_centavos: 147960, qtd: 4, pagas_qtd: 3 }] });
     if (input === "/api/grupos/g1/" && method === "PATCH") return json(200, { ...grupo("admin"), ...JSON.parse(String(init!.body)) });
     if (input === "/api/grupos/g1/sair/") return sair(JSON.parse(String(init?.body ?? "{}")));
     if (input === "/api/grupos/g1/convites/" && method === "POST") {
@@ -75,13 +76,20 @@ test("ca11/ca18: admin sees the whole page with management actions; name falls b
   expect(screen.getByRole("button", { name: "+ Nova casa" })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Dev \(você\).*Admin/ })).toBeTruthy();
   expect(screen.getByRole("button", { name: /observador@varal\.local.*Observador/ })).toBeTruthy();
-  // Q11/Q12: month total and "N contas", no paid bar.
+  // Q07-7: progress counts visible paid accounts in the due month.
   expect(await screen.findByText("R$ 1.479,60")).toBeTruthy();
-  expect(screen.getByText("4 contas em novembro")).toBeTruthy();
-  expect(document.body.textContent).not.toMatch(/pagas/);
+  expect(screen.getByText("3 de 4 pagas em novembro")).toBeTruthy();
   expect(screen.getAllByRole("button", { name: "Configurações" }).length).toBeGreaterThan(0);
   // Later stages stay hidden.
-  expect(screen.queryByText(/Contas que se repetem|Gerenciar papéis|Paga \d+ contas/)).toBeNull();
+  expect(screen.queryByText(/Contas que se repetem|Gerenciar papéis/)).toBeNull();
+});
+
+test("q07-7: a house without visible bills shows zero without a progress bar", async () => {
+  detalhe = { status: 200, body: grupo("admin") };
+  vi.stubGlobal("fetch", vi.fn(async (input: string) => input === "/api/grupos/g1/" ? json(200, detalhe.body) : input === "/api/espacos/g1/resumo/" ? json(200, { mes: "2026-11", total_centavos: 0, qtd: 0, pagas_qtd: 0, vencidas_qtd: 0, vence_qtd: 0, janela_alerta_dias: 3, atencao: [], por_casa: [] }) : json(200, [])));
+  renderPagina();
+  const legenda = await screen.findByText("0 contas em novembro");
+  expect(legenda.parentElement?.querySelector(`.${houseStyles.bar}`)).toBeNull();
 });
 
 test.each(["membro", "observador"] as const)("ca11: %s sees the page with no management action", async (papel) => {

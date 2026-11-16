@@ -3,11 +3,16 @@ row (RN22); nothing is ever deleted."""
 
 from django.db import transaction
 from django.db.models import Exists, OuterRef
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.boletos import pdf_servicos
 from apps.boletos import servicos as instrumentos
-from apps.espacos.acesso import espaco_ou_404, lancamento_ou_404, lancamentos_visiveis, quem_ve
+from apps.espacos.acesso import (
+    espaco_ou_404,
+    lancamentos_visiveis,
+    pode,
+    quem_ve,
+)
 from apps.espacos.models import Espaco, Membro, Papel, Subgrupo
 from apps.espacos.servicos import Conflito, _admins_travados
 
@@ -155,11 +160,21 @@ def _legivel(campo, valor):
 
 
 def editar(usuario, conta_id, dados):
+    from apps.pagamentos.servicos import conta_travada
+
     with transaction.atomic():
-        conta = lancamento_ou_404(usuario, conta_id, "editar_conta", travar=True)
+        conta = conta_travada(usuario, conta_id)
+        if not pode(conta.espaco.meu_papel, "editar_conta"):
+            raise PermissionDenied()
         if conta.status == Status.CANCELADA:
             raise Conflito("Conta cancelada não pode ser editada.")
         dados = dict(dados)
+        if (
+            "valor_centavos" in dados
+            and dados["valor_centavos"] != conta.valor_centavos
+            and conta.status in (Status.PAGA, Status.CONFIRMADA)
+        ):
+            raise Conflito("Desfaça o pagamento antes de alterar o valor.")
         pdf = pdf_servicos.preparar_pdf(usuario, conta.espaco, dados, conta)
         instrumento = instrumentos.preparar(dados, conta)
         dados = validar(conta.espaco, dados, conta)
@@ -204,8 +219,12 @@ def _cancelar(conta, usuario, acao=Acao.CANCELADA, dados=None):
 
 
 def cancelar(usuario, conta_id):
+    from apps.pagamentos.servicos import conta_travada
+
     with transaction.atomic():
-        conta = lancamento_ou_404(usuario, conta_id, "editar_conta", travar=True)
+        conta = conta_travada(usuario, conta_id)
+        if not pode(conta.espaco.meu_papel, "editar_conta"):
+            raise PermissionDenied()
         if conta.status not in ABERTOS:
             raise Conflito("Só conta aguardando boleto ou pendente pode ser cancelada.")
         _cancelar(conta, usuario)

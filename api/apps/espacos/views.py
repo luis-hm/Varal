@@ -61,10 +61,27 @@ class MembroSerializer(serializers.ModelSerializer):
     nome = serializers.CharField(source="usuario.nome", read_only=True)
     email = serializers.SerializerMethodField()
     sou_eu = serializers.SerializerMethodField()
+    contas_atribuidas_qtd = serializers.SerializerMethodField()
 
     class Meta:
         model = Membro
-        fields = ["id", "usuario", "nome", "email", "papel", "sou_eu"]
+        fields = ["id", "usuario", "nome", "email", "papel", "sou_eu", "contas_atribuidas_qtd"]
+
+    def get_contas_atribuidas_qtd(self, obj) -> int:
+        from django.utils import timezone
+
+        from apps.espacos.acesso import lancamentos_visiveis
+        from apps.lancamentos.models import Status
+
+        hoje = timezone.localdate()
+        return (
+            lancamentos_visiveis(self.context["request"].user, obj.espaco)
+            .filter(
+                pagador_id=obj.usuario_id, vencimento__year=hoje.year, vencimento__month=hoje.month
+            )
+            .exclude(status=Status.CANCELADA)
+            .count()
+        )
 
     def get_email(self, obj) -> str | None:
         # LGPD minimisation: admins see every e-mail; others only when there is no name to show.

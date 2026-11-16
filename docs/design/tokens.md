@@ -38,6 +38,8 @@ Número-herói: 48px (`--text-3xl`) no mobile e 64px (`--text-4xl`) no desktop (
 
 Medidas que o CSS do Doop usa sem token (sombras, `--text-2xs`, `--text-logo`, alturas de linha) ficam num bloco comentado **"fora do Doop"** no fim de `tokens.css`, nunca soltas nos componentes. Sombras usam `color-mix` sobre os tokens de cor (nenhuma cor nova). Lista e origem: [relatório da Etapa 01](../etapas/01-design-system/relatorio.md#variáveis-fora-do-doop).
 
+Etapa 07 acrescenta `--text-success-mobile: 40px` e `--text-success-desktop: 36px` para o título da confirmação nos frames 09 e M04; o texto de corpo usa `--leading-body` (22px).
+
 Etapa 02 acrescenta nesse bloco `--text-auth-wordmark: 96px`, `--text-auth-tagline: 22px` e `--leading-auth-tagline: 30px` (D01), além de `--leading-auth-title: 1.2` para a métrica dos títulos de autenticação. Sem novas cores nem alteração dos tokens do canvas.
 
 Etapa 03 acrescenta (sem cor nova; translúcidos por `color-mix`):

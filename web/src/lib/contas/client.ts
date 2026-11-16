@@ -37,3 +37,15 @@ export function enviarPdf(espaco: string, arquivo: File, lancamentoId?: string) 
 export const verPdf = (id: string) => call<DocumentoPDF>(`boletos/pdfs/${encodeURIComponent(id)}/`);
 export const linkPdf = (id: string) => call<S["URLPDF"]>(`boletos/pdfs/${encodeURIComponent(id)}/arquivo/`);
 export const linkPdfConta = (id: string) => call<S["URLPDF"]>(l(id, "pdf/"));
+
+export function enviarComprovante(id: string, arquivo: File, pagamentoId?: string) {
+  const dados = new FormData();
+  dados.append("arquivo", arquivo);
+  if (pagamentoId) dados.append("pagamento_id", pagamentoId);
+  return call<S["Documento"]>(l(id, "comprovantes/"), "POST", dados);
+}
+export const verComprovante = (id: string) => call<S["Documento"]>(`comprovantes/${encodeURIComponent(id)}/`);
+export const linkComprovante = (id: string) => call<S["URL"]>(`comprovantes/${encodeURIComponent(id)}/arquivo/`);
+export const marcarPagamento = (id: string, body: S["Marcar"]) => call<ContaDetalhe>(l(id, "pagamentos/"), "POST", body);
+export const anexarComprovante = (id: string, pagamento: string, body: S["Anexar"]) => call<ContaDetalhe>(l(id, `pagamentos/${encodeURIComponent(pagamento)}/comprovante/`), "POST", body);
+export const desfazerPagamento = (id: string, pagamento: string) => call<ContaDetalhe>(l(id, `pagamentos/${encodeURIComponent(pagamento)}/desfazer/`), "POST");

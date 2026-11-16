@@ -78,7 +78,7 @@ const botaoNovaConta = (page: Page) => visivel(page, "Nova conta");
 const hero = (page: Page) => page.getByRole("region", { name: `Total de ${mesAtual()}` }).filter({ visible: true });
 const atencao = (page: Page) => page.getByRole("region", { name: "Precisa de atenção" }).filter({ visible: true });
 
-test("ca01/ca16/ca17/ca31 rf10/rf13 rn11 q12/q23: nova conta pelo FAB ou pelo SideNav com o espaço atual; aparece no Início e em Contas, sem barra de pagas", async ({ page, playwright }) => {
+test("ca01/ca16/ca17/ca31 rf10/rf13 rn11 q12/q23: nova conta pelo FAB ou pelo SideNav com o espaço atual; aparece no Início e em Contas", async ({ page, playwright }) => {
   const [admin, observador] = await Promise.all([novaConta(playwright), novaConta(playwright)]);
   const grupo = await criarGrupo(admin);
   await entrarNoGrupo(admin, grupo.id, "observador", observador);
@@ -89,8 +89,7 @@ test("ca01/ca16/ca17/ca31 rf10/rf13 rn11 q12/q23: nova conta pelo FAB ou pelo Si
   await page.goto("/");
   await expect(hero(page)).toContainText("R$ 0,00");
   await expect(hero(page)).toContainText("0 contas");
-  // Q12/Q23: no paid bar and no green "pagas" tag until stage 07.
-  await expect(hero(page).getByText(/pagas?\b/)).toHaveCount(0);
+  // Q07-7: no empty progress bar when there are no bills.
   await expect(hero(page).locator("[role=progressbar], [style*='--progress']")).toHaveCount(0);
 
   // CA31: the form opens with the current space marked; "Eu" pre-selected; observers cannot pay.
@@ -129,6 +128,9 @@ test("ca01/ca16/ca17/ca31 rf10/rf13 rn11 q12/q23: nova conta pelo FAB ou pelo Si
   await page.goto("/");
   await expect(hero(page)).toContainText("R$ 287,43");
   await expect(hero(page)).toContainText("1 conta");
+  const progresso = hero(page).getByRole("progressbar", { name: `Contas pagas em ${mes}` });
+  await expect(progresso).toHaveAttribute("aria-valuenow", "0");
+  await expect(progresso).toHaveAttribute("aria-valuemax", "1");
   await expect(link(atencao(page), /Energia · Casa 3.*Vence em breve.*R\$ 287,43/)).toBeVisible();
   await page.goto("/contas");
   await expect(texto(page, new RegExp(`^Total de ${mes}: R\\$ 287,43`))).toBeVisible();
@@ -207,7 +209,7 @@ test("ca07/ca08/ca09/ca28 rn06/rn07: restrita com aviso de quem paga; admin não
     if (desktop(info)) {
       const porCasa = abaAdmin.getByRole("region", { name: "Por casa" });
       await expect(porCasa).toContainText("R$ 50,00");
-      await expect(porCasa).toContainText(`1 conta em ${mes}`);
+      await expect(porCasa).toContainText(`0 de 1 pagas em ${mes}`);
     }
     await abaAdmin.goto("/contas");
     await expect(visivel(abaAdmin, /^Todas 1$/)).toBeVisible();
@@ -218,7 +220,7 @@ test("ca07/ca08/ca09/ca28 rn06/rn07: restrita com aviso de quem paga; admin não
     await expect(texto(abaAdmin, /Presente surpresa/)).toHaveCount(0);
     await abaAdmin.goto(`/grupos/${grupo.id}`);
     await expect(visivel(abaAdmin, /Casa da praia/)).toContainText("R$ 50,00");
-    await expect(visivel(abaAdmin, /Casa da praia/)).toContainText(`1 conta em ${mes}`);
+    await expect(visivel(abaAdmin, /Casa da praia/)).toContainText(`0 de 1 pagas em ${mes}`);
   } finally {
     await abaAdmin.context().close();
   }
