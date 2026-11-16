@@ -13,6 +13,7 @@ export const useResumo = (espacoId: string | undefined) =>
   useQuery({ queryKey: ["contas", "resumo", espacoId], queryFn: () => api.verResumo(espacoId!), enabled: !!espacoId, retry });
 export const useConta = (id: string | undefined) =>
   useQuery({ queryKey: ["contas", "detalhe", id], queryFn: () => api.verConta(id!), enabled: !!id, retry });
+export const useLerInstrumento = () => useMutation({ mutationFn: api.lerInstrumento });
 
 // Every bill query starts with ["contas"]: a write refreshes lists, totals and the open detail.
 export function useAcoesConta() {

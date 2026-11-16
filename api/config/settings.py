@@ -177,7 +177,11 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "DEFAULT_GENERATOR_CLASS": "config.schema.CombinedSchemaGenerator",
-    "ENUM_NAME_OVERRIDES": {"PapelEnum": "apps.espacos.models.Papel"},
+    "ENUM_NAME_OVERRIDES": {
+        "PapelEnum": "apps.espacos.models.Papel",
+        "TipoEspacoEnum": "apps.espacos.models.Espaco.Tipo",
+        "TipoInstrumentoEnum": "apps.boletos.models.TipoInstrumento",
+    },
 }
 
 CELERY_BROKER_URL = env("REDIS_URL", "redis://localhost:6379/0")

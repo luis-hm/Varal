@@ -2391,6 +2391,11 @@ components:
         id:
           format: uuid
           type: string
+        instrumento:
+          allOf:
+          - $ref: '#/components/schemas/Instrumento'
+          nullable: true
+          readOnly: true
         pagador:
           allOf:
           - $ref: '#/components/schemas/Pessoa'
@@ -2430,6 +2435,7 @@ components:
       - espaco
       - historico
       - id
+      - instrumento
       - pagador
       - pode_editar
       - quem_ve
@@ -2452,6 +2458,10 @@ components:
         descricao:
           maxLength: 150
           type: string
+        instrumento:
+          allOf:
+          - $ref: '#/components/schemas/InstrumentoEntrada'
+          nullable: true
         pagador:
           format: uuid
           nullable: true
@@ -2623,7 +2633,7 @@ components:
           maxLength: 150
           type: string
         tipo:
-          $ref: '#/components/schemas/TipoEnum'
+          $ref: '#/components/schemas/TipoEspacoEnum'
       required:
       - id
       - nome
@@ -2637,7 +2647,7 @@ components:
         nome:
           type: string
         tipo:
-          $ref: '#/components/schemas/TipoEnum'
+          $ref: '#/components/schemas/TipoEspacoEnum'
       required:
       - id
       - nome
@@ -2769,6 +2779,61 @@ components:
       - cancelada_automaticamente
       - acesso_preservado
       type: string
+    Instrumento:
+      properties:
+        beneficiario:
+          nullable: true
+          type: string
+        chave_pix:
+          nullable: true
+          type: string
+        codigo:
+          nullable: true
+          type: string
+        tipo:
+          $ref: '#/components/schemas/TipoInstrumentoEnum'
+      required:
+      - beneficiario
+      - chave_pix
+      - codigo
+      - tipo
+      type: object
+    InstrumentoEntrada:
+      properties:
+        chave_pix:
+          maxLength: 77
+          type: string
+        codigo:
+          maxLength: 4096
+          type: string
+      type: object
+    Leitura:
+      properties:
+        avisos:
+          items:
+            type: string
+          type: array
+        instrumento:
+          $ref: '#/components/schemas/Instrumento'
+        valor_centavos:
+          nullable: true
+          type: integer
+        vencimento:
+          format: date
+          nullable: true
+          type: string
+        vencimentos_possiveis:
+          items:
+            format: date
+            type: string
+          type: array
+      required:
+      - avisos
+      - instrumento
+      - valor_centavos
+      - vencimento
+      - vencimentos_possiveis
+      type: object
     Lista:
       properties:
         contagens:
@@ -2916,6 +2981,10 @@ components:
         descricao:
           maxLength: 150
           type: string
+        instrumento:
+          allOf:
+          - $ref: '#/components/schemas/InstrumentoEntrada'
+          nullable: true
         pagador:
           format: uuid
           nullable: true
@@ -3099,13 +3168,24 @@ components:
       - vence
       - vencida
       type: string
-    TipoEnum:
+    TipoEspacoEnum:
       description: '* `pessoal` - Pessoal
 
         * `grupo` - Grupo'
       enum:
       - pessoal
       - grupo
+      type: string
+    TipoInstrumentoEnum:
+      description: '* `boleto_bancario` - Boleto bancário
+
+        * `boleto_arrecadacao` - Boleto de arrecadação
+
+        * `pix` - Pix'
+      enum:
+      - boleto_bancario
+      - boleto_arrecadacao
+      - pix
       type: string
     VisibilidadeEnum:
       description: '* `grupo` - Todo o grupo
@@ -4220,6 +4300,63 @@ paths:
       summary: Get configuration
       tags:
       - Configuration
+  /api/boletos/ler/:
+    post:
+      operationId: boletos_ler
+      requestBody:
+        content:
+          application/json:
+            examples:
+              ChavePix:
+                summary: Chave Pix
+                value:
+                  chave_pix: '+5585999999999'
+            schema:
+              $ref: '#/components/schemas/InstrumentoEntrada'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InstrumentoEntrada'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InstrumentoEntrada'
+      responses:
+        '200':
+          content:
+            application/json:
+              examples:
+                ChaveLida:
+                  summary: Chave lida
+                  value:
+                    avisos:
+                    - Chave não consultada; existência e titularidade não verificadas.
+                    instrumento:
+                      beneficiario: null
+                      chave_pix: '+5585999999999'
+                      codigo: null
+                      tipo: pix
+                    valor_centavos: null
+                    vencimento: null
+                    vencimentos_possiveis: []
+              schema:
+                $ref: '#/components/schemas/Leitura'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: ''
+      security:
+      - cookieAuth: []
+      summary: Conferir boleto/Pix sem gravar; não consulta URL nem titularidade (RF08/RF09)
+      tags:
+      - boletos
   /api/convites/{token}/:
     get:
       operationId: convites_ver
@@ -4472,6 +4609,7 @@ paths:
                         - 28743
                       sou_eu: false
                     id: 3f2c8d4e-7a1b-4c5d-9e8f-0a1b2c3d4e5f
+                    instrumento: null
                     pagador:
                       id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
                       nome: Ana
@@ -5283,6 +5421,7 @@ paths:
                         - 28743
                       sou_eu: false
                     id: 3f2c8d4e-7a1b-4c5d-9e8f-0a1b2c3d4e5f
+                    instrumento: null
                     pagador:
                       id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
                       nome: Ana
@@ -5378,6 +5517,7 @@ paths:
                         - 28743
                       sou_eu: false
                     id: 3f2c8d4e-7a1b-4c5d-9e8f-0a1b2c3d4e5f
+                    instrumento: null
                     pagador:
                       id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
                       nome: Ana
@@ -5478,6 +5618,7 @@ paths:
                         - 28743
                       sou_eu: false
                     id: 3f2c8d4e-7a1b-4c5d-9e8f-0a1b2c3d4e5f
+                    instrumento: null
                     pagador:
                       id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
                       nome: Ana
