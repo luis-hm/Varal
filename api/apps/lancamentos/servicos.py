@@ -118,7 +118,23 @@ def resolver_pessoas(historicos, membros):
 
 
 def _historico(conta, usuario, acao, dados=None):
-    Historico.objects.create(lancamento=conta, usuario=usuario, acao=acao, dados=dados or {})
+    from apps.notificacoes.servicos import (
+        agendar_consumo,
+        capturar_historico,
+        reagendar_lembretes,
+        revogar_obsoletas,
+    )
+
+    historico = Historico.objects.create(
+        lancamento=conta, usuario=usuario, acao=acao, dados=dados or {}
+    )
+    reagendar_lembretes(conta)
+    revogar_obsoletas(conta=conta)
+    if acao in (Acao.PAGADOR_REMOVIDO, Acao.CANCELADA_AUTOMATICAMENTE):
+        capturar_historico(historico, conta)
+    elif acao == Acao.PAGA:
+        agendar_consumo()
+    return historico
 
 
 def criar(usuario, espaco, dados):

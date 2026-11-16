@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type MouseEvent } from "react";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { Logo } from "@/components/ui/logo";
 import type { Papel } from "@/lib/grupos/client";
@@ -16,13 +16,15 @@ type NavItemProps = {
   icon: IconName;
   href: string;
   count?: number;
+  onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
 };
 
-export function NavItem({ state = "off", label, icon, href, count }: NavItemProps) {
+export function NavItem({ state = "off", label, icon, href, count, onClick }: NavItemProps) {
   return (
     <Link
       className={styles.ni}
       href={href}
+      onClick={onClick}
       data-state={state}
       aria-current={state === "on" ? "page" : undefined}
     >
@@ -46,6 +48,7 @@ type Props = {
   onNovaConta?: () => void;
   usuario?: Pessoa;
   avisos?: number;
+  onAvisos?: () => void;
 };
 
 type SeletorProps = {
@@ -133,7 +136,7 @@ export function SeletorEspaco({ espaco, espacos, onEscolher, variant = "card" }:
   );
 }
 
-export function SideNav({ active, espaco, espacos, onEscolher, onNovaConta, usuario, avisos }: Props) {
+export function SideNav({ active, espaco, espacos, onEscolher, onNovaConta, usuario, avisos, onAvisos }: Props) {
   return (
     <aside className={styles.sn} aria-label="Menu principal">
       <Link className={styles.logo} href="/" aria-label="Varal, início">
@@ -150,6 +153,7 @@ export function SideNav({ active, espaco, espacos, onEscolher, onNovaConta, usua
             key={s}
             state={s === active ? "on" : "off"}
             count={s === "avisos" ? avisos : undefined}
+            onClick={s === "avisos" && onAvisos ? (event) => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && event.button === 0) { event.preventDefault(); onAvisos(); } } : undefined}
             {...secoes[s]}
           />
         ))}

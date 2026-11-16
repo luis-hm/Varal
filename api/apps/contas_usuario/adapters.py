@@ -7,14 +7,33 @@ from allauth.headless.adapter import DefaultHeadlessAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialApp
 from django.conf import settings
+from django.contrib.auth import HASH_SESSION_KEY, SESSION_KEY
 from django.contrib.sites.shortcuts import get_current_site
 from django.db import transaction
+from django.utils.crypto import constant_time_compare
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from .tasks import enviar_email
 
 
 class AccountAdapter(DefaultAccountAdapter):
+    def login(self, request, user):
+        anterior = request.session.get(SESSION_KEY)
+        hash_atual = user.get_session_auth_hash()
+        hash_anterior = request.session.get(HASH_SESSION_KEY, "")
+        vai_trocar = anterior and (
+            str(anterior) != str(user.pk)
+            or (hash_atual and not constant_time_compare(hash_anterior, hash_atual))
+        )
+        if vai_trocar:
+            from apps.contas_usuario.models import Usuario
+            from apps.notificacoes.signals import revogar_instalacao_sessao
+
+            antigo = Usuario.objects.filter(pk=anterior).first()
+            if antigo:
+                revogar_instalacao_sessao(sender=type(antigo), request=request, user=antigo)
+        return super().login(request, user)
+
     def send_mail(self, template_prefix, email, context):
         # Render while request/site context is available; send only after commit.
         request = allauth_context.request

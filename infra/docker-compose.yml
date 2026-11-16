@@ -16,6 +16,9 @@ services:
   postgres:
     image: postgres:17-alpine
     env_file: .env
+    environment:
+      WEBPUSH_PRIVATE_KEY: ""
+      NOTIFICACOES_STORAGE_KEY: ""
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
@@ -31,6 +34,9 @@ services:
     image: pgsty/silo:RELEASE.2026-11-12T00-00-00Z
     command: server /data --console-address :9001
     env_file: .env
+    environment:
+      WEBPUSH_PRIVATE_KEY: ""
+      NOTIFICACOES_STORAGE_KEY: ""
     ports: ["9000:9000", "9001:9001"]
     volumes: ["miniodata:/data"]
     healthcheck:
@@ -42,6 +48,9 @@ services:
   storage-init:
     build: ../api
     env_file: .env
+    environment:
+      WEBPUSH_PRIVATE_KEY: ""
+      NOTIFICACOES_STORAGE_KEY: ""
     volumes: ["./scripts/api-entrypoint.sh:/varal/entrypoint.sh:ro"]
     entrypoint: ["/bin/sh", "/varal/entrypoint.sh"]
     depends_on:
@@ -55,15 +64,24 @@ services:
     ports: ["8000:8000"]
     environment:
       PDF_SPOOL_DIR: /varal/staging
+      WEBPUSH_PRIVATE_KEY: ""
       # Only `make e2e` sets it; empty keeps allauth's signup limit (P5).
       ACCOUNT_RATE_LIMIT_SIGNUP: ${ACCOUNT_RATE_LIMIT_SIGNUP:-}
 
   worker:
     <<: *api
+    environment:
+      PDF_SPOOL_DIR: /varal/staging
+      # Only the worker receives the private VAPID key from the local env.
+      WEBPUSH_PRIVATE_KEY: ${WEBPUSH_PRIVATE_KEY:-}
     command: celery -A config worker -l info
 
   beat:
     <<: *api
+    environment:
+      PDF_SPOOL_DIR: /varal/staging
+      WEBPUSH_PRIVATE_KEY: ""
+      NOTIFICACOES_STORAGE_KEY: ""
     command: celery -A config beat -l info --schedule /tmp/celerybeat-schedule
 
   web:
@@ -73,6 +91,16 @@ services:
     volumes: ["../web:/app", "/app/node_modules", "/app/.next"]
     ports: ["3000:3000"]
     depends_on: [api]
+
+  # Explicit opt-in; no published ports and no external SMTP relay. For synthetic .invalid
+  # recipients only. The captured message stays in this disposable container's /tmp.
+  smtp-capture:
+    profiles: [smtp-test]
+    image: python:3.12-slim
+    command: ["python", "/capture/smtp-capture.py"]
+    volumes: ["./scripts/smtp-capture.py:/capture/smtp-capture.py:ro"]
+    read_only: true
+    tmpfs: ["/tmp:mode=0700"]
 
 volumes:
   pgdata:

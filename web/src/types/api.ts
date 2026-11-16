@@ -1866,6 +1866,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/notificacoes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["notificacoes_listar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notificacoes/ler-todas/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["notificacoes_ler_todas"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notificacoes/preferencias/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["notificacoes_preferencias"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["notificacoes_atualizar_preferencias"];
+        trace?: never;
+    };
+    "/api/notificacoes/push/configuracao/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["notificacoes_push_configuracao"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notificacoes/push/inscricoes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["notificacoes_push_inscrever"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notificacoes/push/instalacoes/{instalacao_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["notificacoes_push_revogar_instalacao"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notificacoes/resumo/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["notificacoes_resumo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notificacoes/{notificacao_id}/ler/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["notificacoes_ler"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/recorrencias/{recorrencia_id}/": {
         parameters: {
             query?: never;
@@ -2589,6 +2717,10 @@ export interface components {
             readonly id: string;
             nome: string;
         };
+        Chaves: {
+            auth: string;
+            p256dh: string;
+        };
         /**
          * @description * `conta_restrita_orfa` - conta_restrita_orfa
          * @enum {string}
@@ -2843,6 +2975,17 @@ export interface components {
          * @enum {string}
          */
         HistoricoAcaoEnum: "criada" | "editada" | "cancelada" | "pagador_removido" | "acesso_removido" | "cancelada_automaticamente" | "acesso_preservado" | "paga" | "pagamento_desfeito" | "comprovante_anexado";
+        InscricaoEntrada: {
+            endpoint: string;
+            /** Format: uuid */
+            instalacao: string;
+            keys: components["schemas"]["Chaves"];
+        };
+        InscricaoResultado: {
+            ativo: boolean;
+            /** Format: uuid */
+            id: string;
+        };
         Instrumento: {
             beneficiario: string | null;
             chave_pix: string | null;
@@ -2869,6 +3012,13 @@ export interface components {
             vencimento: string | null;
             vencimentos_possiveis: string[];
         };
+        Ler: {
+            /** Format: date-time */
+            lido_em: string;
+        };
+        LerTodas: {
+            nao_lidas: number;
+        };
         Lista: {
             contagens: components["schemas"]["Contagens"];
             itens: components["schemas"]["Conta"][];
@@ -2879,6 +3029,11 @@ export interface components {
             /** @description Valor conhecido não cancelado do mês */
             total_centavos: number;
             valores_indefinidos_qtd: number;
+        };
+        ListaNotificacoes: {
+            nao_lidas: number;
+            proximo: string | null;
+            resultados: components["schemas"]["Notificacao"][];
         };
         Marcar: {
             /** Format: uuid */
@@ -2907,6 +3062,29 @@ export interface components {
             /** Format: uuid */
             readonly usuario: string;
         };
+        Notificacao: {
+            /** Format: date-time */
+            criado_em: string;
+            readonly destino: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            lido_em: string | null;
+            readonly texto: string;
+            tipo: components["schemas"]["NotificacaoTipoEnum"];
+            readonly titulo: string;
+        };
+        /**
+         * @description * `boleto_ausente` - Boleto a definir
+         *     * `vence_3` - Vence em três dias
+         *     * `vence_hoje` - Vence hoje
+         *     * `venceu_1` - Venceu ontem
+         *     * `pagamento` - Pagamento registrado
+         *     * `pagador_removido` - Pagador removido
+         *     * `cancelada_rn32` - Conta cancelada automaticamente
+         * @enum {string}
+         */
+        NotificacaoTipoEnum: "boleto_ausente" | "vence_3" | "vence_hoje" | "venceu_1" | "pagamento" | "pagador_removido" | "cancelada_rn32";
         OcorrenciaInicial: {
             beneficiario?: string | null;
             /** Format: date */
@@ -2985,6 +3163,10 @@ export interface components {
         PatchedPapel: {
             papel?: components["schemas"]["PapelEnum"];
         };
+        PatchedPreferenciasEntrada: {
+            email?: boolean;
+            push?: boolean;
+        };
         PatchedRecorrenciaEntrada: {
             acesso?: string[];
             descricao?: string;
@@ -3016,6 +3198,16 @@ export interface components {
             qtd: number;
             total_centavos: number;
             valores_indefinidos_qtd: number;
+        };
+        Preferencias: {
+            email?: boolean;
+            push?: boolean;
+            /** @default 1 */
+            readonly versao: number;
+        };
+        PushConfiguracao: {
+            chave_publica: string;
+            habilitado: boolean;
         };
         Recorrencia: {
             readonly acesso: string[];
@@ -3091,6 +3283,10 @@ export interface components {
             vence_qtd: number;
             /** @description Em atencao (qualquer mês) */
             vencidas_qtd: number;
+        };
+        ResumoNotificacoes: {
+            nao_lidas: number;
+            recentes: components["schemas"]["Notificacao"][];
         };
         Sair: {
             resolucoes?: components["schemas"]["Resolucao"][];
@@ -5016,6 +5212,203 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Me"];
+                };
+            };
+        };
+    };
+    notificacoes_listar: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListaNotificacoes"];
+                };
+            };
+        };
+    };
+    notificacoes_ler_todas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LerTodas"];
+                };
+            };
+        };
+    };
+    notificacoes_preferencias: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Preferencias"];
+                };
+            };
+        };
+    };
+    notificacoes_atualizar_preferencias: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedPreferenciasEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPreferenciasEntrada"];
+                "multipart/form-data": components["schemas"]["PatchedPreferenciasEntrada"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Preferencias"];
+                };
+            };
+        };
+    };
+    notificacoes_push_configuracao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushConfiguracao"];
+                };
+            };
+        };
+    };
+    notificacoes_push_inscrever: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InscricaoEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["InscricaoEntrada"];
+                "multipart/form-data": components["schemas"]["InscricaoEntrada"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InscricaoResultado"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InscricaoResultado"];
+                };
+            };
+        };
+    };
+    notificacoes_push_revogar_instalacao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instalacao_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    notificacoes_resumo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumoNotificacoes"];
+                };
+            };
+        };
+    };
+    notificacoes_ler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notificacao_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ler"];
                 };
             };
         };

@@ -16,7 +16,7 @@ const modelo: Recorrencia = { id: "r1", espaco_id: "g1", descricao: "Energia", d
 const conta: ContaDetalhe = { id: "l1", descricao: "Energia", valor_centavos: 10000, vencimento: "2026-11-10", status: "pendente", status_exibido: "pendente", dias_para_vencer: 1, espaco: { id: "g1", nome: "Família", tipo: "grupo" }, subgrupo: null, visibilidade: "grupo", acesso: [{ id: "u4", nome: "Pessoa" }], quem_ve: [], pagador: null, criador: { nome: "Dev", sou_eu: true }, criado_em: "2026-11-01T12:00:00Z", historico: [], pode_editar: true, instrumento: { tipo: "pix", codigo: null, chave_pix: "original@exemplo.com", beneficiario: null, data_emissao: null }, documento_pdf: null, pagamento_ativo: null, pagamentos: [], pode_pagar: true, pode_desfazer_pagamento: false, pode_anexar_comprovante: false, recorrente: true, recorrencia_id: "r1", competencia: "2026-11-01", pode_ver_recorrencia: true };
 
 function montar(ui: React.ReactNode, client: QueryClient) {
-  return render(<QueryClientProvider client={client}><Sessao.Provider value={{ user: me, espaco: { id: "g1", nome: "Família", tipo: "grupo", papel: "admin" }, novaConta: () => {}, escolherEspaco: () => {} }}>{ui}</Sessao.Provider></QueryClientProvider>);
+  return render(<QueryClientProvider client={client}><Sessao.Provider value={{ user: me, espaco: { id: "g1", nome: "Família", tipo: "grupo", papel: "admin" }, novaConta: () => {}, escolherEspaco: () => {}, abrirAvisos: () => {} }}>{ui}</Sessao.Provider></QueryClientProvider>);
 }
 
 test("b08-3: refetch de modelo não transforma ACL, dia e valor remotos em edição local", async () => {

@@ -47,7 +47,7 @@ varal/
 | Playwright (`@playwright/test`, Chromium) | 1.65.0 | `web/package.json`, `web/playwright.config.ts`, `make e2e` |
 | Lint | ruff (api), ESLint + `tsc` (web) | `make lint` |
 
-PDF textual usa pdfplumber e `django-storages`/S3; Web Push entra na 09. Allauth headless já integrado na Etapa 02.
+PDF textual usa pdfplumber e `django-storages`/S3; Web Push integrado na 09 com `pywebpush==2.3.0`, em validação. Allauth headless já integrado na Etapa 02.
 
 ## Serviços e portas (dev)
 
@@ -85,3 +85,23 @@ Só E2E/CI: `ACCOUNT_RATE_LIMIT_SIGNUP` sobrescreve o limite de cadastro do alla
 - `make limpar-dev` (`limpar_dev`, só com DEBUG) mostra e, após confirmação (`SIM=1` pula), apaga do banco de dev o grupo `x`, os grupos `Teste UI …`, os usuários `burst-*`/`e2e-*@varal.test` e os grupos que ficam sem membros; nunca o `dev`.
 - DRF exige autenticação por padrão; rotas públicas (como o health) declaram `AllowAny`.
 - `TIME_ZONE = America/Fortaleza` com `USE_TZ = True`: grava em UTC, exibe em Fortaleza (RNF11).
+
+## Notificações — configuração e operação da Etapa 09
+
+`EMAIL_TIMEOUT=10` limita SMTP. Console permanece padrão local; profile opt-in `smtp-test` sobe capturador sem porta pública/relay, aceita só `.invalid`, com filesystem read-only e tmpfs privado/arquivo 0600. Não usar o receptor como SMTP público. Prova integrada isolada validou SMTP/worker reais, sem comprovar SMTP TLS/autenticação externa ou entrega física.
+
+| Variável | Uso/padrão seguro |
+| --- | --- |
+| `WEBPUSH_ENABLED` | `0`, ativação explícita |
+| `WEBPUSH_PUBLIC_KEY` | Chave pública exposta pela configuração autenticada |
+| `WEBPUSH_PRIVATE_KEY` | VAPID privada somente no worker via Compose |
+| `WEBPUSH_SUBJECT` | Subject VAPID do emissor |
+| `WEBPUSH_ALLOWED_HOSTS` | Hosts exatos homologados FCM/Mozilla/Apple; sem wildcard do cliente |
+| `WEBPUSH_TIMEOUT_SECONDS` | `10` |
+| `NOTIFICACOES_STORAGE_KEY` | Fernet compartilhada somente API/worker; produção exige chave própria |
+
+Em DEBUG, chave local Fernet pode derivar de SECRET_KEY se ausente; isso não é configuração de produção. Serviços com env_file que não precisam dos segredos recebem valores explicitamente vazios no Compose. O operador ainda pode ler o arquivo e `docker compose config` pode imprimir segredos; a verificação usou ambiente temporário com marcadores, emitindo somente booleanos.
+
+Beat diário às 07:00 America/Fortaleza aponta para `apps.notificacoes.tasks.rotina_diaria`: geração/recuperação 08 síncrona antes de avisos 09; recuperação da rotina a cada 300 s com lease/checkpoints, dispatcher a cada 60 s. Manutenção de comprovantes continua 300 s separada. Tasks de entrega têm limites de execução; retries só com falha recuperável comprovada, até três tentativas totais. Estado incerto não é reenfileirado automaticamente.
+
+Transporte Web Push fixa conexão no IP público validado mantendo TLS/SNI/Host originais, sem redirects, proxy herdado ou segunda resolução livre; URL/chaves cifradas e fingerprint HMAC não são logadas. Prova real em rede Docker interna, DB/broker descartáveis e TLS/CA/keys efêmeras validou criptografia, VAPID, pin e falhas selecionadas; resolvedor/CA/porta foram injetados apenas na prova. Não houve provedor público, recepção em navegador real ou espera até 07:00: relógio e intervalo acelerados foram avaliados separadamente. Recursos temporários removidos e volumes/banco normais preservados. Detalhes e pendências no [relatório 09](../etapas/09-notificacoes/relatorio.md).

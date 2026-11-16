@@ -99,7 +99,7 @@ test.describe("360px", () => {
   for (const url of [VITRINE, ...paginas.map((p) => p.href)]) {
     test(`rnf08 ca13: ${url} sem rolagem horizontal e alvos ≥ 44px em 360px`, async ({ page }) => {
       await page.goto(url);
-      await expect(page.locator("h1").first()).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1 }).filter({ visible: true }).first()).toBeVisible();
 
       const { scrollWidth, clientWidth } = await page.evaluate(() => ({
         scrollWidth: document.documentElement.scrollWidth,
@@ -164,11 +164,24 @@ test("ca18: navegação entre as seções com um único item ativo", async ({ pa
 
   await page.goto("/perfil");
   for (const { href, titulo } of [...roteiro.slice(1), roteiro[0]]) {
+    if (href === "/avisos" && !mobile) {
+      const anterior = page.url();
+      const ativoAnterior = await page.locator('[aria-current="page"]:visible').getAttribute("href");
+      await menu.getByRole("link", { name: titulo, exact: true }).click();
+      const gaveta = page.getByRole("dialog", { name: "Avisos" });
+      await expect(gaveta).toBeVisible();
+      await expect(gaveta.getByRole("button", { name: "Marcar todos como lidos" })).toBeVisible();
+      expect(page.url()).toBe(anterior);
+      await page.keyboard.press("Escape");
+      await expect(gaveta).toBeHidden();
+      await expect(page.locator('[aria-current="page"]:visible')).toHaveAttribute("href", ativoAnterior!);
+      continue;
+    }
     await menu.getByRole("link", { name: titulo, exact: true }).click();
     await expect(page).toHaveURL(href);
     // Etapa 04: Início greets by name (D02); Contas and Grupos are real screens.
     if (href !== "/") await expect(page.getByRole("heading", { level: 1 })).toHaveText(titulo);
-    if (href === "/avisos" || href === "/perfil") await expect(page.getByText("Em breve", { exact: true }).filter({ visible: true })).toBeVisible();
+    if (href === "/perfil") await expect(page.getByText("Em breve", { exact: true }).filter({ visible: true })).toBeVisible();
 
     const ativos = page.locator('[aria-current="page"]:visible');
     await expect(ativos).toHaveCount(1);
@@ -179,18 +192,19 @@ test("ca18: navegação entre as seções com um único item ativo", async ({ pa
   if (mobile) {
     await page.goto("/avisos");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Avisos");
-    await expect(page.getByText("Em breve", { exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Marcar todos como lidos" }).filter({ visible: true })).toBeVisible();
     await expect(page.locator('[aria-current="page"]:visible')).toHaveCount(0);
   }
 });
 
-test("ca14: screenshots da vitrine e de uma página Em breve", async ({ page }, info) => {
+test("ca14: screenshots da vitrine e da central de avisos", async ({ page }, info) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(VITRINE);
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: path.join(SCREENS, `vitrine-${info.project.name}.png`), fullPage: true, caret: "initial" });
 
   await page.goto("/avisos");
-  await expect(page.getByText("Em breve", { exact: true }).filter({ visible: true })).toBeVisible();
-  await page.screenshot({ path: path.join(SCREENS, `avisos-em-breve-${info.project.name}.png`), caret: "initial" });
+  await expect(page.getByRole("heading", { name: "Avisos", level: 1 }).filter({ visible: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Marcar todos como lidos" }).filter({ visible: true })).toBeVisible();
+  await page.screenshot({ path: path.join(SCREENS, `avisos-central-${info.project.name}.png`), caret: "initial", animations: "disabled" });
 });

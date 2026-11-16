@@ -2362,6 +2362,20 @@ components:
       - id
       - nome
       type: object
+    Chaves:
+      properties:
+        auth:
+          maxLength: 64
+          type: string
+          writeOnly: true
+        p256dh:
+          maxLength: 128
+          type: string
+          writeOnly: true
+      required:
+      - auth
+      - p256dh
+      type: object
     CodeEnum:
       description: '* `conta_restrita_orfa` - conta_restrita_orfa'
       enum:
@@ -3044,6 +3058,36 @@ components:
       - pagamento_desfeito
       - comprovante_anexado
       type: string
+    InscricaoEntrada:
+      properties:
+        endpoint:
+          maxLength: 2048
+          type: string
+          writeOnly: true
+        instalacao:
+          format: uuid
+          type: string
+          writeOnly: true
+        keys:
+          allOf:
+          - $ref: '#/components/schemas/Chaves'
+          writeOnly: true
+      required:
+      - endpoint
+      - instalacao
+      - keys
+      type: object
+    InscricaoResultado:
+      properties:
+        ativo:
+          type: boolean
+        id:
+          format: uuid
+          type: string
+      required:
+      - ativo
+      - id
+      type: object
     Instrumento:
       properties:
         beneficiario:
@@ -3123,6 +3167,21 @@ components:
       - vencimento
       - vencimentos_possiveis
       type: object
+    Ler:
+      properties:
+        lido_em:
+          format: date-time
+          type: string
+      required:
+      - lido_em
+      type: object
+    LerTodas:
+      properties:
+        nao_lidas:
+          type: integer
+      required:
+      - nao_lidas
+      type: object
     Lista:
       properties:
         contagens:
@@ -3150,6 +3209,22 @@ components:
       - opcoes
       - total_centavos
       - valores_indefinidos_qtd
+      type: object
+    ListaNotificacoes:
+      properties:
+        nao_lidas:
+          type: integer
+        proximo:
+          nullable: true
+          type: string
+        resultados:
+          items:
+            $ref: '#/components/schemas/Notificacao'
+          type: array
+      required:
+      - nao_lidas
+      - proximo
+      - resultados
       type: object
     Marcar:
       properties:
@@ -3224,6 +3299,62 @@ components:
       - sou_eu
       - usuario
       type: object
+    Notificacao:
+      properties:
+        criado_em:
+          format: date-time
+          type: string
+        destino:
+          nullable: true
+          readOnly: true
+          type: string
+        id:
+          format: uuid
+          type: string
+        lido_em:
+          format: date-time
+          nullable: true
+          type: string
+        texto:
+          readOnly: true
+          type: string
+        tipo:
+          $ref: '#/components/schemas/NotificacaoTipoEnum'
+        titulo:
+          readOnly: true
+          type: string
+      required:
+      - criado_em
+      - destino
+      - id
+      - lido_em
+      - texto
+      - tipo
+      - titulo
+      type: object
+    NotificacaoTipoEnum:
+      description: '* `boleto_ausente` - Boleto a definir
+
+        * `vence_3` - Vence em três dias
+
+        * `vence_hoje` - Vence hoje
+
+        * `venceu_1` - Venceu ontem
+
+        * `pagamento` - Pagamento registrado
+
+        * `pagador_removido` - Pagador removido
+
+        * `cancelada_rn32` - Conta cancelada automaticamente'
+      enum:
+      - boleto_ausente
+      - vence_3
+      - vence_hoje
+      - venceu_1
+      - pagamento
+      - pagador_removido
+      - cancelada_rn32
+      type: string
     OcorrenciaInicial:
       properties:
         beneficiario:
@@ -3409,6 +3540,13 @@ components:
         papel:
           $ref: '#/components/schemas/PapelEnum'
       type: object
+    PatchedPreferenciasEntrada:
+      properties:
+        email:
+          type: boolean
+        push:
+          type: boolean
+      type: object
     PatchedRecorrenciaEntrada:
       properties:
         acesso:
@@ -3489,6 +3627,29 @@ components:
       - qtd
       - total_centavos
       - valores_indefinidos_qtd
+      type: object
+    Preferencias:
+      properties:
+        email:
+          type: boolean
+        push:
+          type: boolean
+        versao:
+          default: 1
+          readOnly: true
+          type: integer
+      required:
+      - versao
+      type: object
+    PushConfiguracao:
+      properties:
+        chave_publica:
+          type: string
+        habilitado:
+          type: boolean
+      required:
+      - chave_publica
+      - habilitado
       type: object
     Recorrencia:
       properties:
@@ -3676,6 +3837,18 @@ components:
       - valores_indefinidos_qtd
       - vence_qtd
       - vencidas_qtd
+      type: object
+    ResumoNotificacoes:
+      properties:
+        nao_lidas:
+          type: integer
+        recentes:
+          items:
+            $ref: '#/components/schemas/Notificacao'
+          type: array
+      required:
+      - nao_lidas
+      - recentes
       type: object
     Sair:
       properties:
@@ -6672,6 +6845,179 @@ paths:
       - cookieAuth: []
       tags:
       - me
+  /api/notificacoes/:
+    get:
+      operationId: notificacoes_listar
+      parameters:
+      - in: query
+        name: cursor
+        schema:
+          type: string
+      - in: query
+        name: limite
+        schema:
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListaNotificacoes'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - notificacoes
+  /api/notificacoes/ler-todas/:
+    post:
+      operationId: notificacoes_ler_todas
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LerTodas'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - notificacoes
+  /api/notificacoes/preferencias/:
+    get:
+      operationId: notificacoes_preferencias
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferencias'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - notificacoes
+    patch:
+      operationId: notificacoes_atualizar_preferencias
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPreferenciasEntrada'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPreferenciasEntrada'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPreferenciasEntrada'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferencias'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - notificacoes
+  /api/notificacoes/push/configuracao/:
+    get:
+      operationId: notificacoes_push_configuracao
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushConfiguracao'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - notificacoes
+  /api/notificacoes/push/inscricoes/:
+    post:
+      operationId: notificacoes_push_inscrever
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InscricaoEntrada'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InscricaoEntrada'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InscricaoEntrada'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InscricaoResultado'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InscricaoResultado'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - notificacoes
+  /api/notificacoes/push/instalacoes/{instalacao_id}/:
+    delete:
+      operationId: notificacoes_push_revogar_instalacao
+      parameters:
+      - in: path
+        name: instalacao_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: No response body
+      security:
+      - cookieAuth: []
+      tags:
+      - notificacoes
+  /api/notificacoes/resumo/:
+    get:
+      operationId: notificacoes_resumo
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumoNotificacoes'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - notificacoes
+  /api/notificacoes/{notificacao_id}/ler/:
+    post:
+      operationId: notificacoes_ler
+      parameters:
+      - in: path
+        name: notificacao_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ler'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - notificacoes
   /api/recorrencias/{recorrencia_id}/:
     get:
       operationId: recorrencias_detalhe
