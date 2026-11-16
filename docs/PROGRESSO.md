@@ -11,7 +11,7 @@
 | 01 | Design system no código | concluída | `etapa/01-design-system` | 12/11/2026 | [relatorio](etapas/01-design-system/relatorio.md) |
 | 02 | Autenticação | concluída | `etapa/02-autenticacao` | 13/11/2026 | [relatorio](etapas/02-autenticacao/relatorio.md) |
 | 03 | Espaços e grupos | concluída | `etapa/03-espacos-grupos` | 15/11/2026 | [relatorio](etapas/03-espacos-grupos/relatorio.md) |
-| 04 | Contas (núcleo) | concluída | `etapa/04-contas` | 15/11/2026 | [relatorio](etapas/04-contas/relatorio.md) |
+| 04 | Contas (núcleo) | concluída; merge na `main` aguarda o dono confirmar as [decisões abertas](etapas/04-contas/decisoes.md) | `etapa/04-contas` | 15/11/2026 | [relatorio](etapas/04-contas/relatorio.md) |
 | 05 | Boleto e Pix | pendente | — | — | — |
 | 06 | PDF do boleto | pendente | — | — | — |
 | 07 | Pagamento | pendente | — | — | — |
@@ -33,7 +33,8 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 | P3 | Configurar a cadeia de proxies confiáveis e testar spoofing antes do deploy. Allauth mantém `trusted_proxy_count=0` enquanto a API 8000 está exposta; limite por IP vê o Next como origem. Ativar também o limite de aceite de convite por IP (RN31). | Deploy da Etapa 11 |
 | P4 | Produção: com `DJANGO_DEBUG=0` a API liga `SECURE_SSL_REDIRECT`, e o Next consulta `/api/me/` pela rede interna em HTTP sem `X-Forwarded-Proto`; provável redirecionamento para https e falha das páginas protegidas. Definir como o Next fala com a API em produção (cabeçalho, exceção de rota ou proxy). Omitir também o token de convite do access log do proxy/servidor de produção (RN31). | Deploy da Etapa 11 |
 | P6 | Reexportar a especificação da origem rev 50 (o dono tirou categoria do passo 3 do CU05, a entidade `categoria` e `lancamento.categoria_id`; Q22 da Etapa 04) e alinhar CU05, `dados/modelo.md` e ADR 0005. | Abertura da Etapa 05 |
-| P7 | Entregar ao removido o aviso das contas canceladas pela RN32 na remoção pelo admin ([ADR 0006](arquitetura/adr/0006-rn32-conta-restrita-orfa.md)). A Etapa 04 só grava no histórico (`cancelada_automaticamente`, `dados.removido`). Adiamento a confirmar ([relatório da 04](etapas/04-contas/relatorio.md#decisões-para-o-dono-confirmar), decisão 25). | Etapa 09 |
+| P7 | Entregar ao removido o aviso das contas canceladas pela RN32 na remoção pelo admin ([ADR 0006](arquitetura/adr/0006-rn32-conta-restrita-orfa.md)). A Etapa 04 só grava no histórico (`cancelada_automaticamente`, `dados.removido`). Adiamento a confirmar ([decisões da 04](etapas/04-contas/decisoes.md), Q04-25). | Etapa 09 |
+| P9 | Confirmar que o CI dispara no próximo push: `gh run list`; se nada aparecer, `gh workflow run web.yml --ref main`. Causa provável e correção em "CI mudo" (Resolvidas). | Nada (verificação) |
 
 ### Resolvidas
 
@@ -48,10 +49,21 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 | P2 | Validação completa da Etapa 01 | Resolvida em 13/11/2026: Docker disponível; credenciais do `.env` local alinhadas às já existentes no volume, sem alterar usuários nem dados do banco. `make test`: API 3/3 e web 29/29; `make lint` verde. | Etapa 01, CA17 |
 | P5 | Limite de cadastro do allauth derrubava o E2E (~40 contas do mesmo IP contra 20/min) | Resolvida em 15/11/2026: `ACCOUNT_RATE_LIMIT_SIGNUP` vira `ACCOUNT_RATE_LIMITS["signup"]` só quando definida (o allauth mescla aos padrões; os outros limites seguem). `make e2e` e o job `e2e` do `web.yml` usam `1000/m/ip`; fora deles vale 20/m/ip. Saiu o retry em 429 do E2E. | Etapa 04; [stack](arquitetura/stack.md#variáveis-de-ambiente) |
 | P8 | 429 do allauth no primeiro cadastro do `make e2e` com a API fria | Resolvida em 15/11/2026: os dois workers disputavam a trava do limite do allauth (espera de 1 s) enquanto o servidor de dev ainda importava módulos. O `globalSetup` do Playwright (`web/e2e/global-setup.ts`) faz um cadastro sozinho antes dos workers. Duas medições de geometria passam a esperar `modal-pop`/`sheet-up` terminarem. E2E final a frio: 74 verdes, sem 429. | Etapa 04 |
+| Node local | Node local v20; o projeto pede 22+ | Resolvida em 15/11/2026: Node 22.23.5 local. `web/.nvmrc` (lido pelo CI) e `engines`; o `make` para com Node < 22 (612aa34). | [stack](arquitetura/stack.md) |
+| CI mudo | O CI não disparou no GitHub no push inicial | Causa provável (inferência; o GitHub não mostra o motivo): o push inicial levou todas as branches a um repositório vazio, como branches novas com commit raiz sem pai, e o filtro `paths` não casou nada; o segundo push só mexia em LICENSE, fora do filtro. Correção: `workflow_dispatch` em `api.yml` e `web.yml` (612aa34). Verificação no próximo push: P9. | [stack](arquitetura/stack.md#decisões-de-implementação) |
+| Banco de dev | Dados de teste antigos no banco de dev | Resolvida em 15/11/2026: `make limpar-dev` existe, com prévia e confirmação; não foi executado, o dono roda quando quiser (a prévia apagaria 5 grupos de teste, 302 grupos sem membros e 858 usuários de teste). | [stack](arquitetura/stack.md#decisões-de-implementação) |
 
 ## Log
 
 Ordem cronológica inversa.
+
+### 15/11/2026 — Revisão do dono da Etapa 04
+
+- Respostas 23 (nome por contexto: membro atual pelo nome ou e-mail, quem saiu "Ex-membro", histórico sem e-mail) e 26 ("Precisa de atenção" com `aguardando` pela data) na API (4c9a1b2); 27–30 na web (3d4ba32): hero do D02 sem vazio (tokens `--hero-padding-y`, `--hero-varal-width`), detalhe mobile sem TabBar, `<Nome>` em uma linha, espaço atual primeiro em "Onde fica".
+- Node 22 obrigatório (`web/.nvmrc`, `engines`, checagem no `make`); CI com `workflow_dispatch`; `make limpar-dev` criado e não executado (612aa34). Pendências Node local, CI mudo e banco de dev resolvidas; nova P9 (confirmar CI no próximo push).
+- Codex usa os mesmos comandos e agentes (`AGENTS.md`, `make codex-sync`, d994907); agente `varal-decisor` e a política de decisões por custo de desfazer (4539db0). [decisoes.md](etapas/04-contas/decisoes.md) com respostas, D04-1 a D04-13 e as perguntas Q04-35 a Q04-39.
+- QA (f78a878): `make test` 207 pytest + 73 Vitest; lint verde; tipos sem diff; E2E 83 passaram e 3 ignorados de propósito, a frio e sem 429.
+- Merge na `main` aguarda o dono confirmar as decisões 1–22, 24, 25, os achados M2/M5/M6 (Q04-31, 33, 34) e Q04-35 a Q04-39. Sem push.
 
 ### 15/11/2026 — Etapa 04 (Contas, núcleo) concluída
 
