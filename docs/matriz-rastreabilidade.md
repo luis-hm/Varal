@@ -28,7 +28,7 @@ Telas: frame mobile ↔ frame desktop no canvas `k0kB5dc-Vo` (ids e equivalênci
 | RF17 | CU08 | RN16 | 07 · Detalhe da conta ↔ D03 | 07 | `test_rn16_autor_observador_pode_desfazer_sem_pagar`, `test_rn16_concorrencia_dois_undos`, `test_rn06_comprovante_historico_revoga_acesso` (`api/tests/test_pagamentos.py`); E2E `rf15/rn14/rn16…`, `rf16/rn15/rn16…` (`web/e2e/pagamentos.spec.ts`) |
 | RF18 | CU09 | RN17, RN23 | 05 · Nova conta ↔ M01, 10 · Grupo ↔ D04 | 08 | `test_rn17_variavel_null_e_retry_idempotente`, `test_q08_9_primeira_conferida_variavel_sem_copia`, `test_q08_9_primeiro_pdf_permanece_na_primeira_conta`, `test_rn23_dias_curtos` (`api/tests/test_recorrencias.py`); E2E `web/e2e/recorrencias.spec.ts` |
 | RF19 | CU12 | RN17, RN18, RN23 | — (agendador) | 08 | `test_rn17_catchup_pausa_retomada_sem_gerar_meses_pausados`, `test_rnf07_duas_execucoes_concorrentes_geram_uma`, `test_rn23_dias_curtos` (`api/tests/test_recorrencias.py`); prova real de beat e worker documentada no relatório |
-| RF20 | CU12 | RN18, RN19 | 04 · Avisos ↔ D06 | 09 | — |
+| RF20 | CU12 | RN18, RN19 | 04 · Avisos ↔ D06 | 09 | `api/tests/test_notificacoes.py`: `test_rn19_fases_e_audiencia_so_contas_visiveis`, `test_q09_3_pagamento_pendente07_e_undo`, `test_q09_9_marcar_todas_sem_tocar_outro_destinatario`, `test_q09_4_retry_tres_totais_e_timeout_incerto`; E2E `web/e2e/notificacoes.spec.ts`; provas locais de transporte no relatório |
 | RF21 | CU10 | RN20 | 12 · Pedir para alguém pagar ↔ M06 | 10 | — |
 | RF22 | CU11 | RN07, RN14, RN15 | 13 · Modo simples ↔ D05 | 10 | — |
 | RF23 | CU05 | RN25 | 05 · Nova conta ↔ M01 | 06 | — |
@@ -120,6 +120,19 @@ Casos de uso: CU05 = RF10 e RF11 (só o manual); CU06 = RF13; CU07 = RF12 (teste
 | CA35 · criação × desligamento | `test_rn01_rn05_criar_revalida_vinculo_apos_autorizacao`, `test_rn01_rn21_rn32_criacao_serializa_vinculos_com_desligamento` (criador, pagador e escolhido × saída, remoção e exclusão) |
 | CA36 · grupo → restrita × desligamento | `test_rn32_concorrencia_grupo_para_restrita_e_saida` (saída e remoção) |
 | CA37 · detalhe e resposta de edição consistentes | `test_rn06_detalhe_revalida_acesso_na_consulta_que_carrega_dados`, `test_rn06_detalhe_mantem_snapshot_ate_prefetch_e_historico`, `test_rn06_detalhe_espera_edicao_e_rele_acesso_em_snapshot_novo`, `test_rn06_resposta_propria_edicao_nao_le_edicao_alheia_posterior` |
+
+## Rastreabilidade da Etapa 09
+
+| Critérios / regras | Testes |
+| --- | --- |
+| CA01/02/08/09, RN18/RN19 · fases, janela e reprogramação | `test_rn19_fases_e_audiencia_so_contas_visiveis`, `test_reagendar_pendencia_mantem_janela_e_identidade`, `test_q09_3_pagamento_pendente07_e_undo` (`api/tests/test_notificacoes.py`); prova local de beat e worker documentada por DevOps |
+| CA03–05, RN21/RN32 · fontes duráveis e P7 | `test_q09_3_pagamento_pendente07_e_undo`, `test_p7_novo_privado_snapshot_e_legado_sem_enriquecer`, `test_q09_8_p7_legado_sem_descricao_atual`, `test_rn21_exclusao_de_usuario_registra_evento_sem_pagar` (`api/tests/test_notificacoes.py`); E2E `ca03/ca07/ca11…`, `ca04/ca05…` (`web/e2e/notificacoes.spec.ts`) |
+| CA06/10, Q09-4/Q09-6 · concorrência, tentativas e canais | `test_q09_4_retry_tres_totais_e_timeout_incerto`, `test_q09_4_dispositivos_independentes_e_novo_nao_recebe_passado`, `test_q09_4_erro_no_quit_nao_desfaz_aceite_email`, `test_rnf07_duas_varreduras_concorrentes_criam_um_evento`, `test_q09_6_optout_descarta_sem_reativar_envio` (`api/tests/test_notificacoes.py`); prova SMTP/Web Push local isolada conforme relatório |
+| CA07/11/13 · revogação, central e leitura em lote | `test_q09_2_revogacao_terminal_em_edicao_de_acesso`, `test_q09_2_troca_papel_e_retorno_nao_ressuscitam`, `test_q09_9_marcar_todas_sem_tocar_outro_destinatario` (`api/tests/test_notificacoes.py`); E2E `ca03/ca07/ca11…`, `q09-9…` (21 eventos reais e leitura de aviso fora da primeira página) |
+| CA12, Q09-6/Q09-7 · sessão, CSRF e transporte | `test_q09_6_logout_e_post_concorrentes_nao_reativam`, `test_q09_6_delete_antes_do_post_e_alias_de_outro_usuario`, `test_q09_6_troca_de_sessao_allauth_revoga_inscricao`, `test_escritas_exigem_sessao_e_csrf_real`, `test_q09_7_dns_bloqueia_resultado_misto_e_mapeado` (`api/tests/test_notificacoes.py`); E2E `ca10/ca12…`; prova TLS/SNI/pin local em `/tmp/varal-devops09.md` |
+| CA14, D09-1 · ordem da rotina | `test_d09_1_rotina_gera_primeiro_e_avisa_variavel_nova`, `test_d09_1_falha_geracao_nao_calcula_avisos` (`api/tests/test_notificacoes.py`); beat/worker isolados com relógio controlado e prova separada da agenda 07h |
+
+Validação em 16/11/2026: duas gerações de tipos sem diferenças, 483 pytest, 111 Vitest e lint aprovados. A primeira integral E2E teve 129 aprovados, 3 skips e 2 falhas de seletor de título oculto em 360px; foco após correção do teste passou 2/2. A tentativa posterior de `make e2e` parou no build por indisponibilidade de GHCR antes do navegador. A suíte completa `npm run e2e` foi executada depois sobre API/worker já verificados, sem rebuild: 131 aprovados e 3 skips previstos. Não se declara o wrapper `make e2e` aprovado nessa última tentativa. Provas locais de transporte e as limitações de provedores externos constam no relatório.
 
 ## Rastreabilidade da Etapa 08
 

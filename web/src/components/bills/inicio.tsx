@@ -1,6 +1,5 @@
 // Doop: k0kB5dc-Vo / 02 · Início (JJvrRugL0_) + D02 · Início (SMDsrD8FGT); CU06; RF13, RN12, RN13, Q9, Q12, Q23.
-// Not here until their stage: bell and "Avisos recentes" (09), search (Q13), paid bar and the green "pagas"
-// tag (07), "aguardando boleto" card (05/06).
+// Search remains outside this stage (Q13).
 "use client";
 
 import Link from "next/link";
@@ -12,11 +11,16 @@ import { mesAno, nomeMes, partesReais, plural, reais, saudacao, totalConhecido }
 import { ContaCard } from "./bill-card";
 import { useContagem } from "./contagem";
 import { ProgressoPagas } from "./progresso-pagas";
+import { useAvisosResumo } from "@/lib/notificacoes/hooks";
+import { AvisoLinha, useAbrirAviso } from "@/components/notifications/avisos";
+import { Icon } from "@/components/ui/icon";
 import styles from "./inicio.module.css";
 
 export function Inicio() {
-  const { user, espaco, escolherEspaco } = useSessao();
+  const { user, espaco, escolherEspaco, abrirAvisos } = useSessao();
   const resumo = useResumo(espaco.id);
+  const avisos = useAvisosResumo(user.id);
+  const abertura = useAbrirAviso(user.id);
   const espacos = espacosDoUsuario(user, espaco.id);
   const primeiroNome = (user.nome || user.email.split("@")[0]).split(/\s+/)[0];
 
@@ -24,6 +28,7 @@ export function Inicio() {
     <div className={styles.page}>
       <header className={styles.topo}>
         <SeletorEspaco variant="pilula" espaco={espacos.find((e) => e.atual) ?? espacos[0]} espacos={espacos} onEscolher={escolherEspaco} />
+        <Link href="/avisos" className={styles.sino} onClick={(event) => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && event.button === 0) { event.preventDefault(); abrirAvisos(); } }} aria-label={avisos.data?.nao_lidas ? `Avisos, ${avisos.data.nao_lidas} não lidos` : "Avisos"}><Icon name="sino" size="md" />{!!avisos.data?.nao_lidas && <span className={styles.ponto} aria-hidden="true" />}</Link>
       </header>
       <header className={`${styles.ola} ${styles.in}`}>
         {/* Ajuste 29: an e-mail used as name never wraps the greeting. */}
@@ -64,7 +69,7 @@ export function Inicio() {
                 <p className={styles.cartao}>Nenhuma conta vencida ou vencendo nos próximos {plural(resumo.data.janela_alerta_dias, "dia", "dias")}.</p>
               )}
             </section>
-            {espaco.tipo === "grupo" && (
+            <div className={styles.lateral}>{espaco.tipo === "grupo" && (
               <section className={styles.casas} aria-labelledby="casas-t">
                 <div className={`${styles.sec} ${styles.in} ${styles.d2}`}>
                   <h2 id="casas-t">Por casa</h2>
@@ -81,6 +86,11 @@ export function Inicio() {
                 )}
               </section>
             )}
+            <section className={styles.recentes} aria-labelledby="avisos-recentes">
+              <div className={styles.sec}><h2 id="avisos-recentes">Avisos recentes</h2><Link href="/avisos" onClick={(event) => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && event.button === 0) { event.preventDefault(); abrirAvisos(); } }}>Ver todos</Link></div>
+              {abertura.erro && <p role="alert">{abertura.erro}</p>}
+              {avisos.isError ? <p>Não foi possível carregar os avisos.</p> : avisos.data?.recentes.length ? <ul className={styles.listaAvisos}>{avisos.data.recentes.map((aviso) => <li key={aviso.id}><AvisoLinha aviso={aviso} onClick={() => abertura.abrir(aviso)} disabled={abertura.leitura.um.isPending} /></li>)}</ul> : <p>Nenhum aviso recente.</p>}
+            </section></div>
           </div>
         </>
       )}

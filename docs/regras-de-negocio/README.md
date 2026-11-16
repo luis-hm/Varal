@@ -123,3 +123,13 @@ Não estão na especificação; valem tanto quanto ela.
 - Só mês altera a ocorrência; próximos aplica campos pedidos nas abertas visíveis/editáveis pelo corte de competência, preservando finais, exceções anteriores e guardas de instrumento/PDF. Cancelar próximos encerra futuro e cancela abertas autorizadas do corte. Pausar/encerrar modelo isolado preserva geradas; encerramento é terminal.
 - Geração revalida membros/audiência e retira pagador inelegível. Sem audiência, pausa privada mantém competência bloqueada sem acesso novo ao admin. Autor usa UUID/papel atuais no reingresso; pagador/escolhidos removidos não retornam por reingresso/revisão antiga e pausa não retoma sozinha.
 - CU04 move abertas/modelos visíveis/editáveis para destino ativo ou Sem casa. Preview/contagem/resposta não revelam invisíveis; finais/invisíveis conservam casa histórica. Nova ocorrência com casa arquivada nasce Sem casa, sem perder cobrança. RN18 entrega avisos somente na Etapa 09.
+
+## Notificações — precedências da Etapa 09
+
+[ADR 0013](../arquitetura/adr/0013-notificacoes-privadas-e-entrega.md) e Q09-1–9/D09-1–3 detalham a execução sem editar a origem. RN18/RN19 usam D−5/D−3/D0/D+1 em Fortaleza, sem herdar janela visual RN13; abertas são aguardando/pendente. Conferência manual completa encerra ausência D−5; upload sozinho não.
+
+Central única por evento/destinatário; leitura/contador/envio revalidam contexto e revogação é terminal. P7 só ao removido existente, com mínimo capturado no cancelamento e sem link à conta/PDF; legado sem snapshot usa referência/data/motivo, nunca descrição atual. RN21 exige conta ainda aberta/sem pagador e admin visível. P7 resolvida no fechamento da 09, com critérios backend/E2E verdes.
+
+Consumir todos os EventosPagamento pendentes da 07 sem corte, se marca ativa/destinatário/acesso válidos. Legados RN21/P7 anteriores à ativação persistida ficam apenas na central. Lembretes recuperam só entre 07:00 e fim do próprio dia-alvo; mudanças/undo não recriam fase já consumida para a pessoa. Novos destinatários só dentro da janela, sem ressuscitar revogados.
+
+Três tentativas totais por entrega/filho push (inicial e retries após 1 min/5 min), somente falha recuperável comprovada. Lease vencido após início sem resultado é incerto, sem retransmissão cega; aceito não é lido/entrega física. Opt-out/sem aparelho descarta canal sem retroativo ao reativar. Logout/sessão/instalação revogadas bloqueiam POST atrasado; novo ciclo exige UUID novo. Rotina única gera/recupera 08 antes de avisos 09; transporte usa conteúdo genérico e central autenticada.

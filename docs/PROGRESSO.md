@@ -15,8 +15,8 @@
 | 05 | Boleto e Pix | concluída e integrada localmente à main (`e5c94e3`) | `etapa/05-boleto-pix` | 16/11/2026 | [relatorio](etapas/05-boleto-pix/relatorio.md) |
 | 06 | PDF do boleto | concluída e integrada localmente à main (`b21bd83`) | `etapa/06-pdf-boleto` | 16/11/2026 | [relatorio](etapas/06-pdf-boleto/relatorio.md) |
 | 07 | Pagamento | concluída e integrada localmente à main (`2599655`) | `etapa/07-pagamento` | 16/11/2026 | [relatorio](etapas/07-pagamento/relatorio.md) |
-| 08 | Recorrência e agendador | concluída; pronta para commit/merge local | `etapa/08-recorrencia-agendador` | 16/11/2026 | [relatorio](etapas/08-recorrencia-agendador/relatorio.md) |
-| 09 | Notificações | pendente | — | — | — |
+| 08 | Recorrência e agendador | concluída e integrada localmente à main (`59e0cc5`) | `etapa/08-recorrencia-agendador` | 16/11/2026 | [relatorio](etapas/08-recorrencia-agendador/relatorio.md) |
+| 09 | Notificações | concluída; pronta para commit/merge local | `etapa/09-notificacoes` | 16/11/2026 | [relatorio](etapas/09-notificacoes/relatorio.md) |
 | 10 | Solicitação e modo simples | pendente | — | — | — |
 | 11 | Acabamento e deploy | pendente | — | — | — |
 
@@ -34,9 +34,7 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 | P3 | Configurar a cadeia de proxies confiáveis e testar spoofing antes do deploy. Allauth mantém `trusted_proxy_count=0` enquanto a API 8000 está exposta; limite por IP vê o Next como origem. Ativar também o limite de aceite de convite por IP (RN31). | Deploy da Etapa 11 |
 | P4 | Produção: com `DJANGO_DEBUG=0` a API liga `SECURE_SSL_REDIRECT`, e o Next consulta `/api/me/` pela rede interna em HTTP sem `X-Forwarded-Proto`; provável redirecionamento para https e falha das páginas protegidas. Definir como o Next fala com a API em produção (cabeçalho, exceção de rota ou proxy). Omitir também o token de convite do access log do proxy/servidor de produção (RN31). | Deploy da Etapa 11 |
 | P6 | Claude Code deve reexportar a especificação da origem rev 50 (sem categoria no CU05 e no modelo) e conferir os derivados/ADR 0005. O Codex não faz essa reexportação nem edita a origem à mão; a cópia permanece defasada. O ADR 0005 já aprovado rege a implementação sem categoria. | Pendência administrativa externa; continuidade sem categoria pelo ADR 0005 |
-| P7 | Entregar ao removido o aviso das contas canceladas pela RN32 na remoção pelo admin ([ADR 0006](arquitetura/adr/0006-rn32-conta-restrita-orfa.md)). A Etapa 04 grava `cancelada_automaticamente` com `dados.removido`; entrega na 09 ratificada por delegação em Q04-25. | Etapa 09 |
 | P9 | Confirmar que o CI dispara no próximo push: `gh run list`; se nada aparecer, `gh workflow run web.yml --ref main`. Causa provável e correção em "CI mudo" (Resolvidas). | Nada (verificação) |
-| P10 | Perfil da Etapa 11: pergunta enviada ao dono sobre montar dados/preferências/exportar/excluir/sair com `varal-ui` ou receber frame Doop, conforme ADR 0003. Ainda sem resposta; não mudar o desenho por silêncio. | Definição da tela Perfil na 11; não bloqueia 06–10 |
 | P11 | Destino da implantação: pergunta enviada ao dono entre validação local e VPS com domínio/alias SSH. Ainda sem resposta nem autorização de deploy na VPS; preparar/testar localmente não equivale a implantar. Não solicitar segredos no chat. | Implantação efetiva da 11; não bloqueia 06–10 ou preparação independente |
 
 ### Resolvidas
@@ -54,6 +52,8 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 | P5 | Limite de cadastro do allauth derrubava o E2E (~40 contas do mesmo IP contra 20/min) | Resolvida em 15/11/2026: `ACCOUNT_RATE_LIMIT_SIGNUP` vira `ACCOUNT_RATE_LIMITS["signup"]` só quando definida (o allauth mescla aos padrões; os outros limites seguem). `make e2e` e o job `e2e` do `web.yml` usam `1000/m/ip`; fora deles vale 20/m/ip. Saiu o retry em 429 do E2E. | Etapa 04; [stack](arquitetura/stack.md#variáveis-de-ambiente) |
 | P8 | 429 do allauth no primeiro cadastro do `make e2e` com a API fria | Resolvida em 15/11/2026: os dois workers disputavam a trava do limite do allauth (espera de 1 s) enquanto o servidor de dev ainda importava módulos. O `globalSetup` do Playwright (`web/e2e/global-setup.ts`) faz um cadastro sozinho antes dos workers. Duas medições de geometria passam a esperar `modal-pop`/`sheet-up` terminarem. E2E final a frio: 74 verdes, sem 429. | Etapa 04 |
 | Node local | Node local v20; o projeto pede 22+ | Resolvida em 15/11/2026: Node 22.23.5 local. `web/.nvmrc` (lido pelo CI) e `engines`; o `make` para com Node < 22 (612aa34). | [stack](arquitetura/stack.md) |
+| P7 | Aviso ao removido das restritas canceladas pela RN32 | Resolvida na Etapa 09: central privada própria, snapshot novo mínimo e legado opaco/data/referência/motivo sem enriquecimento atual ou link à conta/PDF. Isolamento e entrega central comprovados por backend e E2E final; sem promessa de entrega externa física. | [Relatório 09](etapas/09-notificacoes/relatorio.md), ADR 0006/0013 |
+| P10 | Definição da tela Perfil sem frame dedicado no Doop | Resolvida por delegação expressa do dono para tomar decisões e executar todas as etapas restantes. A pergunta específica continua sem resposta literal; a autorização vem da delegação posterior ao ADR 0003, não do silêncio. Na 11, compor dados próprios/preferências/exportar/excluir/sair com `varal-ui` e componentes existentes, nas duas larguras; registrar superação limitada do novo gate de tela, preservando RN30 e canvas somente leitura. Nenhuma tela Perfil implementada por esta decisão. | Reavaliação de autorização durante a 09; detalhamento na 11 |
 | CI mudo | O CI não disparou no GitHub no push inicial | Causa provável (inferência; o GitHub não mostra o motivo): o push inicial levou todas as branches a um repositório vazio, como branches novas com commit raiz sem pai, e o filtro `paths` não casou nada; o segundo push só mexia em LICENSE, fora do filtro. Correção: `workflow_dispatch` em `api.yml` e `web.yml` (612aa34). Verificação no próximo push: P9. | [stack](arquitetura/stack.md#decisões-de-implementação) |
 | Banco de dev | Dados de teste antigos no banco de dev | Resolvida em 15/11/2026: `make limpar-dev` existe, com prévia e confirmação; não foi executado, o dono roda quando quiser (a prévia apagaria 5 grupos de teste, 302 grupos sem membros e 858 usuários de teste). | [stack](arquitetura/stack.md#decisões-de-implementação) |
 
@@ -61,6 +61,33 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 
 Ordem cronológica inversa.
 
+
+### 16/11/2026 — Etapa 09 concluída, pronta para commit/merge local
+
+- Validação final: 483 pytest, 111 Vitest, tipos duas vezes determinísticos e lint verdes. Suíte Playwright COMPLETA por `cd web && npm run e2e`, Node 22.23.5, passou 131 testes/3 skips previstos (134 casos) em 9,4 min, runner 52177 passed/exit 0. API/worker locais existentes foram verificados (API 200, pywebpush 2.3.0), sem rebuild externo ou mudança de produto/runtime/lock.
+- `make e2e` da revalidação não passou: falhou antes do navegador no HEAD ao GHCR/uv 0.13.7 por resposta MIME/proxy malformada. A integral 129/3/2 também permanece failed; seletor legado corrigido só no teste, foco 360 px 2/2 verde. Focos/direcionados não são somados à aprovação final. Sem mudança de Makefile/TLS/proxy para contornar o problema operacional.
+- QA confirmou matriz estável, runner/Next próprios encerrados e comparação de capturas 02/D02/04/D06 nas duas larguras (sino/indicador/recentes/central/gaveta branca). Segurança e decisões sem bloqueantes. Provas DevOps reais locais mantêm limites: sem provedor público, push real no navegador, SMTP TLS externo ou espera real às 07:00. [Relatório](etapas/09-notificacoes/relatorio.md) concluído, sem hashes de commit/merge antecipados.
+- P7 resolvida pela central RN32 privada e legado seguro com critérios verdes; P10 resolvida por delegação expressa. P6 externa, P11/destino pendente, P3/P4 produção na 11 e P9 próximo push preservadas. Dono atestou Ajustes sem pendentes no chat, sem leitura/marcação remota/reexportação. Próximo passo: commit/merge local da 09 e abertura da 10, sem push/deploy.
+
+### 16/11/2026 — Etapa 09: suíte verde, E2E final ainda sem aprovação
+
+- Integral: 483 pytest, 111 Vitest, tipos duas vezes determinísticos e lint verdes; E2E terminou failed com 129 passes/3 skips/2 falhas de seletor legado H1 oculto em 360 px. Correção somente do seletor e foco 360 px 2/2 verdes, produto intacto. Revalidação runner 51372 consultada com lint0/E2E2/status failed; sem conclusão final ou causa inferida nesta atualização.
+- Backend 53 direcionados (35 notificações+18 pagamentos), Ruff e migrações 0001–0005 verdes. Foco QA inicial 3/5 failed preservado; corrigido 8/8, visual 6/6 e sino 2/2 verdes, sem somar focos/direcionados à integral. Fundo branco D06 e sino D02 circular/borda/ponto vermelho corrigidos antes da integral. Capturas 02/D02/04/D06 comparadas pelo QA; alvo/overflow medidos na central, não no sino do Início.
+- Segurança final em leitura sem bloqueantes após B09-final1 e rechecagem do snapshot; decisões auditadas sem escolhas pendentes. Revisores leram snapshots anteriores às últimas verificações; resultado recente atribuído à orquestração/QA. D09-2/3 realizam Q09-6/Q09-9 sob delegação, sem autorização autônoma por mera reversibilidade.
+- [Relatório](etapas/09-notificacoes/relatorio.md) em validação; faltam E2E integral verde, matriz/cleanup QA e Ajustes finais. P7 não resolvida até fechamento; P10 resolvida por delegação expressa, P11/destino pendente e P6 externa. Sem push/deploy ou abertura da 10.
+
+### 16/11/2026 — Etapa 09 integrada, em validação
+
+- Central/API/tipos/transportes/preferências/push integrados. DELETE por id de inscrição removido: UUID de instalação, tombstone causal, sessão HMAC terminal e logout nativo impedem POST atrasado/troca de conta; aliases de origem partilham fingerprint sem transferir vínculo. D09-2/D09-3 registrados. P7 snapshot novo mínimo; legado opaco sem enriquecimento, central-only antes da ativação persistida. Todos EventosPagamento da 07 sem corte, revogação terminal, leases/três tentativas/incerta e rotina ordenada 08→09 preservados.
+- Frontend congelado informa 110 Vitest/lint/tsc verdes; QA escreveu E2E, ainda não executado. Backend termina testes e segurança fecha parecer; sem contagem integral ou aprovação final. Desktop mantém tela/filtros/history pelo mesmo URL, direto `/avisos` fundo Início; Doop relido em leitura, frames draft. Prova de browser/visual ainda pendente.
+- DevOps comprovou transporte local real criptografado HTTPS/TLS/SNI/pin/VAPID e SMTP, beat/worker/dispatcher em rede interna com DB/broker efêmeros; rotina gerou ocorrência/aviso únicos, e e-mail local ficou aceito com uma tentativa. Configuração 07:00 e recuperação 300 s/dispatcher 60 s verificadas separadamente; não houve espera real às 07:00, provedor público, push em navegador ou entrega física garantida. Recursos temporários removidos, volumes/banco normais preservados.
+- [Relatório](etapas/09-notificacoes/relatorio.md) em validação, matriz do QA. P7 não resolvido até QA integral. P10 resolvida pela delegação expressa para composição Perfil na 11 (sem resposta literal/silêncio e sem implementação da 11 agora); P11/destino pendente e P6 externa. Ajustes atestados sem pendentes no chat, sem conector/remarcação/reexportação; sem push/deploy.
+
+### 16/11/2026 — Merge local da Etapa 08 e abertura da Etapa 09
+
+- Etapa 08 concluída nos commits `b5d516d` e `eadb1c2`; merge local `--no-ff` na main em `59e0cc5`. Resultado final: 448 pytest, 101 Vitest, tipos duas vezes determinísticos, lint e E2E 123 aprovados/3 skips; segurança B08-1–4 e decisões sem bloqueantes, QA/visual/cleanup confirmados. Sem push.
+- Aberta `etapa/09-notificacoes`; Q09-1–9/D09-1/ADR 0013 e spec/plano/tarefas integrados. Backend/DevOps em execução, relatório em construção sem testes/envios declarados. Central privada/revogação terminal; três tentativas totais e incerteza sem retry cego; todos EventosPagamento da 07 sem corte, legados RN21/P7 só central. Fluxo diário único gera/recupera 08 antes de avaliar avisos 09; leitura em lote alcança somente avisos próprios autorizados.
+- Dono delegou continuidade e atestou Ajustes sem pendentes no chat, sem conector ou reexportação. P7 é escopo em execução da 09, ainda não resolvido; P6 externa, P10/Perfil e P11/implantação preservadas. Próximos passos: schema/tipos, frontend nos frames existentes, provas reais/QA/segurança e consolidação, sem antecipar a 10 ou deploy.
 
 ### 16/11/2026 — Etapa 08 concluída, pronta para commit/merge local
 

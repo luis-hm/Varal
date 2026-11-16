@@ -252,6 +252,36 @@ CELERY_BEAT_SCHEDULE = {
 from celery.schedules import crontab  # noqa: E402
 
 CELERY_BEAT_SCHEDULE["gerar-recorrencias"] = {
-    "task": "apps.recorrencias.tasks.gerar_recorrencias",
+    "task": "apps.notificacoes.tasks.rotina_diaria",
     "schedule": crontab(hour=7, minute=0),
+}
+
+# Push credentials stay in worker; API needs only the public key and encrypted subscription key.
+WEBPUSH_ENABLED = env("WEBPUSH_ENABLED", "0") == "1"
+WEBPUSH_PUBLIC_KEY = env("WEBPUSH_PUBLIC_KEY", "")
+WEBPUSH_PRIVATE_KEY = env("WEBPUSH_PRIVATE_KEY", "")
+WEBPUSH_SUBJECT = env("WEBPUSH_SUBJECT", "")
+WEBPUSH_ALLOWED_HOSTS = frozenset(
+    filter(
+        None,
+        (
+            h.strip().lower()
+            for h in env(
+                "WEBPUSH_ALLOWED_HOSTS",
+                "fcm.googleapis.com,updates.push.services.mozilla.com,web.push.apple.com",
+            ).split(",")
+        ),
+    )
+)
+WEBPUSH_TIMEOUT_SECONDS = int(env("WEBPUSH_TIMEOUT_SECONDS", "10"))
+NOTIFICACOES_STORAGE_KEY = env("NOTIFICACOES_STORAGE_KEY", "")
+EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "10"))
+
+CELERY_BEAT_SCHEDULE["recuperar-rotina-notificacoes"] = {
+    "task": "apps.notificacoes.tasks.rotina_diaria",
+    "schedule": 300.0,
+}
+CELERY_BEAT_SCHEDULE["despachar-notificacoes"] = {
+    "task": "apps.notificacoes.tasks.despachar",
+    "schedule": 60.0,
 }

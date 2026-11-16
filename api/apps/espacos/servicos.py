@@ -131,6 +131,11 @@ def proteger_conta_restrita(sender, instance, **kwargs):
     orfas = restritas_de_quem_sai(instance)
     if orfas:
         raise ContaRestritaSemQuemVeja(orfas, mensagem=ContaRestritaSemQuemVeja.EXCLUIR)
+    # The collector otherwise nulls payer FKs without the RN21 history/outbox.
+    from apps.lancamentos.servicos import desligar_das_contas
+
+    for grupo in Espaco.objects.filter(membros__usuario=instance).order_by("pk"):
+        desligar_das_contas(instance, grupo)
 
 
 def criar_grupo(usuario, nome, casas=()):
@@ -218,6 +223,9 @@ def alterar_papel(grupo, membro_id, papel):
             preservar_acesso(grupo, membro.usuario)  # ADR 0008, before the role changes
         membro.papel = papel
         membro.save(update_fields=["papel"])
+        from apps.notificacoes.servicos import revogar_obsoletas
+
+        revogar_obsoletas(usuario=membro.usuario, grupo=grupo)
     return membro
 
 
@@ -288,6 +296,11 @@ def _desligar(grupo, voluntario, resolucoes=(), por=None, **filtro):
         contas.desligar_das_contas(usuario, grupo)
         _revogar_convites_de(grupo, membro.usuario_id)
         membro.delete()
+        from apps.notificacoes.servicos import agendar_consumo, revogar_obsoletas
+
+        revogar_obsoletas(usuario=usuario, grupo=grupo)
+        # One publication per departure regardless of hidden account count.
+        agendar_consumo()
 
 
 def remover_membro(grupo, membro_id, por=None):
