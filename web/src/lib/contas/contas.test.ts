@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { agrupar } from "@/components/bills/contas-pagina";
 import type { Conta, Historico } from "./client";
-import { dataCivil, lerValor, reais } from "./formato";
+import { dataCivil, lerValor, reais, totalConhecido, valorConta } from "./formato";
 import { linhaHistorico, texto } from "./historico";
 
 test("money: pt-BR input to cents and back", () => {
@@ -10,6 +10,13 @@ test("money: pt-BR input to cents and back", () => {
   expect(lerValor("0")).toBeNull();
   expect(lerValor("12,345")).toBeNull();
   expect(reais(287455).replace(/\s/g, " ")).toBe("R$ 2.874,55");
+});
+
+test("q08-1: valor desconhecido não vira zero e soma parcial é identificada", () => {
+  expect(valorConta(null)).toBe("Valor a definir");
+  expect(totalConhecido(12345, 2)).toBe("R$ 123,45 · 2 valores a definir");
+  expect(totalConhecido(12345, 0)).toBe("R$ 123,45");
+  expect(linhaHistorico(h({ acao: "editada", sou_eu: true, dados: { valor_centavos: [null, 250] } })).map(texto)[1]).toBe("valor: valor a definir → R$ 2,50");
 });
 
 test("data civil preserva dia e ano sem conversão de fuso", () => {
@@ -37,6 +44,7 @@ const linha = (p: Partial<Historico>) => linhaHistorico(h(p)).map(texto);
 test("rn22/rn30: automatic actions have no author, a deleted author reads Ex-membro", () => {
   expect(linha({ acao: "pagador_removido", automatica: true, dados: { pagador: ["Mãe", null] } })).toEqual(["Ficou sem pagador", "Mãe saiu do grupo"]);
   expect(linha({ acao: "cancelada_automaticamente", automatica: true })[0]).toBe("Cancelada automaticamente");
+  expect(linha({ acao: "criada", automatica: true, autor: null })).toEqual(["Conta gerada automaticamente", ""]);
   expect(linha({ acao: "criada", autor: "Ex-membro" })[0]).toBe("Ex-membro criou a conta");
   expect(linha({ acao: "editada", sou_eu: true, dados: { valor_centavos: [100, 250], motivo: "saida_rn32" } })).toEqual([
     "Você editou ao sair do grupo",

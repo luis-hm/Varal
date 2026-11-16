@@ -7,6 +7,14 @@ const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" 
 // Intl puts a no-break space after "R$"; the Doop copy uses a plain one.
 export const reais = (centavos: number) => brl.format(centavos / 100).replace(/\s/g, " ");
 
+/** An unknown amount is not zero and must remain identifiable in every account state. */
+export const valorConta = (centavos: number | null) => centavos === null ? "Valor a definir" : reais(centavos);
+
+/** Label a partial sum and the amount of missing values in the same visible universe. */
+export function totalConhecido(centavos: number, indefinidos: number): string {
+  return indefinidos ? `${reais(centavos)} · ${plural(indefinidos, "valor a definir", "valores a definir")}` : reais(centavos);
+}
+
 /** Hero number: "R$ 287" and ",43" (cents half size, .55 opacity in the Doop). */
 export function partesReais(centavos: number): [string, string] {
   const texto = reais(centavos);

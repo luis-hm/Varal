@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Icon } from "@/components/ui/icon";
 import { Nome } from "@/components/ui/nome";
 import type { Conta } from "@/lib/contas/client";
-import { metaConta, reais } from "@/lib/contas/formato";
+import { metaConta, valorConta } from "@/lib/contas/formato";
 import { StatusBadge } from "./status-badge";
 import styles from "./bill-card.module.css";
 
@@ -50,7 +50,7 @@ export function ContaCard({ conta, href, selected }: { conta: Conta; href: strin
     <BillCard
       title={conta.descricao}
       meta={metaConta(conta)}
-      value={reais(conta.valor_centavos)}
+      value={valorConta(conta.valor_centavos)}
       icon={<Icon name={conta.subgrupo ? "casa" : "manual"} size="md" />}
       status={<StatusBadge status={conta.status_exibido} />}
       href={href}

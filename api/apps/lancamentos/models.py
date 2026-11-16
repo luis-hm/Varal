@@ -75,8 +75,16 @@ class Lancamento(models.Model):
         related_name="lancamentos_a_pagar",
     )
     descricao = models.CharField(max_length=150)
-    valor_centavos = models.PositiveIntegerField()
+    valor_centavos = models.PositiveIntegerField(null=True, blank=True)
     vencimento = models.DateField()
+    recorrencia = models.ForeignKey(
+        "recorrencias.Recorrencia",
+        on_delete=models.RESTRICT,
+        null=True,
+        blank=True,
+        related_name="lancamentos",
+    )
+    competencia = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDENTE)
     visibilidade = models.CharField(
         max_length=10, choices=Visibilidade.choices, default=Visibilidade.GRUPO
@@ -98,10 +106,29 @@ class Lancamento(models.Model):
         indexes = [models.Index(fields=["espaco", "vencimento"])]
         constraints = [
             models.CheckConstraint(
-                condition=Q(valor_centavos__gt=0), name="lancamento_valor_positivo"
+                condition=(
+                    Q(valor_centavos__isnull=False, valor_centavos__gt=0)
+                    | Q(
+                        valor_centavos__isnull=True,
+                        status__in=(Status.AGUARDANDO, Status.CANCELADA),
+                    )
+                ),
+                name="lancamento_valor_positivo",
             ),
             models.CheckConstraint(
                 condition=Q(status__in=Status.values), name="lancamento_status_valido"
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(recorrencia__isnull=True, competencia__isnull=True)
+                    | Q(recorrencia__isnull=False, competencia__isnull=False, competencia__day=1)
+                ),
+                name="lancamento_competencia_pareada",
+            ),
+            models.UniqueConstraint(
+                fields=["recorrencia", "competencia"],
+                condition=Q(recorrencia__isnull=False),
+                name="lancamento_competencia_unica",
             ),
             models.CheckConstraint(
                 condition=Q(visibilidade__in=Visibilidade.values),
@@ -158,3 +185,11 @@ class Historico(models.Model):
 
     def __str__(self):
         return f"{self.acao} em {self.lancamento}"
+
+    @property
+    def automatica(self):
+        # Recurrence creation is system-authored and records the server-generated competence.
+        # A deleted author of an ordinary creation is still an ex-member, not the system.
+        return self.acao in self.AUTOMATICAS or (
+            self.acao == Acao.CRIADA and self.usuario_id is None and "competencia" in self.dados
+        )

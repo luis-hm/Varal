@@ -5,7 +5,7 @@ from django.utils import timezone
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
 from apps.espacos.acesso import DONO, lancamento_ou_404, membros_ids, pode, quem_ve
-from apps.espacos.models import Espaco, Membro, Papel
+from apps.espacos.models import Espaco, Membro, Papel, Subgrupo
 from apps.espacos.servicos import Conflito, _admins_travados
 from apps.lancamentos.models import Acao, Status, Visibilidade
 from apps.lancamentos.servicos import _historico
@@ -35,7 +35,7 @@ def pode_anexar(usuario, conta, pagamento):
     )
 
 
-def conta_travada(usuario, conta_id):
+def conta_travada(usuario, conta_id, casas_extra=()):
     inicial = lancamento_ou_404(usuario, conta_id)
     espaco = inicial.espaco
     if espaco.tipo == Espaco.Tipo.GRUPO:
@@ -47,6 +47,14 @@ def conta_travada(usuario, conta_id):
         )
     else:
         list(Espaco.objects.select_for_update().filter(pk=espaco.pk).values_list("pk", flat=True))
+    inicial = lancamento_ou_404(usuario, conta_id)
+    casas = {pk for pk in (*casas_extra, inicial.subgrupo_id) if pk}
+    list(
+        Subgrupo.objects.select_for_update()
+        .filter(espaco=espaco, pk__in=casas)
+        .order_by("pk")
+        .values_list("pk", flat=True)
+    )
     return lancamento_ou_404(usuario, conta_id, travar=True)
 
 

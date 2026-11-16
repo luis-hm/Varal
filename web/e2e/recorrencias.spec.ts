@@ -1,0 +1,236 @@
+// Etapa 08: dados sintéticos, API real; rodar nos projetos mobile e desktop.
+import { randomUUID } from "node:crypto";
+import path from "node:path";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+import type { components } from "../src/types/api";
+import { api, criarGrupo, descartarContas, entrarNoGrupo, hoje, logar, me, novaConta, semBadge } from "./fixtures";
+
+type CriarRecorrencia = components["schemas"]["CriarRecorrencia"];
+async function capturarFolha(page: Page, folha: Locator, nome: string, projeto: string) {
+  await folha.getByRole("heading", { name: "Nova conta" }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(__dirname, "__screens__", `${nome}-topo-${projeto}.png`), animations: "disabled" });
+  await folha.getByRole("button", { name: "Salvar conta" }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(__dirname, "__screens__", `${nome}-fundo-${projeto}.png`), animations: "disabled" });
+}
+test.beforeEach(async ({ page }) => { await page.addInitScript(semBadge); });
+test.afterEach(descartarContas);
+
+test("rn17/rn11: variável permanece desconhecida e fixa tem valor real", async ({ page, playwright }) => {
+  const pessoa = await novaConta(playwright);
+  const espaco = (await me(pessoa.request)).espaco_pessoal.id;
+  const criar = async (dados: CriarRecorrencia) => {
+    const resposta = await api(pessoa.request, "POST", `/api/espacos/${espaco}/recorrencias/`, dados);
+    expect(resposta.status(), await resposta.text()).toBe(201);
+    return resposta.json();
+  };
+  const variavel = await criar({ chave_idempotencia: randomUUID(), descricao: "Conta variável sintética", dia_vencimento: 15, valor_tipo: "variavel", valor_centavos: null });
+  const fixa = await criar({ chave_idempotencia: randomUUID(), descricao: "Conta fixa sintética", dia_vencimento: 15, valor_tipo: "fixo", valor_centavos: 12000 });
+  expect(variavel.ocorrencia).toMatchObject({ status: "aguardando", valor_centavos: null, competencia: `${hoje().slice(0, 7)}-01` });
+  expect(fixa.ocorrencia).toMatchObject({ status: "pendente", valor_centavos: 12000 });
+  const resumo = await (await pessoa.request.get(`/api/espacos/${espaco}/resumo/`)).json();
+  expect(resumo).toMatchObject({ total_centavos: 12000, valores_indefinidos_qtd: 1 });
+  const detalhe = await (await pessoa.request.get(`/api/lancamentos/${variavel.ocorrencia.id}/`)).json();
+  expect(detalhe.historico).toEqual(expect.arrayContaining([expect.objectContaining({ acao: "criada", automatica: true })]));
+  await logar(page, pessoa);
+  await page.goto(`/contas/${variavel.ocorrencia.id}`);
+  await expect(page.getByText("Valor a definir").filter({ visible: true }).first()).toBeVisible();
+  await expect(page.getByText("R$ 0,00", { exact: true }).filter({ visible: true })).toHaveCount(0);
+  await expect(page.getByText("Conta gerada automaticamente").filter({ visible: true })).toBeVisible();
+});
+
+test("q08-9: nonce preserva primeira ocorrência e mês errado não cria conta extra", async ({ playwright }) => {
+  const pessoa = await novaConta(playwright);
+  const espaco = (await me(pessoa.request)).espaco_pessoal.id;
+  const url = `/api/espacos/${espaco}/recorrencias/`;
+  const corpo: CriarRecorrencia = { chave_idempotencia: randomUUID(), descricao: "Conferência sintética", dia_vencimento: 20, valor_tipo: "variavel", valor_centavos: null, ocorrencia_inicial: { valor_centavos: 4321, vencimento: hoje() } };
+  const primeira = await api(pessoa.request, "POST", url, corpo);
+  expect(primeira.status(), await primeira.text()).toBe(201);
+  const criada = await primeira.json();
+  expect(criada.recorrencia.valor_centavos).toBeNull();
+  expect(criada.ocorrencia).toMatchObject({ status: "pendente", valor_centavos: 4321, vencimento: hoje() });
+  const retry = await api(pessoa.request, "POST", url, corpo);
+  expect(retry.status()).toBe(200);
+  expect((await retry.json()).ocorrencia.id).toBe(criada.ocorrencia.id);
+  const mesSeguinte = new Date(`${hoje().slice(0, 7)}-01T12:00:00Z`);
+  mesSeguinte.setUTCMonth(mesSeguinte.getUTCMonth() + 1);
+  const incorreta = { ...corpo, chave_idempotencia: randomUUID(), ocorrencia_inicial: { valor_centavos: 4321, vencimento: mesSeguinte.toISOString().slice(0, 10) } };
+  expect((await api(pessoa.request, "POST", url, incorreta)).status()).toBe(400);
+  const lista = await (await pessoa.request.get(url)).json();
+  expect(lista).toHaveLength(1);
+});
+
+test("q08-8: gestão pessoal alcança modelo pausado sem ocorrência visível", async ({ page, playwright }) => {
+  const pessoa = await novaConta(playwright);
+  const espaco = (await me(pessoa.request)).espaco_pessoal.id;
+  const corpo: CriarRecorrencia = { chave_idempotencia: randomUUID(), descricao: "Modelo pessoal pausado", dia_vencimento: 8, valor_tipo: "variavel", valor_centavos: null };
+  const resposta = await api(pessoa.request, "POST", `/api/espacos/${espaco}/recorrencias/`, corpo);
+  expect(resposta.status()).toBe(201);
+  const criada = await resposta.json();
+  expect((await api(pessoa.request, "POST", `/api/lancamentos/${criada.ocorrencia.id}/cancelar/`)).status()).toBe(200);
+  expect((await api(pessoa.request, "POST", `/api/recorrencias/${criada.recorrencia.id}/pausar/`)).status()).toBe(200);
+  page.on("dialog", (dialog) => dialog.accept());
+  await logar(page, pessoa);
+  await page.goto("/contas");
+  await page.getByRole("button", { name: "Recorrências" }).filter({ visible: true }).click();
+  let folha = page.getByRole("dialog", { name: "Recorrências" });
+  await folha.getByRole("button", { name: /Modelo pessoal pausado/ }).click();
+  folha = page.getByRole("dialog", { name: "Conta que se repete" });
+  await expect(folha.getByText(/Estado: pausada/)).toBeVisible();
+  await folha.getByRole("button", { name: "Retomar" }).click();
+  folha = page.getByRole("dialog", { name: "Recorrências" });
+  await folha.getByRole("button", { name: /Modelo pessoal pausado/ }).click();
+  folha = page.getByRole("dialog", { name: "Conta que se repete" });
+  await folha.getByRole("button", { name: "Encerrar" }).click();
+  const detalhe = await pessoa.request.get(`/api/lancamentos/${criada.ocorrencia.id}/`);
+  expect((await detalhe.json()).status).toBe("cancelada");
+  const modelo = await pessoa.request.get(`/api/recorrencias/${criada.recorrencia.id}/`);
+  expect((await modelo.json()).estado).toBe("encerrada");
+});
+
+test("q08-9: repetir PDF manual cria uma só cobrança com documento próprio", async ({ page, playwright }, info) => {
+  test.setTimeout(90_000);
+  const pessoa = await novaConta(playwright);
+  await logar(page, pessoa);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Nova conta" }).filter({ visible: true }).click();
+  const form = page.getByRole("dialog", { name: "Nova conta" });
+  const upload = page.waitForResponse((r) => r.request().method() === "POST" && /\/boletos\/pdf\/$/.test(new URL(r.url()).pathname));
+  await form.locator('input[type="file"]').setInputFiles(path.join(__dirname, "fixtures", "manual-sintetico.pdf"));
+  expect((await upload).status()).toBe(202);
+  await expect(form.getByLabel("Beneficiário", { exact: true })).toHaveValue("Exemplo Manual", { timeout: 40_000 });
+  await form.getByLabel("Valor", { exact: true }).fill("42,00");
+  await form.getByLabel("Vencimento", { exact: true }).fill(hoje());
+  await form.getByLabel("Descrição").fill("Recorrência PDF sintética");
+  await form.getByLabel("Repetir todo mês").check();
+  await capturarFolha(page, form, "recorrencia-pdf", info.project.name);
+  const envio = page.waitForResponse((r) => r.request().method() === "POST" && /\/recorrencias\/$/.test(new URL(r.url()).pathname));
+  await form.getByRole("button", { name: "Salvar conta" }).click();
+  const resposta = await envio;
+  expect(resposta.status(), await resposta.text()).toBe(201);
+  const criada = await resposta.json();
+  expect(criada.ocorrencia.documento_pdf.nome).toBe("manual-sintetico.pdf");
+  expect(criada.ocorrencia.status).toBe("pendente");
+  const espaco = (await me(pessoa.request)).espaco_pessoal.id;
+  const lista = await (await pessoa.request.get(`/api/espacos/${espaco}/lancamentos/`)).json();
+  expect(lista.itens.filter((c: { descricao: string }) => c.descricao === "Recorrência PDF sintética")).toHaveLength(1);
+});
+
+test("q08-9: chave Pix conferida pertence somente à primeira conta", async ({ page, playwright }, info) => {
+  const pessoa = await novaConta(playwright);
+  await logar(page, pessoa);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Nova conta" }).filter({ visible: true }).click();
+  const form = page.getByRole("dialog", { name: "Nova conta" });
+  await form.getByRole("button", { name: "Chave Pix", exact: true }).click();
+  await form.getByLabel("Chave Pix", { exact: true }).fill("contas@varal.test");
+  await form.getByRole("button", { name: "Conferir chave" }).click();
+  await expect(form.getByText("Pix conferido. Confira os dados antes de salvar.")).toBeVisible();
+  await form.getByLabel("Valor", { exact: true }).fill("42,00");
+  await form.getByLabel("Vencimento", { exact: true }).fill(hoje());
+  await form.getByLabel("Descrição").fill("Pix recorrente sintético");
+  await form.getByLabel("Repetir todo mês").check();
+  await capturarFolha(page, form, "recorrencia-pix", info.project.name);
+  const envio = page.waitForResponse((r) => r.request().method() === "POST" && /\/recorrencias\/$/.test(new URL(r.url()).pathname));
+  await form.getByRole("button", { name: "Salvar conta" }).click();
+  const resposta = await envio;
+  expect(resposta.status(), await resposta.text()).toBe(201);
+  const criada = await resposta.json();
+  expect(criada.ocorrencia.instrumento).toMatchObject({ tipo: "pix", chave_pix: "contas@varal.test", codigo: null });
+  const espaco = (await me(pessoa.request)).espaco_pessoal.id;
+  const lista = await (await pessoa.request.get(`/api/espacos/${espaco}/lancamentos/`)).json();
+  expect(lista.itens.filter((c: { descricao: string }) => c.descricao === "Pix recorrente sintético")).toHaveLength(1);
+});
+
+test("q08-3: edição mensal preserva modelo e próximos atualiza o modelo", async ({ page, playwright }) => {
+  const pessoa = await novaConta(playwright);
+  const espaco = (await me(pessoa.request)).espaco_pessoal.id;
+  const corpo: CriarRecorrencia = { chave_idempotencia: randomUUID(), descricao: "Conta mensal", dia_vencimento: 10, valor_tipo: "fixo", valor_centavos: 1000 };
+  const criada = await (await api(pessoa.request, "POST", `/api/espacos/${espaco}/recorrencias/`, corpo)).json();
+  const cid = criada.ocorrencia.id;
+  const rid = criada.recorrencia.id;
+  await logar(page, pessoa);
+  await page.goto(`/contas/${cid}`);
+  await page.getByRole("button", { name: "Editar conta" }).filter({ visible: true }).click();
+  let folha = page.getByRole("dialog", { name: "Editar conta" });
+  await folha.getByLabel("Descrição").fill("Exceção mensal");
+  await folha.getByRole("radio", { name: /Só este mês/ }).check();
+  await folha.getByRole("button", { name: "Salvar", exact: true }).click();
+  await expect(folha).toBeHidden();
+  expect((await (await pessoa.request.get(`/api/recorrencias/${rid}/`)).json()).descricao).toBe("Conta mensal");
+  await page.getByRole("button", { name: "Editar conta" }).filter({ visible: true }).click();
+  folha = page.getByRole("dialog", { name: "Editar conta" });
+  await folha.getByLabel("Descrição").fill("Nova série");
+  await folha.getByRole("radio", { name: /Este mês e próximos/ }).check();
+  await folha.getByRole("button", { name: "Salvar", exact: true }).click();
+  await expect(folha).toBeHidden();
+  expect((await (await pessoa.request.get(`/api/recorrencias/${rid}/`)).json()).descricao).toBe("Nova série");
+  expect((await (await pessoa.request.get(`/api/lancamentos/${cid}/`)).json()).competencia).toBe(`${hoje().slice(0, 7)}-01`);
+});
+
+test("q08-6: arquivar casa move visíveis sem expor recorrência restrita", async ({ page, playwright }) => {
+  const [admin, membro] = await Promise.all([novaConta(playwright), novaConta(playwright)]);
+  const grupo = await criarGrupo(admin, ["Casa de origem", "Casa de destino"]);
+  await entrarNoGrupo(admin, grupo.id, "membro", membro);
+  const dados = await (await admin.request.get(`/api/grupos/${grupo.id}/`)).json();
+  const origem = dados.casas.find((c: { nome: string }) => c.nome === "Casa de origem").id;
+  const destino = dados.casas.find((c: { nome: string }) => c.nome === "Casa de destino").id;
+  const criar = async (pessoa: typeof admin, descricao: string, visibilidade: "grupo" | "restrita") => {
+    const corpo: CriarRecorrencia = { chave_idempotencia: randomUUID(), descricao, dia_vencimento: 10, valor_tipo: "variavel", valor_centavos: null, subgrupo: origem, visibilidade };
+    const resposta = await api(pessoa.request, "POST", `/api/espacos/${grupo.id}/recorrencias/`, corpo);
+    expect(resposta.status()).toBe(201);
+    return resposta.json();
+  };
+  const visivel = await criar(admin, "Visível", "grupo");
+  const restrita = await criar(membro, "Privada", "restrita");
+  await logar(page, admin);
+  await page.goto(`/grupos/${grupo.id}`);
+  await page.getByRole("button", { name: /Casa de origem/ }).filter({ visible: true }).click();
+  await page.getByRole("dialog", { name: "Editar casa" }).getByRole("button", { name: "Arquivar casa" }).click();
+  const folha = page.getByRole("dialog", { name: "Arquivar casa" });
+  await expect(folha.getByText("1 conta · 1 recorrência")).toBeVisible();
+  await expect(folha.getByText("Privada")).toHaveCount(0);
+  await folha.getByRole("button", { name: "Casa de destino" }).click();
+  await folha.getByRole("button", { name: "Confirmar arquivamento" }).click();
+  await expect(folha).toBeHidden();
+  expect((await (await admin.request.get(`/api/recorrencias/${visivel.recorrencia.id}/`)).json()).subgrupo).toBe(destino);
+  expect((await admin.request.get(`/api/recorrencias/${restrita.recorrencia.id}/`)).status()).toBe(404);
+  expect((await (await membro.request.get(`/api/recorrencias/${restrita.recorrencia.id}/`)).json()).subgrupo).toBe(origem);
+});
+
+test("rnf08: rótulos de repetição e confirmação têm alvo e foco de teclado", async ({ page, playwright }) => {
+  const pessoa = await novaConta(playwright);
+  const espaco = (await me(pessoa.request)).espaco_pessoal.id;
+  const corpo: CriarRecorrencia = { chave_idempotencia: randomUUID(), descricao: "Aguardando confirmação", dia_vencimento: 10, valor_tipo: "variavel", valor_centavos: null };
+  const criada = await (await api(pessoa.request, "POST", `/api/espacos/${espaco}/recorrencias/`, corpo)).json();
+  await logar(page, pessoa);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Nova conta" }).filter({ visible: true }).click();
+  let folha = page.getByRole("dialog", { name: "Nova conta" });
+  const repeticao = folha.getByLabel("Repetir todo mês");
+  await folha.getByLabel("Descrição").focus();
+  await page.keyboard.press("Tab");
+  await expect(repeticao).toBeFocused();
+  expect(await repeticao.evaluate((el) => el.matches(":focus-visible") && getComputedStyle(el).outlineStyle !== "none")).toBe(true);
+  const labelRepeticao = repeticao.locator("xpath=..");
+  const caixaRepeticao = await labelRepeticao.boundingBox();
+  expect(caixaRepeticao!.width).toBeGreaterThanOrEqual(44);
+  expect(caixaRepeticao!.height).toBeGreaterThanOrEqual(44);
+  await labelRepeticao.getByText("Repetir todo mês").click();
+  await expect(repeticao).toBeChecked();
+  await page.keyboard.press("Escape");
+  await page.goto(`/contas/${criada.ocorrencia.id}`);
+  await page.getByRole("button", { name: "Editar conta" }).filter({ visible: true }).click();
+  folha = page.getByRole("dialog", { name: "Editar conta" });
+  await folha.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).filter((a) => a.effect?.getComputedTiming().endTime !== Infinity).map((a) => a.finished.catch(() => undefined))));
+  const confirmar = folha.getByLabel("Confirmar valor e vencimento desta conta");
+  await folha.getByLabel("Descrição").focus();
+  await page.keyboard.press("Tab");
+  await expect(confirmar).toBeFocused();
+  expect(await confirmar.evaluate((el) => el.matches(":focus-visible") && getComputedStyle(el).outlineStyle !== "none")).toBe(true);
+  const labelConfirmar = confirmar.locator("xpath=..");
+  const caixaConfirmar = await labelConfirmar.boundingBox();
+  expect(caixaConfirmar!.width).toBeGreaterThanOrEqual(44);
+  expect(caixaConfirmar!.height).toBeGreaterThanOrEqual(44);
+  await labelConfirmar.click({ position: { x: caixaConfirmar!.width - 5, y: caixaConfirmar!.height / 2 } });
+  await expect(confirmar).toBeChecked();
+});

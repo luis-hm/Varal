@@ -5,16 +5,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import { Field } from "@/components/ui/field";
 import { Folha } from "@/components/ui/folha";
 import { Icon } from "@/components/ui/icon";
 import { RadioCard } from "@/components/ui/radio-card";
-import { nomeMes, plural, reais } from "@/lib/contas/formato";
-import { useResumo } from "@/lib/contas/hooks";
+import { RecorrenciasFolha } from "@/components/recurrences/recorrencias-folha";
+import { RecurringRow } from "@/components/recurrences/recurring-row";
+import { nomeMes, plural, reais, totalConhecido } from "@/lib/contas/formato";
+import { useRecorrencias, useResumo } from "@/lib/contas/hooks";
 import { ApiError, type Casa, type GrupoDetalhe, type Membro, type Papel } from "@/lib/grupos/client";
-import { useAcoesGrupo, useConvitesPendentes, useGrupo } from "@/lib/grupos/hooks";
+import { useAcoesGrupo, useConvitesPendentes, useGrupo, usePreviewArquivamento } from "@/lib/grupos/hooks";
 import { expiraEm, iniciais, ordemPapeis, papeis } from "@/lib/grupos/papeis";
 import { ConviteFolha, useConvite } from "./convite-folha";
 import { HouseCard } from "./house-card";
@@ -55,6 +58,8 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
   const [membro, setMembro] = useState<Membro | null>(null);
   const [casa, setCasa] = useState<Casa | "nova" | null>(null);
   const [config, setConfig] = useState(false);
+  const [recorrencias, setRecorrencias] = useState(false);
+  const modelos = useRecorrencias(grupo.id);
   const [configN, setConfigN] = useState(0); // fresh form on every opening, kept mounted to return focus
   const abrirConfig = () => {
     setConfigN((n) => n + 1);
@@ -108,7 +113,7 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
                     <HouseCard
                       key={c.id}
                       label={c.nome}
-                      caption={resumo.data ? reais(total?.total_centavos ?? 0) : "…"}
+                      caption={resumo.data ? `${total?.valores_indefinidos_qtd ? "Total conhecido: " : ""}${totalConhecido(total?.total_centavos ?? 0, total?.valores_indefinidos_qtd ?? 0)}` : "…"}
                       caption-2={resumo.data ? total?.qtd ? `${total.pagas_qtd} de ${total.qtd} pagas em ${mes}` : `0 contas em ${mes}` : undefined}
                       progress={total?.qtd ? total.pagas_qtd / total.qtd * 100 : undefined}
                       onClick={admin ? () => setCasa(c) : undefined}
@@ -119,6 +124,10 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
             ) : (
               <p className={`${styles.card} ${styles.empty}`}>Nenhuma casa ainda.</p>
             )}
+          </section>
+          <section className={`${styles.in} ${styles.d2}`} aria-labelledby="recorrencias-t">
+            <div className={styles.sec}><h2 id="recorrencias-t">Contas que se repetem</h2><button type="button" className={styles.secAction} onClick={() => setRecorrencias(true)}>Ver todas</button></div>
+            <div className={styles.card}>{modelos.data?.length ? modelos.data.slice(0, 5).map((r) => <RecurringRow key={r.id} text={r.descricao} caption={`Dia ${r.dia_vencimento} · ${r.valor_tipo === "fixo" ? "valor fixo" : "valor muda"} · ${r.estado}`} vl={r.valor_centavos == null ? "Valor a definir" : reais(r.valor_centavos)} onClick={() => setRecorrencias(true)} />) : <p className={styles.empty}>{modelos.isPending ? "Carregando recorrências…" : modelos.error ? "Não foi possível carregar as recorrências." : "Nenhuma conta que se repete."}</p>}</div>
           </section>
         </div>
 
@@ -179,12 +188,13 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
       </div>
 
       <SairDoGrupo grupoId={grupo.id} grupoNome={grupo.nome} />
+      {recorrencias && <RecorrenciasFolha open espacoId={grupo.id} pessoal={false} onClose={() => setRecorrencias(false)} />}
 
       {admin && (
         <>
           <ConviteFolha grupoNome={grupo.nome} estado={convite} />
           <MembroFolha grupoId={grupo.id} membro={membro} onClose={() => setMembro(null)} />
-          <CasaFolha grupoId={grupo.id} casa={casa} onClose={() => setCasa(null)} />
+          <CasaFolha grupoId={grupo.id} casa={casa} casas={grupo.casas} onClose={() => setCasa(null)} />
           {configN > 0 && <ConfiguracoesFolha key={configN} open={config} grupo={grupo} onClose={() => setConfig(false)} />}
         </>
       )}
@@ -251,16 +261,22 @@ function MembroFolha({ grupoId, membro, onClose }: { grupoId: string; membro: Me
   );
 }
 
-function CasaFolha({ grupoId, casa, onClose }: { grupoId: string; casa: Casa | "nova" | null; onClose: () => void }) {
+function CasaFolha({ grupoId, casa, casas, onClose }: { grupoId: string; casa: Casa | "nova" | null; casas: Casa[]; onClose: () => void }) {
   const { criarCasa, alterarCasa } = useAcoesGrupo(grupoId);
   const [nome, setNome] = useState<string | null>(null);
+  const [arquivando, setArquivando] = useState(false);
+  const trava = useRef(false);
+  const [destino, setDestino] = useState<string | null>(null);
+  const preview = usePreviewArquivamento(grupoId, arquivando && casa && casa !== "nova" ? casa.id : undefined);
   const nova = casa === "nova";
   const valor = nome ?? (casa && !nova ? casa.nome : "");
   const erro = criarCasa.error?.message ?? alterarCasa.error?.message;
   const ocupado = criarCasa.isPending || alterarCasa.isPending;
 
   function fechar() {
+    if (trava.current) return;
     setNome(null);
+    setArquivando(false); setDestino(null);
     criarCasa.reset();
     alterarCasa.reset();
     onClose();
@@ -268,36 +284,47 @@ function CasaFolha({ grupoId, casa, onClose }: { grupoId: string; casa: Casa | "
 
   function salvar(event: FormEvent) {
     event.preventDefault();
+    if (trava.current) return;
     const limpo = valor.trim();
     if (!limpo) return;
-    if (nova) criarCasa.mutate(limpo, { onSuccess: fechar });
-    else if (casa) alterarCasa.mutate({ casa: casa.id, nome: limpo }, { onSuccess: fechar });
+    trava.current = true;
+    const sucesso = () => { trava.current = false; fechar(); };
+    const terminou = () => { trava.current = false; };
+    if (nova) criarCasa.mutate(limpo, { onSuccess: sucesso, onSettled: terminou });
+    else if (casa) alterarCasa.mutate({ casa: casa.id, nome: limpo }, { onSuccess: sucesso, onSettled: terminou });
+    else trava.current = false;
   }
 
   return (
     <Folha
       open={!!casa}
       onClose={fechar}
-      title={nova ? "Nova casa" : "Editar casa"}
+      busy={ocupado}
+      title={arquivando ? "Arquivar casa" : nova ? "Nova casa" : "Editar casa"}
       actions={
         <>
-          {!nova && casa && (
+          {arquivando && casa && !nova ? <Button tone="danger" label={ocupado ? "Arquivando…" : "Confirmar arquivamento"} disabled={ocupado || preview.isPending || !!preview.error} onClick={() => { if (trava.current) return; trava.current = true; alterarCasa.mutate({ casa: casa.id, arquivado: true, destino_subgrupo: destino }, { onSuccess: () => { trava.current = false; fechar(); }, onSettled: () => { trava.current = false; } }); }} /> : <>{!nova && casa && (
             <Button
               tone="ghost"
               label="Arquivar casa"
               disabled={ocupado}
               onClick={() => {
-                if (window.confirm(`Arquivar ${casa.nome}? Ela sai da lista do grupo.`)) alterarCasa.mutate({ casa: casa.id, arquivado: true }, { onSuccess: fechar });
+                setArquivando(true);
               }}
             />
           )}
-          <Button type="submit" form="casa-form" label={ocupado ? "Salvando…" : nova ? "Criar" : "Salvar"} disabled={ocupado || !valor.trim()} />
+          <Button type="submit" form="casa-form" label={ocupado ? "Salvando…" : nova ? "Criar" : "Salvar"} disabled={ocupado || !valor.trim()} /></>}
         </>
       }
     >
-      <form id="casa-form" className={styles.form} onSubmit={salvar}>
+      {arquivando ? <div className={styles.form}>
+        <p>Escolha onde deixar as contas abertas e recorrências que você pode alterar.</p>
+        {preview.isPending ? <p role="status">Carregando…</p> : preview.error ? <p role="alert">Não foi possível consultar a casa.</p> : preview.data && <p>{plural(preview.data.contas_qtd, "conta", "contas")} · {plural(preview.data.recorrencias_qtd, "recorrência", "recorrências")}</p>}
+        <div role="group" aria-label="Destino"><Chip label="Sem casa" state={destino === null ? "on" : "off"} onClick={() => setDestino(null)} />{casas.filter((c) => c.id !== (casa && casa !== "nova" ? casa.id : "") && !c.arquivado).map((c) => <Chip key={c.id} label={c.nome} wrap state={destino === c.id ? "on" : "off"} onClick={() => setDestino(c.id)} />)}</div>
+        {erro && <p role="alert" className={styles.erro}>{erro}</p>}
+      </div> : <form id="casa-form" className={styles.form} onSubmit={salvar}>
         <Field label="Nome da casa" value={valor} onChange={(e) => setNome(e.target.value)} maxLength={150} required autoFocus placeholder="Casa da praia" error={erro} />
-      </form>
+      </form>}
     </Folha>
   );
 }

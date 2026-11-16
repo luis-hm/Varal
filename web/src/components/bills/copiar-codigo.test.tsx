@@ -21,8 +21,10 @@ test("rf14: denied clipboard exposes and selects the whole key for manual copyin
   fireEvent.click(screen.getByRole("button", { name: "Copiar chave Pix" }));
   const campo = await screen.findByRole("textbox", { name: "Chave Pix para copiar manualmente" }) as HTMLTextAreaElement;
   expect(campo.value).toBe(codigo);
-  expect(document.activeElement).toBe(campo);
-  expect(campo.selectionStart).toBe(0);
-  expect(campo.selectionEnd).toBe(codigo.length);
+  await waitFor(() => {
+    expect(document.activeElement).toBe(campo);
+    expect(campo.selectionStart).toBe(0);
+    expect(campo.selectionEnd).toBe(codigo.length);
+  });
   expect(screen.getByRole("status").textContent).toBe("Selecione e copie o código abaixo.");
 });

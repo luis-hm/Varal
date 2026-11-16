@@ -106,6 +106,8 @@ def resolver_pessoas(historicos, membros):
 
     for h in historicos:
         dados = dict(h.dados)
+        # The bill can remain visible when its recurrence is not.
+        dados.pop("recorrencia_id", None)
         if "pagador" in dados:
             dados["pagador"] = [nome(i) for i in dados["pagador"]]
         if "acesso" in dados:
@@ -120,6 +122,9 @@ def _historico(conta, usuario, acao, dados=None):
 
 
 def criar(usuario, espaco, dados):
+    dados = dict(dados)
+    for campo in ("escopo", "confirmar_chegada", "valor_tipo"):
+        dados.pop(campo, None)
     with transaction.atomic():
         # The view's authorization may predate a departure, removal or role change. Freeze
         # membership mutations in the same admins -> member order, then re-read permission.
@@ -134,6 +139,12 @@ def criar(usuario, espaco, dados):
         else:
             list(Espaco.objects.select_for_update().filter(pk=espaco.pk).values("pk"))
         espaco = espaco_ou_404(usuario, espaco.pk, "criar_conta")
+        if dados.get("subgrupo"):
+            list(
+                Subgrupo.objects.select_for_update()
+                .filter(espaco=espaco, pk=dados["subgrupo"])
+                .values_list("pk", flat=True)
+            )
         dados = dict(dados)
         pdf = pdf_servicos.preparar_pdf(usuario, espaco, dados)
         instrumento = instrumentos.preparar(dados)
@@ -162,13 +173,22 @@ def _legivel(campo, valor):
 def editar(usuario, conta_id, dados):
     from apps.pagamentos.servicos import conta_travada
 
+    dados = dict(dados)
+    escopo = dados.pop("escopo", "mes")
+    if escopo == "proximos":
+        from apps.recorrencias.servicos import editar_proximos
+
+        return editar_proximos(usuario, conta_id, dados)
+    confirmar = dados.pop("confirmar_chegada", False)
+    dados.pop("valor_tipo", None)
     with transaction.atomic():
-        conta = conta_travada(usuario, conta_id)
+        conta = conta_travada(usuario, conta_id, casas_extra=(dados.get("subgrupo"),))
         if not pode(conta.espaco.meu_papel, "editar_conta"):
             raise PermissionDenied()
         if conta.status == Status.CANCELADA:
             raise Conflito("Conta cancelada não pode ser editada.")
         dados = dict(dados)
+        valor_anterior = conta.valor_centavos
         if (
             "valor_centavos" in dados
             and dados["valor_centavos"] != conta.valor_centavos
@@ -196,9 +216,19 @@ def editar(usuario, conta_id, dados):
             if antes != dados["acesso"]:
                 mudancas["acesso"] = [_ids(antes), _ids(dados["acesso"])]
                 conta.acesso.set(dados["acesso"])
-        if conta.status == Status.AGUARDANDO and instrumento.dados is not None:
-            mudancas["status"] = [Status.AGUARDANDO, Status.PENDENTE]
-            conta.status = Status.PENDENTE
+        if conta.status == Status.AGUARDANDO:
+            valor = dados.get("valor_centavos", conta.valor_centavos)
+            if confirmar:
+                if not valor or not dados.get("vencimento", conta.vencimento):
+                    raise ValidationError(
+                        {"confirmar_chegada": ["Confira valor e vencimento completos."]}
+                    )
+                mudancas["status"] = [Status.AGUARDANDO, Status.PENDENTE]
+                conta.status = Status.PENDENTE
+            elif valor != valor_anterior:
+                raise ValidationError(
+                    {"confirmar_chegada": ["Confirme a chegada para salvar o valor."]}
+                )
         if not mudancas:
             return conta
         conta.save()
@@ -218,7 +248,11 @@ def _cancelar(conta, usuario, acao=Acao.CANCELADA, dados=None):
     _historico(conta, usuario, acao, dados)
 
 
-def cancelar(usuario, conta_id):
+def cancelar(usuario, conta_id, escopo="mes"):
+    if escopo == "proximos":
+        from apps.recorrencias.servicos import cancelar_proximos
+
+        return cancelar_proximos(usuario, conta_id)
     from apps.pagamentos.servicos import conta_travada
 
     with transaction.atomic():

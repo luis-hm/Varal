@@ -14,8 +14,8 @@
 | 04 | Contas (núcleo) | concluída e integrada localmente à main (`fe48cbe`) | `etapa/04-contas` | 15/11/2026 (inicial); revisão 16/11/2026 | [relatorio](etapas/04-contas/relatorio.md) |
 | 05 | Boleto e Pix | concluída e integrada localmente à main (`e5c94e3`) | `etapa/05-boleto-pix` | 16/11/2026 | [relatorio](etapas/05-boleto-pix/relatorio.md) |
 | 06 | PDF do boleto | concluída e integrada localmente à main (`b21bd83`) | `etapa/06-pdf-boleto` | 16/11/2026 | [relatorio](etapas/06-pdf-boleto/relatorio.md) |
-| 07 | Pagamento | concluída; pronta para commit/merge local | `etapa/07-pagamento` | 16/11/2026 | [relatorio](etapas/07-pagamento/relatorio.md) |
-| 08 | Recorrência e agendador | pendente | — | — | — |
+| 07 | Pagamento | concluída e integrada localmente à main (`2599655`) | `etapa/07-pagamento` | 16/11/2026 | [relatorio](etapas/07-pagamento/relatorio.md) |
+| 08 | Recorrência e agendador | concluída; pronta para commit/merge local | `etapa/08-recorrencia-agendador` | 16/11/2026 | [relatorio](etapas/08-recorrencia-agendador/relatorio.md) |
 | 09 | Notificações | pendente | — | — | — |
 | 10 | Solicitação e modo simples | pendente | — | — | — |
 | 11 | Acabamento e deploy | pendente | — | — | — |
@@ -60,6 +60,32 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 ## Log
 
 Ordem cronológica inversa.
+
+
+### 16/11/2026 — Etapa 08 concluída, pronta para commit/merge local
+
+- Validação final: 448 pytest pós-B08-4, 101 Vitest após correção apenas de espera do teste Clipboard, tipos duas vezes determinísticos, lint integral verde e E2E final 123 aprovados/3 skips previstos (126 casos), runner passed/exit 0. Rodadas com falha ou interrompidas permanecem no relatório como resolvidas, sem serem contabilizadas como aprovação; direcionados não são somados à suíte.
+- Segurança B08-1–4 encerrados e decisões auditadas sem bloqueantes. Agendador real/catch-up/pausa/reinício/unicidade comprovados em recursos isolados removidos; agenda 07:00 Fortaleza verificada separadamente. QA consolida matriz e evidências finais. [Relatório](etapas/08-recorrencia-agendador/relatorio.md) concluído; commit/merge local ainda por executar, sem hash antecipado e sem push.
+- Dono atestou no chat ausência de Ajustes pendentes no fechamento; sem conector, marcação remota ou reexportação. P6 externa, P10/Perfil e P11/implantação preservadas. Continuidade autorizada: commit/merge local da 08 e abertura da 09; nenhuma implantação autorizada por silêncio.
+
+### 16/11/2026 — Etapa 08 após correção de autoria, rodada final em curso
+
+- B08-4 corrigido: geração automática é ação do sistema; criação manual cujo autor foi excluído continua Ex-membro. Propriedade central/serializer/formatter alinhados, duas regressões API verdes; sem schema/migração/ACL/reescrita. Segurança do delta sem bloqueante; B08-3 fechado e auditoria decisória anterior válida.
+- Pipeline posterior ao delta: 448 pytest e tipos duas vezes verdes; web parou em 100/101 num teste antigo assíncrono de foco Clipboard. Apenas o teste foi corrigido com espera mantendo foco/seleção; 2/2 focados, 101/101 web e lint/tsc verdes. Produto intacto após os 448. Os 446 anteriores não são o total atual; direcionados não são somados.
+- Rodada final atual: lint verde, E2E integral ainda executando, sem aprovação antecipada. Rodada anterior interrompida para B08-4 teve exit -15 solicitado e processos encerrados; a rodada com 118 passes/3 skips/3 falhas também não foi aprovação. QA confirmará resumo final, visual/foco/autoria, cleanup e matriz. Consolidação/revisão de Ajustes/commit/merge locais seguem pendentes; P6/P10/P11 preservadas, sem push.
+
+### 16/11/2026 — Etapa 08 em pré-fechamento, E2E integral ainda pendente
+
+- Recorrência/agenda/revisões/competências/idempotência, primeira cobrança com código/PDF, escopo e arquivamento autorizados integrados; schema/tipos e gestão pessoal/grupo conectados. Q08-1–10/D08-1/ADR 0012 preservam positivos legados em aguardando, autoria por UUID/papel atuais e revogação de pagador/escolhidos. Migrações aplicadas; coluna experimental removida por nova `recorrencias.0003`, sem reescrever as aplicadas.
+- Suíte: 446 pytest e 101 Vitest verdes, tipos duas vezes sem diferenças; runner parou em Ruff do arquivo QA. Após ajuste de fixture/import/formatação, Ruff e os 12 QA repetidos passaram; lint final verde. Backend direcionado 25 e QA 12 são evidências separadas, sem somar aos 446. Frontend 101/101 pós-B08-3, tsc/lint verdes substituem o resultado anterior de 99.
+- Beat/worker reais em banco/fila isolados comprovaram catch-up, meses pausados, reinício e unicidade. Agenda normal 07:00 Fortaleza validada separadamente com relógio Celery; intervalo curto de prova não equivale a espera real às 07:00. Recursos temporários removidos; serviços normais saudáveis, sem produção/transporte.
+- B08-3 fechado por reauditoria em leitura após base de edição por sessão e regressões; nenhum novo bloqueante. E2E integral terminou com 118 aprovados, 3 skips previstos e 3 falhas de testes (duas expectativas de Ver todas e helper de checkbox). Os 14 novos passaram juntos, mas a rodada está reprovada. QA corrige só testes com prova real de rótulo/foco; produto/API congelados e repetição integral pendente. O foco interrompido anterior de oito passes parciais não conta como aprovação. Faltam repetição final, confirmação visual/recursos encerrados, auditoria decisória e matriz QA. [Relatório](etapas/08-recorrencia-agendador/relatorio.md) em validação, sem conclusão antecipada. P6/P10/P11 preservadas; Ajustes finais ainda por conferir conforme delegação vigente, sem conector ou reexportação. Commit/merge local ainda dependem do fechamento; sem push.
+
+### 16/11/2026 — Merge local da Etapa 07 e início da Etapa 08
+
+- Etapa 07 concluída em `098b934`, merge local `--no-ff` na main em `2599655`. API 413 pytest e tipos determinísticos verdes; frontend 93 Vitest após correção do estado vazio, lint e E2E final 107 aprovados/3 skips previstos. Provas reais de PNG/PDF/S3/Celery, capturas mobile/desktop e segurança/auditoria sem bloqueantes. Nenhum processo Next da suíte permaneceu. Sem push.
+- Aberta `etapa/08-recorrencia-agendador`. Spec/plano/tarefas e Q08-1–9/ADR 0012 integrados por docs/decisor; abertura e triagem concluídas. Backend/frontend em implementação, relatório em construção e sem validação final declarada. NULL representa valor a definir; geração mensal é única por competência e não copia arquivo/código de outro mês. Primeira competência pode receber conferência atual na mesma transação, sem criar conta extra. Gestão pessoal e de grupo usa os componentes existentes; arquivamento atua só no que o admin já vê.
+- Ajustes: declaração vigente do dono no chat de que não há pendentes, sem conector ou reexportação. P6 externa, P10/Perfil e P11/deploy seguem específicos da etapa 11 e sem resposta. Continuidade autorizada: backend, tipos, frontend, provas do agendador, QA/segurança/docs e commits locais.
 
 
 ### 16/11/2026 — Etapa 07 concluída, pronta para commit/merge local

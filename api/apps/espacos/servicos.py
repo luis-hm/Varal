@@ -6,11 +6,12 @@ from collections import Counter
 from datetime import timedelta
 
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, NotFound, ValidationError
 
 from .models import Convite, Espaco, Membro, Papel, Subgrupo
 
@@ -248,6 +249,35 @@ def _desligar(grupo, voluntario, resolucoes=(), por=None, **filtro):
             raise UltimoAdmin()
         usuario = membro.usuario
         voluntario = voluntario or usuario == por  # an admin removing themselves is leaving
+        # Lock templates before bills. Drop explicit grants and responsibility on departure;
+        # The author remains recorded, and can regain access through current membership.
+        from apps.recorrencias.models import Recorrencia
+
+        afetadas = (
+            Recorrencia.objects.filter(espaco=grupo)
+            .filter(Q(criador=usuario) | Q(pagador=usuario) | Q(acesso=usuario))
+            .distinct()
+        )
+        modelos_ids = list(afetadas.values_list("pk", flat=True))
+        casas_ids = list(
+            afetadas.exclude(subgrupo__isnull=True).values_list("subgrupo_id", flat=True)
+        )
+        list(
+            Subgrupo.objects.select_for_update()
+            .filter(pk__in=casas_ids)
+            .order_by("pk")
+            .values_list("pk", flat=True)
+        )
+        list(
+            Recorrencia.objects.select_for_update()
+            .filter(pk__in=modelos_ids)
+            .order_by("pk")
+            .values_list("pk", flat=True)
+        )
+        Recorrencia.objects.filter(pk__in=modelos_ids, pagador=usuario).update(pagador=None)
+        Recorrencia.acesso.through.objects.filter(
+            recorrencia_id__in=modelos_ids, usuario=usuario
+        ).delete()
         orfas = contas.restritas_sem_quem_veja(grupo, usuario)
         if voluntario:
             contas.resolver_na_saida(usuario, grupo, resolucoes, orfas)
@@ -266,3 +296,64 @@ def remover_membro(grupo, membro_id, por=None):
 
 def sair(usuario, grupo, resolucoes=()):
     _desligar(grupo, voluntario=True, resolucoes=resolucoes, usuario=usuario)
+
+
+def arquivar_casa(usuario, grupo, casa_id, destino_id):
+    from apps.espacos.acesso import espaco_ou_404, lancamentos_visiveis, recorrencias_visiveis
+    from apps.lancamentos.models import ABERTOS, Acao, Lancamento
+    from apps.lancamentos.servicos import _historico
+    from apps.recorrencias.models import Recorrencia
+    from apps.recorrencias.servicos import travar_espaco
+
+    with transaction.atomic():
+        travar_espaco(usuario, grupo)
+        grupo = espaco_ou_404(usuario, grupo.pk, "gerenciar_grupo")
+        ids = [casa_id] + ([destino_id] if destino_id else [])
+        casas = {
+            c.pk: c
+            for c in Subgrupo.objects.select_for_update()
+            .filter(espaco=grupo, pk__in=ids)
+            .order_by("pk")
+        }
+        casa = casas.get(casa_id)
+        if casa is None:
+            raise NotFound()
+        if casa.arquivado:
+            raise Conflito("Casa já arquivada.")
+        destino = casas.get(destino_id) if destino_id else None
+        if destino_id and (not destino or destino.arquivado or destino.pk == casa.pk):
+            raise ValidationError({"destino_subgrupo": ["Escolha outra casa ativa deste grupo."]})
+        modelos_ids = list(
+            recorrencias_visiveis(usuario, grupo)
+            .filter(subgrupo=casa)
+            .exclude(estado="encerrada")
+            .order_by("pk")
+            .values_list("pk", flat=True)
+        )
+        modelos = list(
+            Recorrencia.objects.select_for_update().filter(pk__in=modelos_ids).order_by("pk")
+        )
+        conta_ids = list(
+            lancamentos_visiveis(usuario, grupo)
+            .filter(subgrupo=casa, status__in=ABERTOS)
+            .order_by("pk")
+            .values_list("pk", flat=True)
+        )
+        contas = list(
+            Lancamento.objects.select_for_update().filter(pk__in=conta_ids).order_by("pk")
+        )
+        for modelo in modelos:
+            modelo.subgrupo = destino
+            modelo.save(update_fields=["subgrupo", "atualizado_em"])
+        for conta in contas:
+            conta.subgrupo = destino
+            conta.save(update_fields=["subgrupo", "atualizado_em"])
+            _historico(
+                conta,
+                usuario,
+                Acao.EDITADA,
+                {"subgrupo": [casa.nome, destino.nome if destino else None]},
+            )
+        casa.arquivado = True
+        casa.save(update_fields=["arquivado"])
+        return casa

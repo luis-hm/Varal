@@ -307,7 +307,9 @@ def test_rn12_aguardando_anexa_instrumento_e_vira_pendente_atomicamente(f):
     assert conta.status == "aguardando" and conta.historico.count() == antes
     assert not Instrumento.objects.filter(lancamento=conta).exists()
     response = client.patch(
-        url(conta), {"instrumento": {"chave_pix": "+5585999999999"}}, content_type=JSON
+        url(conta),
+        {"instrumento": {"chave_pix": "+5585999999999"}, "confirmar_chegada": True},
+        content_type=JSON,
     )
     assert response.status_code == 200 and response.json()["status"] == "pendente"
     assert conta.historico.last().dados["status"] == ["aguardando", "pendente"]

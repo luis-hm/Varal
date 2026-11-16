@@ -16,11 +16,12 @@ export const useGrupos = () => useQuery({ queryKey: keys.lista, queryFn: api.lis
 export const useGrupo = (id: string, enabled = true) => useQuery({ queryKey: keys.grupo(id), queryFn: () => api.verGrupo(id), retry, enabled });
 export const useConvitesPendentes = (id: string, enabled: boolean) =>
   useQuery({ queryKey: keys.convites(id), queryFn: () => api.listarConvites(id), enabled, retry });
+export const usePreviewArquivamento = (id: string, casa: string | undefined) => useQuery({ queryKey: ["grupos", id, "arquivamento", casa], queryFn: () => api.previewArquivamento(id, casa!), enabled: !!casa, retry });
 
 // ["grupos"] prefixes every group query (list, detail, pending invites).
 function useInvalidar() {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: keys.lista });
+  return () => { for (const key of ["grupos", "contas", "recorrencias"]) void qc.invalidateQueries({ queryKey: [key] }); };
 }
 
 export const useCriarGrupo = () => {
@@ -37,7 +38,7 @@ export function useAcoesGrupo(id: string) {
     alterarPapel: useMutation({ mutationFn: ({ membro, papel }: { membro: string; papel: api.Papel }) => api.alterarPapel(id, membro, papel), ...opts }),
     remover: useMutation({ mutationFn: (membro: string) => api.removerMembro(id, membro), ...opts }),
     criarCasa: useMutation({ mutationFn: (nome: string) => api.criarCasa(id, nome), ...opts }),
-    alterarCasa: useMutation({ mutationFn: ({ casa, ...body }: { casa: string; nome?: string; arquivado?: boolean }) => api.alterarCasa(id, casa, body), ...opts }),
+    alterarCasa: useMutation({ mutationFn: ({ casa, ...body }: { casa: string } & Parameters<typeof api.alterarCasa>[2]) => api.alterarCasa(id, casa, body), ...opts }),
     // The invite URL carries a bearer token (RN31): keep it in memory only, drop it at once.
     criarConvite: useMutation({ mutationFn: (papel: api.Papel) => api.criarConvite(id, papel), gcTime: 0, ...opts }),
     revogarConvite: useMutation({ mutationFn: (convite: string) => api.revogarConvite(id, convite), ...opts }),

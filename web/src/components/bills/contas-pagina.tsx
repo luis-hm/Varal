@@ -12,9 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Folha } from "@/components/ui/folha";
 import { Icon } from "@/components/ui/icon";
+import { RecorrenciasFolha } from "@/components/recurrences/recorrencias-folha";
 import { ApiError } from "@/lib/grupos/client";
 import type { Conta, FiltroStatus, Lista } from "@/lib/contas/client";
-import { mesAno, mesAtual, nomeMes, plural, reais, somarMes } from "@/lib/contas/formato";
+import { mesAno, mesAtual, nomeMes, plural, somarMes, totalConhecido } from "@/lib/contas/formato";
 import { useConta, useContas } from "@/lib/contas/hooks";
 import { ContaCard } from "./bill-card";
 import { ContaDetalhe } from "./conta-detalhe";
@@ -54,6 +55,7 @@ export function ContasPagina({ contaId }: { contaId?: string }) {
   const espacoNome = contaId && conta.data ? conta.data.espaco.nome : espaco.nome;
   const lista = useContas(espacoId, { mes, status, subgrupo: casa, pagador });
   const [filtros, setFiltros] = useState(false);
+  const [recorrencias, setRecorrencias] = useState(false);
 
   const query = (mudar: Record<string, string | undefined>) => {
     const q = new URLSearchParams(params);
@@ -87,7 +89,7 @@ export function ContasPagina({ contaId }: { contaId?: string }) {
               {/* Q9: every month number names its month. */}
               {lista.data && (
                 <small className={styles.mobOnly}>
-                  Total de {nomeMes(lista.data.mes)}: {reais(lista.data.total_centavos)} · {espacoNome}
+                  {lista.data.valores_indefinidos_qtd ? "Total conhecido" : "Total"} de {nomeMes(lista.data.mes)}: {totalConhecido(lista.data.total_centavos, lista.data.valores_indefinidos_qtd)} · {espacoNome}
                 </small>
               )}
             </span>
@@ -96,9 +98,10 @@ export function ContasPagina({ contaId }: { contaId?: string }) {
             </Link>
           </nav>
         </header>
+        <Button tone="secondary" label="Recorrências" icon="repetir" onClick={() => setRecorrencias(true)} />
         {lista.data && (
           <p className={styles.sub}>
-            Total de {nomeMes(lista.data.mes)}: {reais(lista.data.total_centavos)} · {plural(lista.data.contagens.todas, "conta", "contas")}
+            {lista.data.valores_indefinidos_qtd ? "Total conhecido" : "Total"} de {nomeMes(lista.data.mes)}: {totalConhecido(lista.data.total_centavos, lista.data.valores_indefinidos_qtd)} · {plural(lista.data.contagens.todas, "conta", "contas")}
           </p>
         )}
 
@@ -127,7 +130,7 @@ export function ContasPagina({ contaId }: { contaId?: string }) {
             <section key={nome} aria-label={nome}>
               <p className={`${styles.grupo} ${styles.in}`} style={{ animationDelay: `${g * 0.12}s` }}>
                 <span>{nome}</span>
-                <span>{reais(contas.reduce((s, c) => s + c.valor_centavos, 0))}</span>
+                <span>{contas.some((c) => c.valor_centavos === null) ? "Total conhecido: " : ""}{totalConhecido(contas.reduce((s, c) => s + (c.valor_centavos ?? 0), 0), contas.filter((c) => c.valor_centavos === null).length)}</span>
               </p>
               <ul className={styles.cards}>
                 {contas.map((c, i) => (
@@ -177,6 +180,7 @@ export function ContasPagina({ contaId }: { contaId?: string }) {
           <FiltroChips titulo="Quem paga" valor={pagador} opcoes={opcoesPagador(lista.data)} todos="Todos" onEscolher={(v) => ir({ pagador: v })} />
         </Folha>
       )}
+      {recorrencias && espacoId && <RecorrenciasFolha open espacoId={espacoId} pessoal={conta.data ? conta.data.espaco.tipo === "pessoal" : espaco.tipo === "pessoal"} onClose={() => setRecorrencias(false)} />}
     </div>
   );
 }

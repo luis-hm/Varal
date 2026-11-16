@@ -460,7 +460,7 @@ def gestao(g):
         "arquivar_casa": (
             "patch",
             f"subgrupos/{casa.pk}/",
-            {"arquivado": True},
+            {"arquivado": True, "destino_subgrupo": None},
             lambda: not Subgrupo.objects.get(pk=casa.pk).arquivado,
         ),
     }
@@ -640,7 +640,7 @@ def rotas_do_grupo(g):
         ("patch", f"membros/{g.m['membro'].pk}/", {"papel": "admin"}),
         ("delete", f"membros/{g.m['membro'].pk}/", None),
         ("post", "subgrupos/", {"nome": "X"}),
-        ("patch", f"subgrupos/{g.casa.pk}/", {"arquivado": True}),
+        ("patch", f"subgrupos/{g.casa.pk}/", {"arquivado": True, "destino_subgrupo": None}),
     ]
 
 
@@ -699,7 +699,10 @@ def test_rf07_criar_renomear_arquivar_casa(g):
     renomeada = client.patch(url, {"nome": "Centro"}, content_type="application/json")
     assert renomeada.json() == {"id": casa, "nome": "Centro", "arquivado": False}
     assert (
-        client.patch(url, {"arquivado": True}, content_type="application/json").status_code == 200
+        client.patch(
+            url, {"arquivado": True, "destino_subgrupo": None}, content_type="application/json"
+        ).status_code
+        == 200
     )
     assert [c["nome"] for c in client.get(g.url).json()["casas"]] == ["Casa da praia"]
     assert Subgrupo.objects.get(pk=casa).arquivado is True

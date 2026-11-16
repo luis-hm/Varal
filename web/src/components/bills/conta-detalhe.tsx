@@ -8,6 +8,7 @@ import { useState, type ReactNode } from "react";
 import { TopBar } from "@/components/layout/top-bar";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { Nome } from "@/components/ui/nome";
+import { RecorrenciasFolha } from "@/components/recurrences/recorrencias-folha";
 import type { ContaDetalhe as Detalhe } from "@/lib/contas/client";
 import { dataCivil, dia, diaSemana, partesReais, prazo, quando } from "@/lib/contas/formato";
 import { useLinkPdfConta } from "@/lib/contas/hooks";
@@ -31,9 +32,10 @@ type Props = {
 
 export function ContaDetalhe({ conta, voltar }: Props) {
   const [editando, setEditando] = useState(false);
+  const [recorrencia, setRecorrencia] = useState(false);
   const [edicao, setEdicao] = useState(0); // fresh form state on every opening, kept mounted to return focus
   const pdf = useLinkPdfConta();
-  const [inteiro, centavos] = partesReais(conta.valor_centavos);
+  const [inteiro, centavos] = conta.valor_centavos === null ? ["Valor a definir", ""] : partesReais(conta.valor_centavos);
   const st = conta.status_exibido;
   const aberta = conta.status !== "cancelada" && conta.status !== "paga" && conta.status !== "confirmada";
   const podeEditar = conta.pode_editar && conta.status !== "cancelada";
@@ -51,6 +53,7 @@ export function ContaDetalhe({ conta, voltar }: Props) {
   // Ajuste 29: people's names and e-mails stay on one line (ellipsis + title); house names keep wrapping (decision 11).
   const linhas: [IconName, string, ReactNode][] = [
     ...(conta.subgrupo ? [["casa", "Casa", conta.subgrupo.nome] as [IconName, string, ReactNode]] : []),
+    ...(conta.recorrente ? [["repetir", "Repete", conta.pode_ver_recorrencia && conta.recorrencia_id ? <button type="button" key="r" onClick={() => setRecorrencia(true)}>Ver recorrência</button> : "Todo mês"] as [IconName, string, ReactNode]] : []),
     ...(conta.espaco.tipo === "grupo"
       ? ([
           ["perfil", "Quem paga", <Nome key="p">{!conta.pagador ? "Ninguém" : conta.pagador.sou_eu ? "Você" : conta.pagador.nome}</Nome>],
@@ -105,7 +108,7 @@ export function ContaDetalhe({ conta, voltar }: Props) {
           </div>
           <StatusBadge status={st} />
           <h1 className={styles.titulo}>{conta.descricao}</h1>
-          <p className={styles.valor} data-cancelada={conta.status === "cancelada" || undefined}>
+          <p className={styles.valor} data-indefinido={conta.valor_centavos === null || undefined} data-cancelada={conta.status === "cancelada" || undefined}>
             {inteiro}
             <span>{centavos}</span>
           </p>
@@ -169,6 +172,7 @@ export function ContaDetalhe({ conta, voltar }: Props) {
         <PagamentoAcoes key={conta.id} conta={conta} />
       </div>
       {edicao > 0 && <ContaFolha key={edicao} open={editando} onClose={() => setEditando(false)} conta={conta} />}
+      {recorrencia && conta.recorrencia_id && <RecorrenciasFolha open espacoId={conta.espaco.id} pessoal={conta.espaco.tipo === "pessoal"} inicial={conta.recorrencia_id} onClose={() => setRecorrencia(false)} />}
     </article>
   );
 }

@@ -10,6 +10,7 @@ const conta: ContaDetalhe = {
   espaco: { id: "p1", nome: "Pessoal", tipo: "pessoal" }, subgrupo: null, visibilidade: "grupo", acesso: [], quem_ve: [], pagador: null,
   criador: { nome: "Dev", sou_eu: true }, criado_em: "2026-11-01T12:00:00Z", historico: [], pode_editar: true,
   instrumento: null, documento_pdf: null, pagamento_ativo: null, pagamentos: [], pode_pagar: true, pode_desfazer_pagamento: false, pode_anexar_comprovante: false,
+  recorrente: false, recorrencia_id: null, competencia: null, pode_ver_recorrencia: false,
 };
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
