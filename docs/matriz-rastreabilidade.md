@@ -109,8 +109,21 @@ Casos de uso: CU05 = RF10 e RF11 (só o manual); CU06 = RF13; CU07 = RF12 (teste
 | 28 · `/contas/[id]` sem TabBar abaixo de 1024px | Vitest `ajuste 28: the bill detail (07) is a stacked screen without TabBar…` (`app-shell.test.tsx`); E2E `dec28: abaixo de 1024px /contas/[id] não tem TabBar e tem TopBar com voltar; no desktop o D03 segue…` e `ca29…` (formulário aberto a partir do Início) (`web/e2e/contas.spec.ts`) |
 | 29 · nomes e e-mails em uma linha | Vitest `ajuste 29: …` (3 em `nome.test.tsx`, 1 em `contas.test.ts`); E2E `dec29: e-mail longo sem nome fica em uma linha no BillCard, em Quem paga e na MemberRow…` (altura de uma linha, `scrollWidth > clientWidth`, `title` inteiro; 360px sem rolagem no mobile) (`web/e2e/contas.spec.ts`) |
 | 30 · espaço atual primeiro em "Onde fica" | Vitest `ajuste 30: …` (pessoal, grupo, observador; `conta-folha.test.tsx`); E2E `dec30: Nova conta abre com o espaço atual primeiro e selecionado…` (dois grupos e o pessoal) (`web/e2e/contas.spec.ts`) |
+| 31 · 404 uniforme (RN06/RNF01) | `test_rn06_rnf01_404_mesmas_consultas_inexistente_e_invisivel` (com e sem trava; `api/tests/test_contas.py`); compara consultas, sem afirmar tempo constante |
+| 33 · privacidade no admin (RN02/RN06) | `test_rn02_rn06_admin_django_filtra_contas_historicos_e_links`, `test_rn02_rn06_admin_django_exclusao_sem_previa_contas_pessoais` (`api/tests/test_contas.py`) |
+| 35 · vencidas abertas por data (ADR 0009) | `test_rn12_rf13_vencidas_abertas_por_data_sem_mudar_selo` (`api/tests/test_contas.py`): contagens, filtro e selo preservado |
+| 36/38 · pessoas relacionadas e Quem vê efetivo (RN06/RN30) | `test_rn06_quem_ve_inclui_criador_pagador_escolhidos_sem_duplicar`, `test_rn06_rn30_pagador_nome_email_so_de_quem_ve_conta_e_candidatos_saida` (`api/tests/test_contas.py`); Vitest `ajuste 29: detail Quem paga, Quem vê, Criada por and history keep a long…` (`nome.test.tsx`); E2E `dec38 rn06…` (`web/e2e/contas.spec.ts`) |
+| 39 · nomes de espaços (RN01) | E2E `dec39 rn01…` (`web/e2e/contas.spec.ts`): prefixos iguais, identificação completa e gravação no espaço escolhido |
+
+| Critério da revisão | Testes de concorrência (`api/tests/test_contas.py`) |
+| --- | --- |
+| CA35 · criação × desligamento | `test_rn01_rn05_criar_revalida_vinculo_apos_autorizacao`, `test_rn01_rn21_rn32_criacao_serializa_vinculos_com_desligamento` (criador, pagador e escolhido × saída, remoção e exclusão) |
+| CA36 · grupo → restrita × desligamento | `test_rn32_concorrencia_grupo_para_restrita_e_saida` (saída e remoção) |
+| CA37 · detalhe e resposta de edição consistentes | `test_rn06_detalhe_revalida_acesso_na_consulta_que_carrega_dados`, `test_rn06_detalhe_mantem_snapshot_ate_prefetch_e_historico`, `test_rn06_detalhe_espera_edicao_e_rele_acesso_em_snapshot_novo`, `test_rn06_resposta_propria_edicao_nao_le_edicao_alheia_posterior` |
 
 ## Validação da Etapa 04
+
+Revisão final em 16/11/2026: `make test` passou (235 pytest e 73 Vitest), `make lint` passou, `make types` preservou os hashes do schema e dos tipos, e `make e2e` passou (87 Playwright, 3 ignorados por projeto). Uma execução anterior teve dois timeouts de 45 s no cenário ca07; o limite específico foi ampliado para 75 s pela duração do fluxo de quatro usuários e três contextos, preservando as asserções. As capturas e a comparação visual foram registradas no relatório da etapa.
 
 Em 15/11/2026 (QA): `make test` passou (199 pytest, 65 Vitest; 204 pytest após as correções de segurança em f072ce5), `make lint` passou, `make types` regenerou sem diff e `make e2e` passou (74 Playwright e 2 ignorados de propósito: os testes de 360px rodam só no projeto mobile), sem nenhum 429. Uma execução anterior teve um 429 isolado no primeiro cadastro logo após o `make e2e` recriar a API (trava de cache do allauth com espera de 1 s em partida a frio); a reexecução completa passou. `web/e2e/contas.spec.ts` (12 testes × 2 resoluções) usa API e PostgreSQL reais, com usuários, grupos e contas criados pelo próprio teste. QA corrigiu: rolagem horizontal da vitrine em 360px (coluna do BillCard) e Chip com nome longo (e-mail de quem não tem nome) saindo da folha/modal (reticências). Screenshots em `web/e2e/__screens__/` (`inicio-*`, `contas-*`, `conta-detalhe-*`, `conta-form-*`, além de `grupo-*`); a comparação com 02/D02, 03/D03, 07 e 05/M01/06/M02 vai no relatório.
 

@@ -28,7 +28,7 @@
 ## O que "paga/confirmada" e boleto/Pix/PDF fazem aqui
 
 - Nenhum fluxo cria `paga`/`confirmada` (Etapa 07). O código já os trata: entram no filtro "Pagas" e não podem ser canceladas (409). **Nenhuma barra de pagas aparece até a 07** (Q12).
-- `aguardando` só nasce de recorrência variável (Etapa 08); é exibido se existir (seed), mas o formulário não o cria.
+- `aguardando` só nasce de recorrência variável (Etapa 08); é exibido se existir (seed), mas o formulário não o cria. As Etapas 05/06 passam a oferecer código/PDF, sem criar por isso uma conta `aguardando` avulsa. Sua leitura por prazo já segue Q04-26/Q04-35.
 - Boleto, Pix e PDF (05–06): sem `instrumento` nesta etapa; conta sem instrumento = manual. O formulário tem só descrição, valor, vencimento, casa, quem paga e quem vê.
 
 ## Ajustes incluídos
@@ -62,7 +62,7 @@ Componentes: BillCard (`Mwqabjlc2s`, novo, `web/src/components/bills/bill-card.t
 2. **Espaço atual:** cookie `espaco` (id), lido no servidor e validado contra `/api/me/`; inválido ou ausente → pessoal. O seletor grava o cookie e fica na seção atual se for Início/Contas, senão vai ao Início. Grupo onde o usuário é pagador → `/grupos/[id]/simples` (não grava). Em `/contas/[id]` a lista é a do espaço da conta. A API não confia no cookie: toda rota recebe o espaço explícito e passa pelo `acesso.py`.
 3. **`criador` e autor do histórico:** `on_delete=SET_NULL`; exibidos "Ex-membro" quando nulos. `pagador` também `SET_NULL`. `espaco`: `CASCADE`; `subgrupo`: `RESTRICT`.
 4. **Hoje** = `timezone.localdate()` (America/Fortaleza). `vencimento` é `DateField`; `criado_em` e histórico em UTC, exibidos em Fortaleza.
-5. **Calculado (só sobre `pendente`):** `vencida` se `vencimento < hoje`; `vence` se `hoje ≤ vencimento ≤ hoje + janela`; senão `pendente`.
+5. **Status exibido calculado (só sobre `pendente`):** `vencida` se `vencimento < hoje`; `vence` se `hoje ≤ vencimento ≤ hoje + janela`; senão `pendente`. **Prazo em filtros e contagens:** aplica os mesmos limites às abertas `pendente` e `aguardando`, preservando o selo Aguardando; lista e resumo mantêm seus períodos próprios ([ADR 0009](../../arquitetura/adr/0009-filtro-temporal-contas-abertas.md)).
 6. **Pessoal:** pagador = dono, visibilidade `grupo`, sem casa; o formulário esconde esses campos.
 7. **Escolhidos em "Quem vê":** novos escolhidos só com papel admin, membro ou observador (pela RN07 o pagador só vê as contas em que é o pagador). Quem já está em "Quem vê" e passou a pagador continua lá e vendo a conta (ADR 0008).
 8. **Ações automáticas no histórico** (`pagador_removido`, `cancelada_automaticamente`, `acesso_preservado`) não têm autor e não aparecem como "Ex-membro".
@@ -98,6 +98,17 @@ Componentes: BillCard (`Mwqabjlc2s`, novo, `web/src/components/bills/bill-card.t
 | Q23 | A conta "pagas" do varal do hero sai junto com a barra até a 07; o resumo não traz `pagas_qtd` |
 
 ## Critérios de aceite
+
+### Precisões da revisão delegada (15/11/2026)
+
+O dono informou no chat "no varal ajustes n tem nenhum pendente"; não houve leitura pelo conector. Sob sua delegação expressa de decisões e continuidade, o Codex ratificou os padrões e fechou as Q04 pendentes no [registro de decisões](decisoes.md#conferência-atual-e-decisões-delegadas-do-codex-15112026). Isto não equivale a implementar ou validar as correções abaixo.
+
+- **CA10/CA15/CA16 — prazo:** Vencidas inclui pendente e aguardando vencidas; resumo e contagens aplicam o mesmo predicado temporal. Aguardando mantém selo, e o período de cada tela continua explícito. Cobrir também hoje e o limite inclusivo da janela (ADR 0009).
+- **CA07/CA26 — privacidade:** uniformizar o caminho de consultas do 404 inexistente/invisível, sem prometer tempo constante. O admin do Django de lançamentos/históricos também respeita RN02/RN06, sem privilégio automático de visibilidade por superusuário; conferir relações, busca e contagens.
+- **CA22/CA26 — pessoas:** preservar Q04-23: membro atual por nome ou e-mail; ex-membro nunca pelo e-mail, histórico sem e-mail gravado. O detalhe traz apenas pessoas relacionadas à conta autorizada, e o 409 da saída apenas candidatos elegíveis necessários à resolução, sem listagem geral nova ao pagador.
+- **CA29/CA32 — identificação:** Quem vê tem um Nome por pessoa; cada nome em uma linha, com quebra entre pessoas. Nos seletores e em Onde fica, espaço/casa pode ocupar até duas linhas, com identificação completa disponível por toque/teclado quando ainda houver corte. Testar prefixos iguais antes de salvar, sem confirmação extra para o caso comum da Q04-30. Conferir o Doop antes da alteração e documentar a exceção sem editar o canvas.
+- **Etapa 07:** uma opção Ex-membro agrupa identidades preservadas de antigos pagadores, sem fundir ids históricos; pagador nulo continua Sem pagador, inclusive após exclusão do usuário (Q04-37).
+- **Infraestrutura:** M6 aceito somente no ambiente de desenvolvimento até `make dev`; produção permanece sem override de cadastro de E2E/CI. P6 continua exigindo reexportação externa, mas o ADR 0005 já rege o MVP sem categoria.
 
 Testes planejados; nomes e resultados reais vão no relatório. Testes de regra com o ID no nome.
 
@@ -137,6 +148,9 @@ Testes planejados; nomes e resultados reais vão no relatório. Testes de regra 
 | CA32 | **Dado** teclado, leitor de tela ou 360px, **quando** uso as telas, **então** status sempre com ícone e texto, alvos ≥ 44px, sem rolagem horizontal, valores em R$ pt-BR, datas em Fortaleza, movimento reduzido desliga `swing`, `count-up`, `rise`, `slide-in` e `badge-pulse`. | Vitest + Playwright RNF08/RNF09/RNF11 |
 | CA33 | **Dado** o contrato novo, **quando** rodo `make types`, **então** o schema valida e regenerar não produz diff. | `make types` |
 | CA34 | **Dado** a etapa pronta, **quando** encerro, **então** `make test`, `make lint` e E2E passam, revisão de segurança sem bloqueantes (visibilidade, IDOR, agregados, cookie, RN32, exceção da RN05, sinal ao admin) e docs/matriz atualizadas. | QA, segurança, relatório |
+| CA35 | **Dado** formulário aberto por membro autorizado, **quando** saída, remoção ou rebaixamento acontece junto à criação, **então** a autorização é revalidada sob travas compatíveis antes de gravar: ou a criação acontece primeiro com as guardas RN21/RN32 aplicadas à saída posterior, ou a criação é recusada sem conta/histórico parcial. | Regressões RN01/RN05/RN32 de autorização antiga e criação concorrente |
+| CA36 | **Dada** conta aberta de visibilidade grupo, **quando** uma edição a torna restrita junto à saída/remoção da última pessoa que a veria, **então** a RN32 permanece válida: saída voluntária bloqueia ou remoção cancela, sem restrita aberta órfã. | Regressões RN32 de conversão grupo → restrita concorrente |
+| CA37 | **Dada** leitura autorizada, **quando** outra operação revoga o acesso e grava novos dados antes da serialização, **então** GET não entrega esses novos dados restritos, inclusive pelo histórico; respostas de mutação preservam o resultado da própria operação, sem reler edições alheias posteriores pela exceção da própria perda de acesso. | Regressões RN06/RNF01 de detalhe concorrente e resposta de mutação |
 
 ## Fora de escopo
 

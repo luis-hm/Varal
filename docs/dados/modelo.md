@@ -58,11 +58,15 @@ Difere do bloco da especificação (RN04, RN31 / [ADR 0004](../arquitetura/adr/0
 
 ## Implementação da Etapa 04
 
-Difere do bloco da especificação (RN30, RN32, ADR 0005–0008). App `api/apps/lancamentos`, migração `0001`; `espacos.0006` restringe `janela_alerta_dias` a 1–7 (RN13).
+Difere do bloco da especificação (RN30, RN32, ADR 0005–0009). App `api/apps/lancamentos`, migração `0001`; `espacos.0006` restringe `janela_alerta_dias` a 1–7 (RN13). A revisão delegada altera consultas, apresentação e travas, sem migração adicional.
 
 - **`lancamento`:** `id`, `espaco` (`CASCADE`), `subgrupo?` (`RESTRICT`), `criador?` e `pagador?` (`SET_NULL`; criador nulo = "Ex-membro"), `descricao` (150), `valor_centavos` (> 0 no banco, RN11), `vencimento` (data civil), `status` (`aguardando|pendente|paga|confirmada|cancelada`, padrão `pendente`, validado no banco), `visibilidade` (`grupo|restrita`), `criado_em`, `atualizado_em`. Índice `(espaco, vencimento)`. Sem `categoria_id`, `tipo`, `recorrencia_id` nem `origem_id` (etapas futuras ou v3). `vence`/`vencida` não são gravados: `com_status` os calcula sobre `pendente` (RN12).
-- **`lancamento_acesso`:** tabela do `ManyToMany` `acesso` (`lancamento_id`, `usuario_id`): os escolhidos de uma restrita (RN06). Quem vê = criador, pagador e escolhidos; pagador do grupo só por pagador ou acesso explícito (ADR 0008).
-- **`historico`:** `id`, `lancamento` (`CASCADE`), `usuario?` (`SET_NULL`), `acao`, `dados` (JSON), `criado_em`; ordem `criado_em`. `dados` guarda **só ids de usuário**, nunca nome nem e-mail; a leitura resolve os nomes ("Pessoa sem nome" se não há nome; "Ex-membro" se a conta foi excluída). A casa vai pelo nome.
+- **`lancamento_acesso`:** tabela do `ManyToMany` `acesso` (`lancamento_id`, `usuario_id`): os escolhidos de uma restrita (RN06). Quem vê = criador, pagador e escolhidos atuais; pagador do grupo só por pagador ou acesso explícito (ADR 0008). O campo de API **`quem_ve`** calcula essa audiência efetiva, sem duplicatas, sem criar tabela/campo gravado; `acesso` continua sendo a seleção editável. `quem_ve` é vazio para conta pessoal ou de visibilidade grupo.
+- **`historico`:** `id`, `lancamento` (`CASCADE`), `usuario?` (`SET_NULL`), `acao`, `dados` (JSON), `criado_em`; ordem `criado_em`. Referências a pessoas em `dados` guardam **só ids de usuário**, nunca nome nem e-mail; a leitura resolve nome, "Pessoa sem nome" para membro atual sem nome ou "Ex-membro" para quem saiu/excluiu a conta. A casa vai pelo nome.
+
+**Prazo não é estado gravado:** filtros/contagens de vencidas e da janela abrangem abertas `pendente`/`aguardando` pela data; o selo aguardando não muda ([ADR 0009](../arquitetura/adr/0009-filtro-temporal-contas-abertas.md)). `aguardando` nasce da recorrência variável na 08; o cadastro avulso das Etapas 05/06 não passa a criá-lo por aceitar código/PDF.
+
+**Consistência e privacidade:** criar revalida autorização com travas de admins/membro; sair/remover/trocar papel considera todas as abertas em ordem de chave, inclusive públicas que possam ser convertidas em restritas. Exclusão de usuário trava admins de todos os grupos em que participa. Detalhe mantém a conta travada até serializar relações/histórico e revalida a autorização após adquirir a trava. O admin do Django filtra lançamentos/históricos pelo mesmo acesso, sem privilégio automático de superusuário; sua prévia de exclusão de usuário não expõe contas pessoais/restritas nem suas contagens.
 
 | `acao` | Autor | `dados` |
 | --- | --- | --- |

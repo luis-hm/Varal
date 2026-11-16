@@ -19,47 +19,47 @@ A coluna **Nº rel.** cruza com a tabela "Decisões para o dono confirmar" do re
 
 | ID | Nº rel. | Decisão | Motivo (fonte do desempate) | Como desfazer | Quem | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| Q04-1 | 1 | Limite de aceite (RN31): 10/h por usuário; por IP só com a P3 | Etapa 03, decisão 1 | Configuração do limite | `varal-backend` (03) | aguardando o dono |
-| Q04-2 | 2 | Token de convite com 256 bits (`token_urlsafe(32)`) | Etapa 03, Q1 | Tokens novos com outro tamanho; os emitidos expiram em 7 dias | `varal-backend` (03) | aguardando o dono |
-| Q04-3 | 3 | "Gerenciar papéis" (D04) escondido; o admin toca na linha do membro | Etapa 03, Q2 | Mostrar o botão | `varal-frontend` (03) | aguardando o dono |
-| Q04-4 | 4 | Sair do grupo vale para todo papel, inclusive observador e pagador | Etapa 03, Q3 | Regra de permissão em `espacos` | `varal-backend` (03) | aguardando o dono |
-| Q04-5 | 5 | O único admin não pode sair, com mensagem | Etapa 03, Q4 | Regra RN04 em `_desligar` | `varal-backend` (03) | aguardando o dono |
-| Q04-6 | 6 | Telas sem frame montadas com os componentes do `varal-ui` | Etapa 03, Q5 | Refazer quando houver frame | `varal-frontend` (03) | aguardando o dono |
-| Q04-7 | 7 | Fundo atrás da folha: `--scrim-sheet` ink 60% (o frame 11 pinta sólido) | Etapa 03, 3 | Trocar o token | `varal-frontend` (03) | aguardando o dono |
-| Q04-8 | 8 | Detalhe do seletor: `Grupo · <papel>` | Etapa 03, 4 | Texto do seletor | `varal-frontend` (03) | aguardando o dono |
-| Q04-9 | 9 | Confirmações por `window.confirm` nativo (agora também em "Cancelar conta") | Etapa 03, 5 | Trocar por folha/modal | `varal-frontend` (03, 04) | aguardando o dono |
-| Q04-10 | 10 | Foco no `<dialog>`: comportamento nativo | Etapa 03, 6 | Gestão de foco própria | `varal-frontend` (03) | aguardando o dono |
-| Q04-11 | 11 | Nomes longos de casa quebram no meio da palavra no mobile | Etapa 03, 7. Veja Q04-39 | CSS | `varal-frontend` (03) | aguardando o dono |
-| Q04-12 | 12 | Membro sem nome aparece pelo e-mail na página do grupo | Etapa 03, 8. A resposta da Q04-23 cita esta regra ("igual à lista de membros") | `MembroSerializer.get_email` | `varal-backend` (03) | aguardando o dono |
-| Q04-13 | 13 | Rotas `/`, `/contas?mes=&status=&casa=&pagador=`, `/contas/[id]`; as mesmas nas duas larguras | Spec 04, decisão 1 | Rotas do Next | orquestrador / `varal-docs` | aguardando o dono |
-| Q04-14 | 14 | Espaço atual no cookie `espaco`, validado contra `/api/me/`. Se for inválido, abre o pessoal. Grupo de pagador leva a `/grupos/[id]/simples` sem gravar o cookie | Spec 04, decisão 2 | `lib/espaco.ts` | orquestrador / `varal-docs` | aguardando o dono |
-| Q04-15 | 15 | `on_delete`: `criador`, `pagador` e autor do histórico `SET_NULL`; `espaco` `CASCADE`; `subgrupo` `RESTRICT` | Spec 04, decisão 3 | Migração (a troca de `CASCADE` apaga dados) | orquestrador / `varal-docs` | aguardando o dono |
-| Q04-16 | 16 | "Hoje" = `timezone.localdate()` (Fortaleza); `vencimento` é data civil | Spec 04, decisão 4; RNF11 | Código | orquestrador / `varal-docs` | aguardando o dono |
-| Q04-17 | 17 | Status calculado: só `pendente` vira `vence`/`vencida`. **A resposta da Q04-26 mudou parte disto; veja Q04-35** | Spec 04, decisão 5; RN12 | `com_status` | orquestrador / `varal-docs` | aguardando o dono |
-| Q04-18 | 18 | Conta pessoal: pagador = dono, visibilidade `grupo`, sem casa; campos escondidos no formulário | Spec 04, decisão 6 | Formulário e validação | orquestrador / `varal-docs` | aguardando o dono |
-| Q04-19 | 19 | "Quem vê": novos escolhidos só admin, membro ou observador; quem já estava e virou pagador continua | Spec 04, decisão 7; ADR 0008 | `validar` | orquestrador / `varal-docs` | aguardando o dono |
-| Q04-20 | 20 | Ações automáticas do histórico sem autor; nunca aparecem como "Ex-membro" | Spec 04, decisão 8 | `HistoricoSerializer` | orquestrador / `varal-docs` | aguardando o dono |
-| Q04-21 | 21 | Ação `acesso_removido` no histórico quando a RN21 tira alguém de "Quem vê" (`dados.pessoa`) | Desvio do plano (backend) | Nova ação; linhas gravadas ficam | `varal-backend` | aguardando o dono |
-| Q04-22 | 22 | `opcoes` dos filtros no corpo da lista: casas, pagadores e `sem_pagador`, só das contas visíveis do mês | Desvio do plano (backend); Q6 | Endpoint próprio | `varal-backend` | aguardando o dono |
+| Q04-1 | 1 | Limite de aceite (RN31): 10/h por usuário; por IP só com a P3 | Etapa 03, decisão 1 | Configuração do limite | Codex (delegação do dono) | decidida por delegação |
+| Q04-2 | 2 | Token de convite com 256 bits (`token_urlsafe(32)`) | Etapa 03, Q1 | Tokens novos com outro tamanho; os emitidos expiram em 7 dias | Codex (delegação do dono) | decidida por delegação |
+| Q04-3 | 3 | "Gerenciar papéis" (D04) escondido; o admin toca na linha do membro | Etapa 03, Q2 | Mostrar o botão | Codex (delegação do dono) | decidida por delegação |
+| Q04-4 | 4 | Sair do grupo vale para todo papel, inclusive observador e pagador | Etapa 03, Q3 | Regra de permissão em `espacos` | Codex (delegação do dono) | decidida por delegação |
+| Q04-5 | 5 | O único admin não pode sair, com mensagem | Etapa 03, Q4 | Regra RN04 em `_desligar` | Codex (delegação do dono) | decidida por delegação |
+| Q04-6 | 6 | Telas sem frame montadas com os componentes do `varal-ui` | Etapa 03, Q5 | Refazer quando houver frame | Codex (delegação do dono) | decidida por delegação |
+| Q04-7 | 7 | Fundo atrás da folha: `--scrim-sheet` ink 60% (o frame 11 pinta sólido) | Etapa 03, 3 | Trocar o token | Codex (delegação do dono) | decidida por delegação |
+| Q04-8 | 8 | Detalhe do seletor: `Grupo · <papel>` | Etapa 03, 4 | Texto do seletor | Codex (delegação do dono) | decidida por delegação |
+| Q04-9 | 9 | Confirmações por `window.confirm` nativo (agora também em "Cancelar conta") | Etapa 03, 5 | Trocar por folha/modal | Codex (delegação do dono) | decidida por delegação |
+| Q04-10 | 10 | Foco no `<dialog>`: comportamento nativo | Etapa 03, 6 | Gestão de foco própria | Codex (delegação do dono) | decidida por delegação |
+| Q04-11 | 11 | Nomes de casas podem quebrar, inclusive no meio de palavras longas no mobile; seletores de espaço/casa admitem até duas linhas e acesso ao valor completo quando houver corte (Q04-39) | Etapa 03, 7. Veja Q04-39 | CSS | Codex (delegação do dono) | decidida por delegação |
+| Q04-12 | 12 | Membro sem nome aparece pelo e-mail na página do grupo | Etapa 03, 8. A resposta da Q04-23 cita esta regra ("igual à lista de membros") | `MembroSerializer.get_email` | Codex (delegação do dono) | decidida por delegação |
+| Q04-13 | 13 | Rotas `/`, `/contas?mes=&status=&casa=&pagador=`, `/contas/[id]`; as mesmas nas duas larguras | Spec 04, decisão 1 | Rotas do Next | Codex (delegação do dono) | decidida por delegação |
+| Q04-14 | 14 | Espaço atual no cookie `espaco`, validado contra `/api/me/`. Se for inválido, abre o pessoal. Grupo de pagador leva a `/grupos/[id]/simples` sem gravar o cookie | Spec 04, decisão 2 | `lib/espaco.ts` | Codex (delegação do dono) | decidida por delegação |
+| Q04-15 | 15 | `on_delete`: `criador`, `pagador` e autor do histórico `SET_NULL`; `espaco` `CASCADE`; `subgrupo` `RESTRICT` | Spec 04, decisão 3 | Migração (a troca de `CASCADE` apaga dados) | Codex (delegação do dono) | decidida por delegação |
+| Q04-16 | 16 | "Hoje" = `timezone.localdate()` (Fortaleza); `vencimento` é data civil | Spec 04, decisão 4; RNF11 | Código | Codex (delegação do dono) | decidida por delegação |
+| Q04-17 | 17 | Status exibido: só `pendente` vira `vence`/`vencida`; filtros e contagens temporais de abertas incluem `aguardando`, sem mudar seu selo (Q04-35, ADR 0009) | Spec 04, decisão 5; RN12 | `com_status` | Codex (delegação do dono) | decidida por delegação |
+| Q04-18 | 18 | Conta pessoal: pagador = dono, visibilidade `grupo`, sem casa; campos escondidos no formulário | Spec 04, decisão 6 | Formulário e validação | Codex (delegação do dono) | decidida por delegação |
+| Q04-19 | 19 | "Quem vê": novos escolhidos só admin, membro ou observador; quem já estava e virou pagador continua | Spec 04, decisão 7; ADR 0008 | `validar` | Codex (delegação do dono) | decidida por delegação |
+| Q04-20 | 20 | Ações automáticas do histórico sem autor; nunca aparecem como "Ex-membro" | Spec 04, decisão 8 | `HistoricoSerializer` | Codex (delegação do dono) | decidida por delegação |
+| Q04-21 | 21 | Ação `acesso_removido` no histórico quando a RN21 tira alguém de "Quem vê" (`dados.pessoa`) | Desvio do plano (backend) | Nova ação; linhas gravadas ficam | Codex (delegação do dono) | decidida por delegação |
+| Q04-22 | 22 | `opcoes` dos filtros no corpo da lista: casas, pagadores e `sem_pagador`, só das contas visíveis do mês | Desvio do plano (backend); Q6 | Endpoint próprio | Codex (delegação do dono) | decidida por delegação |
 | Q04-23 | 23 | Nome de pessoa por contexto (veja as palavras do dono abaixo) | Dono, 15/11/2026 | — | dono | respondida |
-| Q04-24 | 24 | Ordem das travas: admins → membro (`FOR UPDATE OF self`) → todas as restritas abertas do grupo por `pk` → contas da RN21; `editar` e `cancelar` travam só a conta. Vale para sair, remover, trocar papel e excluir usuário | Segurança I1/M1. Pela régua de custo seria uma decisão interna, mas fica aqui porque o dono pediu para confirmar | Código (`espacos.servicos`) | `varal-backend` | aguardando o dono |
-| Q04-25 | 25 | O aviso ao removido fica para a Etapa 09 (P7); a 04 só grava `cancelada_automaticamente` com `dados.removido` | ADR 0006; Q17 | Antecipar o aviso | `varal-backend` / `varal-docs` | aguardando o dono |
+| Q04-24 | 24 | Ordem das travas: admins → membro (`FOR UPDATE OF self`) → todas as contas abertas do grupo por `pk` → contas da RN21; `editar` e `cancelar` travam só a conta. Criação trava admins/membro e revalida autorização; exclusão trava admins de todos os grupos. Detalhe trava a conta antes de consultar autorização em novo comando e mantém a trava até serializar | Segurança I1/M1 e revisão B1–B3 (D04-15); incluir públicas cobre conversão concorrente para restrita | Código (`espacos.servicos`, `lancamentos.servicos/views`) | Codex (delegação do dono) | decidida por delegação |
+| Q04-25 | 25 | O aviso ao removido fica para a Etapa 09 (P7); a 04 só grava `cancelada_automaticamente` com `dados.removido` | ADR 0006; Q17 | Antecipar o aviso | Codex (delegação do dono) | decidida por delegação |
 | Q04-26 | 26 | "Precisa de atenção" com `aguardando`, pelo critério de data (veja as palavras do dono abaixo) | Dono, 15/11/2026 | — | dono | respondida |
 | Q04-27 | 27 | Vazio no lugar da barra do D02: corrigir agora | Dono, 15/11/2026 | — | dono | respondida |
 | Q04-28 | 28 | Sem TabBar no detalhe mobile | Dono, 15/11/2026 | — | dono | respondida |
 | Q04-29 | 29 | Nomes e e-mails longos em uma linha, com reticências | Dono, 15/11/2026. Veja Q04-38 e Q04-39 | — | dono | respondida |
 | Q04-30 | 30 | "Onde fica" começa pelo espaço atual, já selecionado | Dono, 15/11/2026 | — | dono | respondida |
-| Q04-31 | — | Segurança M2: uma consulta a mais em `lancamento_ou_404` quando a conta existe num espaço do usuário | Aceito pelo `varal-seguranca`. O dono pediu para confirmar os quatro aceitos | Código | `varal-seguranca` | aguardando o dono |
-| Q04-32 | — | Segurança M4: o pagador recebe nomes de membros no 409 da saída (`pessoas`) | Aceito pelo `varal-seguranca` (ADR 0007). Depois da resposta 23, o 409 também leva e-mails: veja Q04-36 | `pessoas_para_escolher` | `varal-seguranca` | aguardando o dono |
-| Q04-33 | — | Segurança M5: o admin do Django mostra restritas ao superusuário; a minimização de dados fica para a Etapa 11 | Aceito pelo `varal-seguranca` | Admin do Django | `varal-seguranca` | aguardando o dono |
-| Q04-34 | — | Segurança M6: o container `api` de dev herda `ACCOUNT_RATE_LIMIT_SIGNUP` do último `make e2e` até o próximo `make dev` | Aceito pelo `varal-seguranca`. Só dev; reversível | `make dev` recria | `varal-seguranca` | aguardando o dono |
-| Q04-35 | — | "Vencida" com `aguardando`: o hero conta pela data; o chip e o filtro "Vencidas" contam pelo status | Auditoria (4c9a1b2). Veja a pergunta | Código; nenhum dado gravado | `varal-backend` | aguardando o dono |
-| Q04-36 | — | E-mail de membro sem nome entregue a quem tem papel pagador (409 da saída e detalhe) | Auditoria (4c9a1b2). Veja a pergunta | `rotulo` | `varal-backend` | aguardando o dono |
-| Q04-37 | — | Vários "Ex-membro" iguais nas opções do filtro "Quem paga" (a partir da 07) | Auditoria (4c9a1b2). Veja a pergunta | `opcoes` | `varal-backend` | aguardando o dono |
-| Q04-38 | — | "Quem vê" do detalhe: a lista inteira cortada numa linha só | Auditoria (3d4ba32). Veja a pergunta | JSX/CSS | `varal-frontend` | aguardando o dono |
-| Q04-39 | — | Nome de espaço (grupo) cortado no seletor e nos Chips de "Onde fica"; casa continua quebrando | Auditoria (3d4ba32, 19fb5fe). Veja a pergunta | CSS | `varal-frontend`, `varal-qa` | aguardando o dono |
+| Q04-31 | — | M2: corrigir o caminho de consultas do 404 para não escolher consultas pela existência de conta invisível; preservar corpo/status uniformes, sem promessa de tempo constante | Aceito pelo `varal-seguranca`. O dono pediu para confirmar os quatro aceitos | Código | Codex (delegação do dono) | decidida por delegação |
+| Q04-32 | — | M4: manter nome/e-mail de membro atual por contexto; 409 da própria saída só com candidatos elegíveis necessários à resolução (Q04-36) | Aceito pelo `varal-seguranca` (ADR 0007). Depois da resposta 23, o 409 também leva e-mails: veja Q04-36 | `pessoas_para_escolher` | Codex (delegação do dono) | decidida por delegação |
+| Q04-33 | — | M5: aplicar RN02/RN06 ao Django admin de lançamentos e histórico agora, sem acesso automático por superusuário; cobrir relações, buscas e contagens indiretas | Aceito pelo `varal-seguranca` | Admin do Django | Codex (delegação do dono) | decidida por delegação |
+| Q04-34 | — | M6: aceitar o override residual apenas em desenvolvimento até `make dev`; manter o padrão fora de E2E/CI e verificar isolamento na produção | Aceito pelo `varal-seguranca`. Só dev; reversível | `make dev` recria | Codex (delegação do dono) | decidida por delegação |
+| Q04-35 | — | Filtro e contagem Vencidas incluem abertas `pendente`/`aguardando` vencidas pela data; `aguardando` mantém selo e estado gravado (ADR 0009) | Auditoria (4c9a1b2). Veja a pergunta | Código; nenhum dado gravado | Codex (delegação do dono) | decidida por delegação |
+| Q04-36 | — | Preservar Q04-23: membro atual com nome ou e-mail; ex-membro nunca com e-mail. Detalhe só com pessoas da conta autorizada; 409 só com candidatos necessários; nenhuma lista geral nova ao pagador | Auditoria (4c9a1b2). Veja a pergunta | `rotulo` | Codex (delegação do dono) | decidida por delegação |
+| Q04-37 | — | Na Etapa 07, uma opção Ex-membro agrupa pagadores de identidade preservada que saíram do grupo; sem fundir ids históricos. Pagador nulo continua Sem pagador, inclusive após exclusão do usuário | Auditoria (4c9a1b2). Veja a pergunta | `opcoes` | Codex (delegação do dono) | decidida por delegação |
+| Q04-38 | — | Lista Quem vê com um Nome por pessoa: cada nome em uma linha com reticências, lista quebra entre pessoas e não depende de hover para revelar seus participantes | Auditoria (3d4ba32). Veja a pergunta | JSX/CSS | Codex (delegação do dono) | decidida por delegação |
+| Q04-39 | — | Nomes de espaço/casa admitem até duas linhas nos seletores e em Onde fica; se ainda houver corte, identificação completa acessível por toque/teclado antes de salvar | Auditoria (3d4ba32, 19fb5fe). Veja a pergunta | CSS | Codex (delegação do dono) | decidida por delegação |
 | D04-1 | — | O hero do D02 virou grade de 2 colunas sem altura fixa, com o varal de 560px à direita | Resposta 27 ("o container deve encolher") e as medidas do frame D02 | CSS de `inicio.module.css` | `varal-frontend` | decidida |
-| D04-2 | — | Tokens `--hero-padding-y` (28px) e `--hero-varal-width` (560px), com valores do D02, sem mudança visual. Falta listá-los em [tokens](../../design/tokens.md#fora-do-doop) | Frame D02; padrão do bloco "fora do Doop" | Voltar aos valores no CSS | `varal-frontend` | decidida |
+| D04-2 | — | Tokens `--hero-padding-y` (28px) e `--hero-varal-width` (560px), com valores do D02, sem mudança visual, já listados em [tokens](../../design/tokens.md#fora-do-doop) | Frame D02; padrão do bloco "fora do Doop" | Voltar aos valores no CSS | `varal-frontend` | decidida |
 | D04-3 | — | A pílula "N contas" fica no hero; só sai o vazio | CA16 ("o hero mostra o total do mês, a contagem e o varal") e frame D02; a resposta 27 pediu só o fim do vazio | JSX | `varal-frontend` | decidida |
 | D04-4 | — | No detalhe mobile, os estados "Carregando", erro e "Conta não encontrada" também têm TopBar com voltar. A TabBar some pela rota `/contas/[id]`, que o pagador também usa | Resposta 28 ("tela empilhada, com TopBar e voltar"); sem TabBar, esses estados ficariam sem saída | `app-shell.tsx`, `contas-pagina.tsx` | `varal-frontend` | decidida |
 | D04-5 | — | Saudação do Início ("Boa noite, <primeiro nome>") em uma linha, com reticências e `title`. Sem nome, usa o começo do e-mail do próprio usuário | Resposta 29 | CSS | `varal-frontend` | decidida |
@@ -71,6 +71,8 @@ A coluna **Nº rel.** cruza com a tabela "Decisões para o dono confirmar" do re
 | D04-11 | — | `make limpar-dev`: além do que o dono listou, apaga `e2e-*@varal.test` e os grupos que ficam sem membros. Só roda com DEBUG, mostra a prévia e pede confirmação (`SIM=1` pula). Usuários de teste em grupos reais saem pelo caminho da remoção pelo admin (RN21/RN32: canceladas, nunca apagadas). Nunca apaga o `dev` | Pedido do dono ("crie um alvo make para limpar"). É o mesmo tipo de dado: contas `@varal.test` do QA | Tirar os padrões de `limpar_dev.py` | `varal-devops` | decidida |
 | D04-12 | — | Node 22 por `web/.nvmrc` (lido pelo CI) e `engines`; o `make` para com Node < 22 | Pedido do dono ("alinhe o ambiente local") | Arquivos de build | `varal-devops` | decidida |
 | D04-13 | — | CI com `workflow_dispatch` nos dois workflows | Pedido do dono ("CI que não dispara"). A causa não foi registrada: veja os achados | Tirar o gatilho | `varal-devops` | decidida |
+| D04-14 | — | Detalhe restrito ganha `quem_ve` somente leitura com participantes atuais efetivos da RN06 (criador, pagador e escolhidos, deduplicados); `acesso` continua sendo só a seleção editável | Auditoria Q04-38: listar só os escolhidos omitia quem também via implicitamente; delegação atual do dono | Remover campo e apresentação, sem alterar dados gravados | Codex e agentes de backend/frontend | decidida por delegação |
+| D04-15 | — | Criação revalida papel sob as travas comuns de saída; saídas/trocas/exclusão travam todas as abertas, inclusive ainda públicas; detalhe adquire trava em comando separado antes de ler dados autorizados e serializar. Respostas de mutação ficam na transação externa da própria operação | B1–B3 reproduzidos em regressões; em READ COMMITTED um comando que espera FOR UPDATE pode conservar snapshots antigos das outras relações. [PostgreSQL](https://www.postgresql.org/docs/current/transaction-iso.html) | Serviços/views e testes de concorrência, sem mudar dados persistidos | Codex, varal-backend e varal-seguranca | decidida |
 
 ## Respostas do dono (15/11/2026, mensagem "Etapa 04 aprovada")
 
@@ -104,7 +106,53 @@ Palavras do dono, sem edição.
 
 Na mesma mensagem, o dono pediu Node 22+, a causa do CI mudo e um alvo `make` de limpeza (D04-11 a D04-13). Disse também: "Me mande a seção de decisões do relatorio.md (1 a 24) e os quatro achados de segurança aceitos. Confirmo as que faltam e aí você faz o merge na main."
 
-## Perguntas abertas
+## Triagem preparatória do Codex (15/11/2026, registro histórico)
+
+O dono pediu: "analise o contexto e tome as decosoes com base nisso dps execute todas as etapas que faltam no projeto de forma coeerente usando os modelos certos para agentes certos".
+
+Essa mensagem delega as escolhas pendentes e a continuidade entre etapas. Este bloco preserva a análise preliminar feita enquanto faltava a conferência atual de "Varal — Ajustes"; não era resposta do dono nem decisão final. A revisão 24 não foi tratada como atual. A conferência e as decisões finais delegadas estão registradas abaixo; a tabela principal já reflete o resultado.
+
+Encaminhamento a confrontar com a fonte atual:
+
+| Itens | Encaminhamento preliminar | Motivo / limite |
+| --- | --- | --- |
+| Q04-1–22, Q04-24 e Q04-25 | Ratificar os padrões implementados, ressalvadas as precisões abaixo para Q04-11 e Q04-17 | Preservam os precedentes de permissão, espaço e histórico; aviso ao removido permanece na 09 (P7) |
+| Q04-17 e Q04-35 | Separar estado do selo e critério temporal: "Vencidas" inclui abertas `pendente` e `aguardando` com prazo anterior a hoje; `aguardando` mantém o selo | Eliminar divergência entre Início, contagens e filtro, sem alterar o status gravado; registrar ADR e testes |
+| Q04-23, Q04-32 e Q04-36 | Preservar a regra por contexto já respondida: membro atual pelo nome ou e-mail; ex-membro nunca pelo e-mail. No detalhe, somente pessoas relacionadas à conta já autorizada; no 409 da própria saída, somente candidatos elegíveis necessários à resolução | Evitar reintroduzir "Pessoa sem nome", expressamente rejeitado pelo dono, e não ampliar acesso a uma lista geral de membros para o pagador; validar conteúdo real dos payloads |
+| Q04-37 | Uma opção "Ex-membro" no filtro, agrupando pagadores que já saíram, na Etapa 07 | Sem fundir ids históricos; pagador nulo continua Sem pagador, inclusive após exclusão do usuário |
+| Q04-38 | Cada pessoa em uma linha com reticências; a lista quebra entre pessoas | A lista não depende de hover para revelar seus participantes |
+| Q04-11 e Q04-39 | Nomes de espaço/casa podem ocupar até duas linhas nos seletores; regra de uma linha permanece para pessoas | Testar grupos com prefixos iguais; duas linhas não garantem distinção de qualquer nome, e a identificação completa precisa continuar disponível |
+| Q04-31 / M2 | Corrigir o desvio de consultas no caminho do 404 antes do merge | Evitar decisão baseada em existência de conta invisível; preservar 404 uniforme e travas; não prometer tempo constante |
+| Q04-33 / M5 | Antecipar a minimização no Django admin para contas pessoais/restritas e respectivos históricos, sem exceção automática de visibilidade por ser superusuário | Ferramenta de operação deve respeitar o filtro de acesso; revisar também relações e contagens indiretas |
+| Q04-34 / M6 | Tolerar o override residual somente em desenvolvimento, documentado; impedir sua utilização indevida em produção | O `make dev` já restaura o padrão; verificar o isolamento antes de fechar a infraestrutura de produção |
+
+Na triagem, a implementação aguardava a conferência dos Ajustes; toda alteração de interface continua exigindo leitura do Doop. A precisão final mantém a criação de `aguardando` pela recorrência variável na 08 e seu suporte de leitura anterior, sem antecipar fluxo de criação por suposição.
+
+## Conferência atual e decisões delegadas do Codex (15/11/2026)
+
+O dono respondeu no chat à solicitação da situação atual de "Varal — Ajustes":
+
+> no varal ajustes n tem nenhum pendente
+
+Esta é uma **conferência atual fornecida pelo dono no chat**, sem leitura pelo conector e sem revalidar a revisão 24 como atual. Não foi feita marcação no documento remoto. As escolhas abaixo são decisões do Codex sob a delegação expressa transcrita na triagem, **não respostas literais do dono a cada Q**. As Q04-23 e Q04-26–30 preservam suas respostas anteriores.
+
+- **Ratificação:** Q04-1–22, Q04-24 e Q04-25, com as precisões de Q04-11/Q04-17. Mantêm-se os padrões já implementados e os precedentes citados na tabela; o aviso ao removido continua na 09 (P7).
+- **Prazo versus selo (Q04-17/Q04-35):** uma aguardando vencida precisa aparecer nas contagens e no filtro de vencidas para que Início e Contas concordem. Ela conserva o selo Aguardando e o estado gravado. [ADR 0009](../../arquitetura/adr/0009-filtro-temporal-contas-abertas.md). Reversão: consultas de filtros/contagens e esta precisão documental, sem migração.
+- **Pessoas (Q04-32/Q04-36):** aplicar o precedente explícito Q04-23, sem voltar a Pessoa sem nome no dado vivo de membro atual. O detalhe contém somente pessoas relacionadas à conta já autorizada. O 409 contém apenas candidatos elegíveis necessários à saída; não cria uma listagem geral nova para o pagador. Histórico permanece sem e-mail gravado. Reversão: serializadores; dados já expostos não são recuperáveis.
+- **Ex-membro (Q04-37):** implementar na 07 uma opção coletiva para identidades preservadas de pagadores que deixaram o grupo. Não fundir nem apagar ids históricos. `pagador=null` continua Sem pagador, inclusive quando a FK ficou nula após excluir usuário; não inferir uma identidade apagada. Reversão: contrato e opções do filtro, sem alterar os dados históricos.
+- **Quem vê (Q04-38):** um Nome por pessoa, cada nome em uma linha, com quebra entre pessoas. O motivo é mostrar todos os participantes também no celular; o corte de um nome não pode esconder que há outras pessoas na lista. Reversão: JSX/CSS; exceção de composição documentada e conferida no Doop sem alterar o canvas.
+- **Espaço e casa (Q04-11/Q04-39):** até duas linhas nos seletores e em Onde fica, mantendo o valor completo disponível por toque e teclado quando ainda houver corte. Testar nomes com prefixos iguais; duas linhas não garantem distinção. Não exigir confirmação extra para o caso comum da Q04-30. Reversão: CSS e apresentação do valor completo.
+- **M2 (Q04-31):** corrigir o desvio estrutural de consultas do 404 antes do merge. Um UUID pode ser compartilhado ou vazar; sua aleatoriedade não substitui RN06. Status e corpo uniformes permanecem, sem alegação de tempo constante. Reversão: consultas internas.
+- **M5 (Q04-33):** antecipar a minimização do admin para lançamentos pessoais/restritos e seus históricos, respeitando RN02/RN06 inclusive para superusuário. Rever também relações, buscas e contagens; ocultar registros/modelos se não for possível assegurar o filtro. Isso restringe a aplicação, não o acesso direto de operador ao banco. Reversão: configuração do admin; o que já foi visto não pode ser desfeito.
+- **M6 (Q04-34):** aceitar temporariamente o resíduo apenas em desenvolvimento, restaurável por `make dev`. Produção não recebe o override de E2E/CI; verificar esse isolamento no acabamento/deploy. Reversão: recriar o container com configuração normal.
+
+**Execução:** decisões fechadas não significam correções já implementadas. Q04-31/Q04-33/Q04-35/Q04-38/Q04-39 exigem implementação e validação antes do fechamento da revisão. Q04-37 é entrega da 07; Q04-25/P7 é entrega da 09. Q04-36 preserva o precedente e exige conferir os limites efetivos dos payloads. Nenhuma pergunta da 04 permanece aguardando decisão do dono neste registro.
+
+**P6:** a reexportação da especificação pela origem/Claude Code continua externa e pendente. O ADR 0005 e as respostas anteriores já autorizam o MVP sem categoria; não introduzir campo, tabela ou contrato de categoria enquanto a cópia local aguarda atualização. Nunca editar `docs/especificacao-varal.md` manualmente.
+
+## Perguntas da auditoria (registro histórico anterior à decisão delegada)
+
+As propostas, casos contra e condições de espera abaixo preservam a análise original. Não representam pendências atuais: prevalecem a tabela principal e as decisões delegadas acima.
 
 ### Q04-35 — "Vencida" com `aguardando`: hero × chip "Vencidas"
 

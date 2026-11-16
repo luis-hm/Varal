@@ -63,6 +63,8 @@ stateDiagram-v2
 | RN15 | Uma conta Paga com comprovante anexado passa a Confirmada. |
 | RN16 | Só quem marcou o pagamento ou um admin pode desfazê-lo. |
 
+**Prazo e selo (Q04-26/Q04-35, [ADR 0009](../arquitetura/adr/0009-filtro-temporal-contas-abertas.md)):** filtros e contagens temporais incluem toda conta aberta (`pendente` ou `aguardando`): vencida se anterior a hoje; dentro da janela se entre hoje e hoje + RN13, inclusive, em Fortaleza. O selo `aguardando` permanece Aguardando; só `pendente` recebe `status_exibido=vence|vencida`. Nenhum estado novo é gravado. As consultas preservam a visibilidade e o período próprios de cada tela.
+
 ### Recorrência e lembretes
 
 | ID | Regra |
@@ -97,3 +99,4 @@ Não estão na especificação; valem tanto quanto ela.
 | --- | --- | --- | --- |
 | RN05 | Quem é a última pessoa que vê uma conta restrita aberta pode, só dentro da própria saída do grupo barrada pela RN32, acrescentar alguém em "Quem vê" ou cancelar a conta; fica no histórico. Fora daí a RN05 vale inteira. | [0007](../arquitetura/adr/0007-rn05-excecao-saida-rn32.md) | 04 |
 | RN06 × RN07 | Acesso explícito a uma restrita ("Quem vê") vale mais que a perda por papel: o pagador em "Quem vê" continua vendo a conta. Ao trocar alguém para pagador, a restrita aberta que só ele vê ganha o acesso explícito dele, com histórico. | [0008](../arquitetura/adr/0008-rn06-prevalece-sobre-rn07.md) | 04 |
+| RN12 × RN13 | Prazo de vencidas/janela nos filtros e contagens considera abertas pendente e aguardando; o selo de aguardando não muda. | [0009](../arquitetura/adr/0009-filtro-temporal-contas-abertas.md) | 04 |

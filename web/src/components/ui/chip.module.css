@@ -34,6 +34,28 @@
   text-overflow: ellipsis;
 }
 
+.chip[data-wrap] .pill {
+  height: auto;
+  min-height: 40px;
+  padding-block: var(--spacing-2);
+  white-space: normal;
+  text-align: left;
+}
+
+.chip[data-wrap] .lbl {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+/* Touch selects the choice and reveals it before saving; keyboard focus also reveals it. */
+.chip[data-wrap][data-state="on"] .lbl,
+.chip[data-wrap]:focus .lbl {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+
 .n {
   font-weight: 500;
   color: var(--color-ink-muted);

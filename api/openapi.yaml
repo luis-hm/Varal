@@ -2399,6 +2399,13 @@ components:
         pode_editar:
           readOnly: true
           type: boolean
+        quem_ve:
+          description: 'Acesso efetivo da restrita: criador, pagador e escolhidos;
+            vazio nas demais.'
+          items:
+            $ref: '#/components/schemas/Ref'
+          readOnly: true
+          type: array
         status:
           $ref: '#/components/schemas/StatusEnum'
         status_exibido:
@@ -2425,6 +2432,7 @@ components:
       - id
       - pagador
       - pode_editar
+      - quem_ve
       - status
       - status_exibido
       - subgrupo
@@ -2508,6 +2516,7 @@ components:
         todas:
           type: integer
         vencidas:
+          description: Abertas vencidas pela data, inclusive aguardando
           type: integer
       required:
       - a_pagar
@@ -4309,7 +4318,7 @@ paths:
         name: pagador
         schema:
           type: string
-      - description: 'padrão: todas'
+      - description: 'Padrão: todas; vencidas inclui abertas aguardando pela data.'
         in: query
         name: status
         schema:
@@ -4468,6 +4477,11 @@ paths:
                       nome: Ana
                       sou_eu: true
                     pode_editar: true
+                    quem_ve:
+                    - id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Ana
+                    - id: c4a7d1e2-9b3f-4a6c-8d2e-1f0a9b8c7d6e
+                      nome: Bia
                     status: pendente
                     status_exibido: vence
                     subgrupo:
@@ -5274,6 +5288,11 @@ paths:
                       nome: Ana
                       sou_eu: true
                     pode_editar: true
+                    quem_ve:
+                    - id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Ana
+                    - id: c4a7d1e2-9b3f-4a6c-8d2e-1f0a9b8c7d6e
+                      nome: Bia
                     status: pendente
                     status_exibido: vence
                     subgrupo:
@@ -5364,6 +5383,11 @@ paths:
                       nome: Ana
                       sou_eu: true
                     pode_editar: true
+                    quem_ve:
+                    - id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Ana
+                    - id: c4a7d1e2-9b3f-4a6c-8d2e-1f0a9b8c7d6e
+                      nome: Bia
                     status: pendente
                     status_exibido: vence
                     subgrupo:
@@ -5459,6 +5483,11 @@ paths:
                       nome: Ana
                       sou_eu: true
                     pode_editar: true
+                    quem_ve:
+                    - id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Ana
+                    - id: c4a7d1e2-9b3f-4a6c-8d2e-1f0a9b8c7d6e
+                      nome: Bia
                     status: pendente
                     status_exibido: vence
                     subgrupo:

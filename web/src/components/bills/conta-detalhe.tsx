@@ -47,7 +47,16 @@ export function ContaDetalhe({ conta, voltar }: Props) {
           ["perfil", "Quem paga", <Nome key="p">{!conta.pagador ? "Ninguém" : conta.pagador.sou_eu ? "Você" : conta.pagador.nome}</Nome>],
           conta.visibilidade === "grupo"
             ? ["grupo", "Quem vê", "Todo o grupo"]
-            : ["cadeado", "Quem vê", <Nome key="v">{conta.acesso.length ? `Só ${conta.acesso.map((p) => p.nome).join(", ")}` : "Só quem criou e quem paga"}</Nome>],
+            : ["cadeado", "Quem vê", conta.quem_ve.length ? (
+                <span key="v" className={styles.pessoas}>
+                  <span>Só </span>
+                  {conta.quem_ve.map((p, i) => (
+                    <span key={p.id} className={styles.pessoa}>
+                      <Nome>{p.nome}</Nome>{i < conta.quem_ve.length - 1 ? ", " : ""}
+                    </span>
+                  ))}
+                </span>
+              ) : "Ninguém"],
         ] as [IconName, string, ReactNode][])
       : []),
     [

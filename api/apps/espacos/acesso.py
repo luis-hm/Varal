@@ -104,6 +104,28 @@ def lancamentos_visiveis(usuario, espaco):
     return contas.none() if filtro is None else contas.filter(filtro)
 
 
+def lancamentos_do_usuario(usuario):
+    """Visible bills across spaces, using the same role rules as the per-space filter.
+
+    The role is read inside the bill query: a missing id and an inaccessible bill take the
+    same query path. This also scopes the operator admin; superusers get no RN06 exception.
+    """
+    from apps.lancamentos.models import Lancamento
+
+    espacos = espacos_do_usuario(usuario).filter(pk=OuterRef("espaco_id"))
+    contas = Lancamento.objects.annotate(
+        meu_papel=Subquery(espacos.values("meu_papel")[:1]),
+    )
+    return contas.filter(
+        Q(meu_papel=DONO)
+        | (Q(meu_papel=Papel.PAGADOR) & _ve(usuario, Papel.PAGADOR))
+        | (
+            Q(meu_papel__in=(Papel.ADMIN, Papel.MEMBRO, Papel.OBSERVADOR))
+            & _ve(usuario, Papel.MEMBRO)
+        )
+    )
+
+
 def lancamento_ou_404(usuario, lancamento_id, acao=None, travar=False):
     """404 whenever the user does not see the bill (missing, other space, restricted): its
     existence is never revealed. 403 only when they see it and the role lacks `acao`.
@@ -112,11 +134,13 @@ def lancamento_ou_404(usuario, lancamento_id, acao=None, travar=False):
 
     if travar:
         list(Lancamento.objects.select_for_update().filter(pk=lancamento_id).values("pk"))
-    espaco_id = Lancamento.objects.filter(pk=lancamento_id).values("espaco_id")
-    espaco = espacos_do_usuario(usuario).filter(pk__in=espaco_id).first()
-    conta = espaco and lancamentos_visiveis(usuario, espaco).filter(pk=lancamento_id).first()
+    conta = (
+        lancamentos_do_usuario(usuario).select_related("espaco").filter(pk=lancamento_id).first()
+    )
     if not conta:
         raise NotFound()
+    espaco = conta.espaco
+    espaco.meu_papel = conta.meu_papel
     if acao and not pode(espaco.meu_papel, acao):
         raise PermissionDenied()
     conta.espaco = espaco  # keeps `meu_papel` for the caller

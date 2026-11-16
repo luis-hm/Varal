@@ -137,6 +137,8 @@ test("ca01/ca16/ca17/ca31 rf10/rf13 rn11 q12/q23: nova conta pelo FAB ou pelo Si
 });
 
 test("ca07/ca08/ca09/ca28 rn06/rn07: restrita com aviso de quem paga; admin não escolhido não a vê nem por total, contagem, Por casa ou HouseCard (404); pagador fora dos escolhidos vê", async ({ page, browser, playwright }, info) => {
+  // Four users and three browser contexts exercise the full privacy flow, including cold routes.
+  test.setTimeout(75_000);
   const [admin, membro, observador, pagador] = await Promise.all(Array.from({ length: 4 }, () => novaConta(playwright)));
   const grupo = await criarGrupo(admin);
   for (const [papel, conta] of [["membro", membro], ["observador", observador], ["pagador", pagador]] as const) await entrarNoGrupo(admin, grupo.id, papel, conta);
@@ -181,7 +183,12 @@ test("ca07/ca08/ca09/ca28 rn06/rn07: restrita com aviso de quem paga; admin não
   await form.getByRole("button", { name: "Salvar conta" }).click();
   await expect(form).toBeHidden();
   await expect(page.getByRole("heading", { level: 1, name: "Presente surpresa" })).toBeVisible();
-  await expect(texto(page, `Só ${observador.email}`)).toBeVisible();
+  // The effective audience includes the creator and payer as well as the chosen observer (Q04-38).
+  const publico = page.getByRole("region", { name: "Informações" }).filter({ visible: true });
+  await expect(publico).toContainText(observador.email);
+  await expect(publico).toContainText(pagador.email);
+  await expect(publico).toContainText(membro.email);
+  await expect(publico).not.toContainText(admin.email);
   const id = new URL(page.url()).pathname.split("/").pop()!;
 
   // CA07: the admin who was not chosen sees exactly what they saw before, in the API and on screen.
@@ -785,4 +792,72 @@ test("dec27: no desktop o hero do Início tem a altura do conteúdo, sem vazio a
   expect(fimHero - (valor.y + valor.height)).toBeLessThan(varal.height);
   // ...and below the lowest content (value or tags) only the 28px padding (+ rounding).
   expect(fimHero - Math.max(valor.y + valor.height, tags)).toBeLessThanOrEqual(28 + 4);
+});
+
+test("dec38 rn06: Quem vê mostra cada pessoa efetiva da restrita sem cortar a lista nem duplicar quem paga", async ({ page, playwright }, info) => {
+  const [admin, ...pessoas] = await Promise.all(Array.from({ length: 4 }, () => novaConta(playwright)));
+  const grupo = await criarGrupo(admin);
+  for (const pessoa of pessoas) await entrarNoGrupo(admin, grupo.id, "membro", pessoa);
+  const ids = await Promise.all(pessoas.map(async (pessoa) => (await me(pessoa.request)).id));
+  const conta = await criarConta(admin, grupo.id, { descricao: "Lista completa de acesso", visibilidade: "restrita", acesso: ids, pagador: ids[0] });
+  await logar(page, admin);
+  await usarEspaco(page, grupo.id);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(`/contas/${conta.id}`);
+  const linha = page.getByRole("region", { name: "Informações" }).filter({ visible: true }).locator("div", { has: page.getByText("Quem vê", { exact: true }) });
+  for (const pessoa of [admin, ...pessoas]) {
+    const nome = linha.locator(`[title="${pessoa.email}"]`);
+    await expect(nome).toHaveCount(1);
+    await expect(nome).toBeVisible();
+    expect(await nome.evaluate((e) => getComputedStyle(e).whiteSpace)).toBe("nowrap");
+  }
+  // The audience is allowed to grow vertically; no person disappears beyond a clipped container.
+  const alturas = await linha.locator("b").evaluate((e) => ({ visible: e.clientHeight, content: e.scrollHeight }));
+  expect(alturas.content).toBeLessThanOrEqual(alturas.visible + 1);
+  await semRolagemHorizontal(page);
+  await page.screenshot({ path: path.join(SCREENS, `dec38-quem-ve-${info.project.name}.png`), fullPage: true });
+});
+
+test("dec39 rn01: grupos com prefixos iguais mostram nome completo ao escolher e salvam no espaço identificado", async ({ page, playwright }, info) => {
+  const admin = await novaConta(playwright);
+  const prefixo = "Família Martins – despesas da residência compartilhada com familiares durante as férias e os encontros de fim de ano – ";
+  const grupos: { id: string; nome: string }[] = [];
+  for (const sufixo of ["casa da praia", "apartamento da cidade"]) {
+    const nome = prefixo + sufixo;
+    const response = await api(admin.request, "POST", "/api/grupos/", { nome });
+    expect(response.status(), await response.text()).toBe(201);
+    grupos.push(await response.json());
+  }
+  await logar(page, admin);
+  await usarEspaco(page, grupos[0].id);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  const seletor = visivel(page, `Espaço: ${grupos[0].nome}. Trocar de espaço`);
+  await seletor.click();
+  const menu = page.locator(`[id="${await seletor.getAttribute("aria-controls")}"]`);
+  for (const grupo of grupos) {
+    const opcao = menu.getByRole("button", { name: new RegExp(grupo.nome) });
+    await expect(opcao).toBeVisible();
+    const nome = opcao.locator(`[title="${grupo.nome}"]`);
+    expect(await nome.evaluate((e) => e.scrollHeight <= e.clientHeight + 1)).toBe(true);
+  }
+  await page.keyboard.press("Escape");
+  await botaoNovaConta(page).click();
+  const form = page.getByRole("dialog", { name: "Nova conta" });
+  const onde = form.getByRole("group", { name: /Onde fica/ });
+  const destino = onde.getByRole("button", { name: grupos[1].nome, exact: true });
+  await destino.click();
+  await expect(destino).toHaveAttribute("aria-pressed", "true");
+  const nome = destino.locator(`[title="${grupos[1].nome}"]`);
+  expect(await nome.evaluate((e) => e.scrollHeight <= e.clientHeight + 1)).toBe(true);
+  await expect(form.getByRole("group", { name: "Quem paga" })).toBeVisible();
+  await semRolagemHorizontal(page);
+  await page.screenshot({ path: path.join(SCREENS, `dec39-espaco-identificado-${info.project.name}.png`), fullPage: true });
+  await form.getByLabel("Valor", { exact: true }).fill("42,00");
+  await form.getByLabel("Vencimento", { exact: true }).fill(hoje());
+  await form.getByLabel("Descrição", { exact: true }).fill("Conta no grupo identificado");
+  await form.getByRole("button", { name: "Salvar conta" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Conta no grupo identificado" })).toBeVisible();
+  const id = new URL(page.url()).pathname.split("/").pop()!;
+  expect((await json(admin.request, `/api/lancamentos/${id}/`)).espaco.id).toBe(grupos[1].id);
 });

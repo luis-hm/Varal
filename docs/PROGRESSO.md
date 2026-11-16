@@ -11,7 +11,7 @@
 | 01 | Design system no código | concluída | `etapa/01-design-system` | 12/11/2026 | [relatorio](etapas/01-design-system/relatorio.md) |
 | 02 | Autenticação | concluída | `etapa/02-autenticacao` | 13/11/2026 | [relatorio](etapas/02-autenticacao/relatorio.md) |
 | 03 | Espaços e grupos | concluída | `etapa/03-espacos-grupos` | 15/11/2026 | [relatorio](etapas/03-espacos-grupos/relatorio.md) |
-| 04 | Contas (núcleo) | concluída; merge na `main` aguarda o dono confirmar as [decisões abertas](etapas/04-contas/decisoes.md) | `etapa/04-contas` | 15/11/2026 | [relatorio](etapas/04-contas/relatorio.md) |
+| 04 | Contas (núcleo) | concluída; revisão delegada validada, pronta para merge local | `etapa/04-contas` | 15/11/2026 (inicial); revisão 16/11/2026 | [relatorio](etapas/04-contas/relatorio.md) |
 | 05 | Boleto e Pix | pendente | — | — | — |
 | 06 | PDF do boleto | pendente | — | — | — |
 | 07 | Pagamento | pendente | — | — | — |
@@ -25,15 +25,16 @@
 Divergências entre as fontes da verdade ou bloqueios. Não escolher sozinho: perguntar ao dono do projeto.
 Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5-b70c-f0790e03de41`).
 
+Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex resolver as decisões e executar as etapas restantes. As escolhas dessa execução são registradas como **decisões delegadas**, sem inventar respostas literais do dono ou leituras pelo conector indisponível.
+
 ### Pendentes
 
 | # | Assunto | Bloqueia |
 | --- | --- | --- |
-| P1 | Rodar uma vez o serviço `minio` (`pgsty/silo`) para verificar o comando e as variáveis: a checagem de segurança do agente bloqueou executar a imagem. O dono do projeto sobe manualmente (`docker compose -f infra/docker-compose.yml --profile storage up -d minio`) ou libera a permissão. | Etapa 06 |
 | P3 | Configurar a cadeia de proxies confiáveis e testar spoofing antes do deploy. Allauth mantém `trusted_proxy_count=0` enquanto a API 8000 está exposta; limite por IP vê o Next como origem. Ativar também o limite de aceite de convite por IP (RN31). | Deploy da Etapa 11 |
 | P4 | Produção: com `DJANGO_DEBUG=0` a API liga `SECURE_SSL_REDIRECT`, e o Next consulta `/api/me/` pela rede interna em HTTP sem `X-Forwarded-Proto`; provável redirecionamento para https e falha das páginas protegidas. Definir como o Next fala com a API em produção (cabeçalho, exceção de rota ou proxy). Omitir também o token de convite do access log do proxy/servidor de produção (RN31). | Deploy da Etapa 11 |
-| P6 | Reexportar a especificação da origem rev 50 (o dono tirou categoria do passo 3 do CU05, a entidade `categoria` e `lancamento.categoria_id`; Q22 da Etapa 04) e alinhar CU05, `dados/modelo.md` e ADR 0005. | Abertura da Etapa 05 |
-| P7 | Entregar ao removido o aviso das contas canceladas pela RN32 na remoção pelo admin ([ADR 0006](arquitetura/adr/0006-rn32-conta-restrita-orfa.md)). A Etapa 04 só grava no histórico (`cancelada_automaticamente`, `dados.removido`). Adiamento a confirmar ([decisões da 04](etapas/04-contas/decisoes.md), Q04-25). | Etapa 09 |
+| P6 | Claude Code deve reexportar a especificação da origem rev 50 (sem categoria no CU05 e no modelo) e conferir os derivados/ADR 0005. O Codex não faz essa reexportação nem edita a origem à mão; a cópia permanece defasada. O ADR 0005 já aprovado rege a implementação sem categoria. | Pendência administrativa externa; continuidade sem categoria pelo ADR 0005 |
+| P7 | Entregar ao removido o aviso das contas canceladas pela RN32 na remoção pelo admin ([ADR 0006](arquitetura/adr/0006-rn32-conta-restrita-orfa.md)). A Etapa 04 grava `cancelada_automaticamente` com `dados.removido`; entrega na 09 ratificada por delegação em Q04-25. | Etapa 09 |
 | P9 | Confirmar que o CI dispara no próximo push: `gh run list`; se nada aparecer, `gh workflow run web.yml --ref main`. Causa provável e correção em "CI mudo" (Resolvidas). | Nada (verificação) |
 
 ### Resolvidas
@@ -46,6 +47,7 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 | D4 | Qual armazenamento S3? | `pgsty/silo` com tag fixa, só local; código via `django-storages` com config no `.env`; produção na Etapa 11. Etapa 06 desbloqueada. | [ADR 0002](arquitetura/adr/0002-armazenamento-s3-local.md) |
 | D5 | Onde entra o RNF04 (LGPD)? | Etapa 11, como regra nova **RN30** (exportar JSON; excluir conta com autor "Ex-membro" nos grupos). Tela Perfil não existe no Doop: parar e pedir. | [ADR 0003](arquitetura/adr/0003-rn30-exportar-e-excluir-dados.md) |
 | D6 | Merge da Etapa 00 na main? | Merge local feito agora (`--no-ff`). Daqui em diante, rodar `/etapa` aprova a etapa anterior e faz o merge local dela antes da branch nova. Push só com pedido. | `.claude/commands/etapa.md` |
+| P1 | Verificar execução do armazenamento local | Resolvida em 15/11/2026 pelo Codex: `pgsty/silo:RELEASE.2026-11-12T00-00-00Z` iniciado; healthcheck 200 pela API na rede Compose e autenticação `mc admin info` com as variáveis do ambiente, sem exibir credenciais. Upload/download e URLs assinadas ainda serão validados na 06. | Pré-verificação da Etapa 06 |
 | P2 | Validação completa da Etapa 01 | Resolvida em 13/11/2026: Docker disponível; credenciais do `.env` local alinhadas às já existentes no volume, sem alterar usuários nem dados do banco. `make test`: API 3/3 e web 29/29; `make lint` verde. | Etapa 01, CA17 |
 | P5 | Limite de cadastro do allauth derrubava o E2E (~40 contas do mesmo IP contra 20/min) | Resolvida em 15/11/2026: `ACCOUNT_RATE_LIMIT_SIGNUP` vira `ACCOUNT_RATE_LIMITS["signup"]` só quando definida (o allauth mescla aos padrões; os outros limites seguem). `make e2e` e o job `e2e` do `web.yml` usam `1000/m/ip`; fora deles vale 20/m/ip. Saiu o retry em 429 do E2E. | Etapa 04; [stack](arquitetura/stack.md#variáveis-de-ambiente) |
 | P8 | 429 do allauth no primeiro cadastro do `make e2e` com a API fria | Resolvida em 15/11/2026: os dois workers disputavam a trava do limite do allauth (espera de 1 s) enquanto o servidor de dev ainda importava módulos. O `globalSetup` do Playwright (`web/e2e/global-setup.ts`) faz um cadastro sozinho antes dos workers. Duas medições de geometria passam a esperar `modal-pop`/`sheet-up` terminarem. E2E final a frio: 74 verdes, sem 429. | Etapa 04 |
@@ -56,6 +58,24 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 ## Log
 
 Ordem cronológica inversa.
+
+### 16/11/2026 — Revisão delegada da Etapa 04 concluída
+
+- Decisões Q04-1–22, Q04-24/25 e Q04-31–39 fechadas sob delegação; Q04-23 e Q04-26–30 preservam as respostas anteriores. Nenhuma pergunta da 04 aguarda o dono. Q04-37 fica na 07 e P7 na 09.
+- ADR 0009 separa prazo de selo: filtro/contagem de Vencidas inclui abertas `pendente` e `aguardando` vencidas; Aguardando conserva estado e selo. Detalhe inclui `quem_ve` efetivos, além de `acesso` editável; nomes individuais não ocultam a lista e espaços/casas revelam nome completo ao escolher.
+- M2 corrigido com consulta central de contas visíveis sem caminho escolhido pela existência; M5 corrigido no Django admin de contas/históricos e na prévia de exclusão. M4 mantém a regra por contexto já respondida, sem lista geral nova ao pagador; M6 aceito só no ambiente de desenvolvimento até `make dev`.
+- Revisão de segurança encontrou e corrigiu B1–B3: autorização antiga na criação, conversão pública → restrita concorrente à saída e releitura de dados após revogação de acesso. Criação serializa vínculos; RN32 trava todas as abertas; detalhe revalida após adquirir a trava e a mantém até serializar. Reauditoria final de segurança: sem bloqueantes.
+- Lote direcionado de 21 regressões validado; seis reproduziram falha antes da correção. **`make test`: 235 pytest e 73 Vitest; lint verde; `make types` preservou hashes; E2E final: 87 passaram, 3 ignorados de propósito e nenhuma falha** (7,1 min). Na rodada anterior, 85 passaram e os dois `ca07` excederam 45 s; após análise do trace, só esse timeout passou a 75 s, sem retirar asserções. Na repetição, passou em 42,4 s mobile/33,8 s desktop.
+- Frontend releu guia/tokens/`varal-ui`, HTML e screenshots de 02/D02, 07/D03, 10/D04, 05/M01 e 06/M02. `dec38` e `dec39` passaram nas duas larguras; QA revisou capturas com pessoas e destino completo visíveis, sem rolagem horizontal. Comparação estrutural com fixtures sintéticas, sem pixel a pixel; canvas preservado. Revisão pronta para merge local e continuidade da 05. Sem push.
+
+### 15/11/2026 — Codex: análise para continuidade até a Etapa 11
+
+- O dono delegou analisar e resolver as decisões pendentes e executar todas as etapas restantes de forma coerente, com agentes especializados. Essa autorização permite avançar entre etapas e resolver escolhas sem repetir pedidos genéricos de ok; não dispensa as fontes atuais obrigatórias.
+- Conferido: `etapa/04-contas`, 17 commits fora da `main`, árvore limpa antes deste registro. Os resultados de testes anteriores são os do relatório; nenhuma suíte foi reexecutada nesta análise.
+- Triagem inicial somente leitura com `varal-decisor`, preservada em [decisoes.md](etapas/04-contas/decisoes.md#triagem-preparatória-do-codex-15112026). Evoluiu para decisões finais delegadas após a conferência atual dos Ajustes pelo dono.
+- **Conferência atual dos Ajustes pelo dono:** ao pedido do texto atual, respondeu "no varal ajustes n tem nenhum pendente". Registrada essa declaração atual, sem atribuí-la a leitura pelo conector nem reutilizar a revisão 24 como atual. Continuidade retomada com decisões delegadas e correções finais da 04 em andamento.
+- **P6 permanece externa:** a reexportação da especificação sem categoria cabe ao Claude Code; a implementação segue o ADR 0005 já aprovado, sem acrescentar categoria por causa da cópia antiga. Deploy na VPS e push continuam sujeitos às autorizações explícitas próprias; este registro não os executa nem os considera autorizados.
+- Próximo passo: registrar decisões finais/ADRs, aplicar e validar as correções da 04, atualizar relatório e matriz e fazer o merge local; depois seguir as etapas 05–11 na ordem do fluxo.
 
 ### 15/11/2026 — Revisão do dono da Etapa 04
 

@@ -1,6 +1,7 @@
 import calendar
 from datetime import date, timedelta
 
+from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
@@ -12,22 +13,25 @@ from drf_spectacular.utils import (
     extend_schema_field,
 )
 from rest_framework import serializers, status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.contas_usuario.models import Usuario
 from apps.espacos.acesso import (
     espaco_ou_404,
     lancamento_ou_404,
+    lancamentos_do_usuario,
     lancamentos_visiveis,
     membros_ids,
     pode,
+    quem_ve,
 )
 from apps.espacos.models import Espaco
 from apps.espacos.views import ErroSerializer
 
 from . import servicos
-from .models import ABERTOS, STATUS_EXIBIDOS, VENCIDA, Historico, Lancamento, Status
+from .models import ABERTOS, STATUS_EXIBIDOS, Historico, Lancamento, Status
 from .models import Visibilidade as Vis
 
 ESPACO_ID = "1b4e28ba-2fa1-11d2-883f-0016d3cca427"
@@ -116,6 +120,9 @@ class HistoricoSerializer(serializers.Serializer):
 class ContaDetalheSerializer(ContaSerializer):
     criador = serializers.SerializerMethodField()
     acesso = serializers.SerializerMethodField()
+    quem_ve = serializers.SerializerMethodField(
+        help_text="Acesso efetivo da restrita: criador, pagador e escolhidos; vazio nas demais."
+    )
     historico = HistoricoSerializer(many=True)
     pode_editar = serializers.SerializerMethodField()
 
@@ -129,6 +136,16 @@ class ContaDetalheSerializer(ContaSerializer):
     @extend_schema_field(RefSerializer(many=True))
     def get_acesso(self, obj):
         return [{"id": u.pk, "nome": _nome(u, self.context)} for u in obj.acesso.all()]
+
+    @extend_schema_field(RefSerializer(many=True))
+    def get_quem_ve(self, obj):
+        if obj.espaco.tipo != Espaco.Tipo.GRUPO or obj.visibilidade != Vis.RESTRITA:
+            return []
+        pessoas = Usuario.objects.filter(pk__in=quem_ve(obj))
+        return sorted(
+            ({"id": u.pk, "nome": _nome(u, self.context)} for u in pessoas),
+            key=lambda p: (p["nome"].casefold(), str(p["id"])),
+        )
 
     def get_pode_editar(self, obj) -> bool:
         return obj.status != Status.CANCELADA and pode(self.context["papel"], "editar_conta")
@@ -158,7 +175,9 @@ class ContaEntradaSerializer(serializers.Serializer):
 class ContagensSerializer(serializers.Serializer):
     todas = serializers.IntegerField()
     a_pagar = serializers.IntegerField()
-    vencidas = serializers.IntegerField()
+    vencidas = serializers.IntegerField(
+        help_text="Abertas vencidas pela data, inclusive aguardando"
+    )
     pagas = serializers.IntegerField()
     canceladas = serializers.IntegerField()
 
@@ -213,6 +232,7 @@ DETALHE_EXEMPLO = {
     **CONTA_EXEMPLO,
     "criador": {"nome": "Ana", "sou_eu": True},
     "acesso": [{"id": OUTRA_ID, "nome": "Bia"}],
+    "quem_ve": [{"id": PESSOA_ID, "nome": "Ana"}, {"id": OUTRA_ID, "nome": "Bia"}],
     "historico": [
         {
             "acao": "criada",
@@ -262,14 +282,20 @@ def _erros(*codes):
 # ---- views ---------------------------------------------------------------------------------
 
 COM_DADOS = ("espaco", "subgrupo", "pagador")
-FILTRO_STATUS = {
-    "todas": ~Q(status=Status.CANCELADA),  # D2
-    "a_pagar": Q(status__in=ABERTOS),
-    "vencidas": Q(status_exibido=VENCIDA),
-    "pagas": Q(status__in=(Status.PAGA, Status.CONFIRMADA)),
-    "canceladas": Q(status=Status.CANCELADA),
-}
+FILTRO_STATUS = ("todas", "a_pagar", "vencidas", "pagas", "canceladas")
 NAO_CANCELADA = ~Q(status=Status.CANCELADA)
+
+
+def _filtros_status():
+    # Q04-35: overdue is temporal; awaiting bills keep their badge. Resolve today per request,
+    # never at module import, so a long-lived worker also crosses midnight in Fortaleza.
+    return {
+        "todas": NAO_CANCELADA,
+        "a_pagar": Q(status__in=ABERTOS),
+        "vencidas": Q(status__in=ABERTOS, vencimento__lt=timezone.localdate()),
+        "pagas": Q(status__in=(Status.PAGA, Status.CONFIRMADA)),
+        "canceladas": Q(status=Status.CANCELADA),
+    }
 
 
 def _mes(texto):
@@ -294,17 +320,33 @@ def _uuid(request, nome):
         raise ValidationError({nome: exc.detail}) from exc
 
 
-def _detalhe(request, conta_id, espaco, codigo=status.HTTP_200_OK):
-    """Serialize after a write too: whoever just edited themselves out still gets this answer."""
-    conta = (
-        Lancamento.objects.com_status(espaco.janela_alerta_dias)
-        .select_related(*COM_DADOS, "criador")
-        .prefetch_related("acesso", "historico__usuario")
-        .get(pk=conta_id)
-    )
+@transaction.atomic
+def _detalhe(request, conta_id, espaco, codigo=status.HTTP_200_OK, apos_escrita=False):
+    """Authorize the actual read and hold the bill through prefetch and serialization.
+
+    A write keeps its outer transaction and row locks until this response is built. Only
+    that path may acknowledge the actor who just edited themselves out (approved exception).
+    """
+    # Acquire the lock separately: if we wait for an edit, its access changes must be read
+    # from a fresh statement snapshot, not from EXISTS evaluated before that wait.
+    list(Lancamento.objects.select_for_update().filter(pk=conta_id).values("pk"))
+    consulta = Lancamento.objects if apos_escrita else lancamentos_do_usuario(request.user)
+    try:
+        conta = (
+            consulta.com_status(espaco.janela_alerta_dias)
+            .select_related(*COM_DADOS, "criador")
+            .prefetch_related("acesso", "historico__usuario")
+            .get(pk=conta_id)
+        )
+    except Lancamento.DoesNotExist as exc:
+        raise NotFound() from exc
     membros = membros_ids(espaco)
     servicos.resolver_pessoas(conta.historico.all(), membros)
-    contexto = {"request": request, "papel": espaco.meu_papel, "membros": membros}
+    contexto = {
+        "request": request,
+        "papel": getattr(conta, "meu_papel", espaco.meu_papel),
+        "membros": membros,
+    }
     return Response(ContaDetalheSerializer(conta, context=contexto).data, status=codigo)
 
 
@@ -314,7 +356,12 @@ class LancamentosView(APIView):
         summary="Contas do espaço por mês, com contagens dos chips (RF13; só o que você vê)",
         parameters=[
             OpenApiParameter("mes", str, description="AAAA-MM; padrão: mês atual"),
-            OpenApiParameter("status", str, enum=list(FILTRO_STATUS), description="padrão: todas"),
+            OpenApiParameter(
+                "status",
+                str,
+                enum=list(FILTRO_STATUS),
+                description="Padrão: todas; vencidas inclui abertas aguardando pela data.",
+            ),
             OpenApiParameter("subgrupo", OpenApiTypes.UUID, description="casa"),
             OpenApiParameter("pagador", str, description="id de usuário ou `nenhum`"),
         ],
@@ -345,6 +392,7 @@ class LancamentosView(APIView):
     def get(self, request, espaco_id):
         espaco = espaco_ou_404(request.user, espaco_id)
         rotulo, inicio, fim = _mes(request.query_params.get("mes"))
+        filtros = _filtros_status()
         filtro = request.query_params.get("status") or "todas"
         if filtro not in FILTRO_STATUS:
             raise ValidationError({"status": [f"Use um de: {', '.join(FILTRO_STATUS)}."]})
@@ -358,9 +406,9 @@ class LancamentosView(APIView):
             contas = contas.filter(pagador_id=pagador)
         numeros = contas.aggregate(
             total=Sum("valor_centavos", filter=NAO_CANCELADA, default=0),
-            **{nome: Count("pk", filter=q) for nome, q in FILTRO_STATUS.items()},
+            **{nome: Count("pk", filter=q) for nome, q in filtros.items()},
         )
-        itens = contas.filter(FILTRO_STATUS[filtro]).select_related(*COM_DADOS)
+        itens = contas.filter(filtros[filtro]).select_related(*COM_DADOS)
         com_casa = do_mes.filter(subgrupo__isnull=False).select_related("subgrupo")
         com_pagador = do_mes.filter(pagador__isnull=False).select_related("pagador")
         casas = {c.subgrupo for c in com_casa}
@@ -388,12 +436,13 @@ class LancamentosView(APIView):
         responses={201: ContaDetalheSerializer, **_erros(400, 403, 404)},
         examples=[ENTRADA_EXEMPLO, DETALHE],
     )
+    @transaction.atomic
     def post(self, request, espaco_id):
         espaco = espaco_ou_404(request.user, espaco_id, "criar_conta")
         entrada = ContaEntradaSerializer(data=request.data)
         entrada.is_valid(raise_exception=True)
         conta = servicos.criar(request.user, espaco, entrada.validated_data)
-        return _detalhe(request, conta.pk, espaco, status.HTTP_201_CREATED)
+        return _detalhe(request, conta.pk, conta.espaco, status.HTTP_201_CREATED, apos_escrita=True)
 
 
 class ResumoView(APIView):
@@ -480,12 +529,13 @@ class LancamentoView(APIView):
             DETALHE,
         ],
     )
+    @transaction.atomic
     def patch(self, request, lancamento_id):
         lancamento_ou_404(request.user, lancamento_id, "editar_conta")  # 404/403 before 400
         entrada = ContaEntradaSerializer(data=request.data, partial=True)
         entrada.is_valid(raise_exception=True)
         conta = servicos.editar(request.user, lancamento_id, entrada.validated_data)
-        return _detalhe(request, conta.pk, conta.espaco)
+        return _detalhe(request, conta.pk, conta.espaco, apos_escrita=True)
 
 
 class CancelarView(APIView):
@@ -496,6 +546,7 @@ class CancelarView(APIView):
         responses={200: ContaDetalheSerializer, **_erros(403, 404, 409)},
         examples=[DETALHE],
     )
+    @transaction.atomic
     def post(self, request, lancamento_id):
         conta = servicos.cancelar(request.user, lancamento_id)
-        return _detalhe(request, conta.pk, conta.espaco)
+        return _detalhe(request, conta.pk, conta.espaco, apos_escrita=True)
