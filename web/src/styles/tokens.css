@@ -82,4 +82,7 @@
   /* Etapa 04, ajustes */
   --hero-padding-y: 28px; /* D02 hero padding 28px 32px; the clothesline starts at the same height */
   --hero-varal-width: 560px; /* D02 clothesline box on the right of the hero */
+  /* Etapa 07: success headings in 09 and M04, as sized in their Doop frames. */
+  --text-success-mobile: 40px;
+  --text-success-desktop: 36px;
 }

@@ -182,11 +182,12 @@ export function ContasPagina({ contaId }: { contaId?: string }) {
 }
 
 // Filter options come from the API and only list what you see (RN06): no option of a hidden bill.
-const temFiltros = (l: Lista) => !!(l.opcoes.casas.length || l.opcoes.pagadores.length || l.opcoes.sem_pagador);
+const temFiltros = (l: Lista) => !!(l.opcoes.casas.length || l.opcoes.pagadores.length || l.opcoes.sem_pagador || l.opcoes.ex_membro);
 
 function opcoesPagador(l: Lista): [string, string][] {
   return [
     ...l.opcoes.pagadores.map((p): [string, string] => [p.id, p.sou_eu ? "Você" : p.nome]),
+    ...(l.opcoes.ex_membro ? [["ex_membro", "Ex-membro"] as [string, string]] : []),
     ...(l.opcoes.sem_pagador ? [["nenhum", "Sem pagador"] as [string, string]] : []),
   ];
 }

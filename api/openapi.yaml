@@ -2294,6 +2294,14 @@ components:
       required:
       - request_options
       type: object
+    Anexar:
+      properties:
+        comprovante_id:
+          format: uuid
+          type: string
+      required:
+      - comprovante_id
+      type: object
     CandidatoPDF:
       properties:
         avisos:
@@ -2436,7 +2444,25 @@ components:
           - $ref: '#/components/schemas/Pessoa'
           nullable: true
           readOnly: true
+        pagamento_ativo:
+          allOf:
+          - $ref: '#/components/schemas/Pagamento'
+          nullable: true
+          readOnly: true
+        pagamentos:
+          items:
+            $ref: '#/components/schemas/Pagamento'
+          type: array
+        pode_anexar_comprovante:
+          readOnly: true
+          type: boolean
+        pode_desfazer_pagamento:
+          readOnly: true
+          type: boolean
         pode_editar:
+          readOnly: true
+          type: boolean
+        pode_pagar:
           readOnly: true
           type: boolean
         quem_ve:
@@ -2473,7 +2499,12 @@ components:
       - id
       - instrumento
       - pagador
+      - pagamento_ativo
+      - pagamentos
+      - pode_anexar_comprovante
+      - pode_desfazer_pagamento
       - pode_editar
+      - pode_pagar
       - quem_ve
       - status
       - status_exibido
@@ -2664,6 +2695,34 @@ components:
       required:
       - nome
       type: object
+    Documento:
+      properties:
+        criado_em:
+          format: date-time
+          readOnly: true
+          type: string
+        estado:
+          $ref: '#/components/schemas/EstadoEnum'
+        id:
+          format: uuid
+          readOnly: true
+          type: string
+        mime:
+          maxLength: 32
+          type: string
+        nome:
+          maxLength: 200
+          type: string
+        tamanho:
+          maximum: 2147483647
+          minimum: 0
+          type: integer
+      required:
+      - criado_em
+      - id
+      - nome
+      - tamanho
+      type: object
     DocumentoPDF:
       properties:
         avisos:
@@ -2726,6 +2785,23 @@ components:
       - nome
       - tipo
       type: object
+    EstadoEnum:
+      description: '* `pendente` - Aguardando validação
+
+        * `lendo` - Validando
+
+        * `valido` - Validado
+
+        * `invalido` - Arquivo inválido
+
+        * `erro` - Falha na validação'
+      enum:
+      - pendente
+      - lendo
+      - valido
+      - invalido
+      - erro
+      type: string
     GrupoDetalhe:
       properties:
         casas:
@@ -2842,7 +2918,13 @@ components:
 
         * `cancelada_automaticamente` - Cancelada automaticamente
 
-        * `acesso_preservado` - Acesso preservado'
+        * `acesso_preservado` - Acesso preservado
+
+        * `paga` - Marcou como paga
+
+        * `pagamento_desfeito` - Desfez pagamento
+
+        * `comprovante_anexado` - Anexou comprovante'
       enum:
       - criada
       - editada
@@ -2851,6 +2933,9 @@ components:
       - acesso_removido
       - cancelada_automaticamente
       - acesso_preservado
+      - paga
+      - pagamento_desfeito
+      - comprovante_anexado
       type: string
     Instrumento:
       properties:
@@ -2956,6 +3041,22 @@ components:
       - opcoes
       - total_centavos
       type: object
+    Marcar:
+      properties:
+        comprovante_id:
+          format: uuid
+          nullable: true
+          type: string
+        pago_em:
+          format: date
+          type: string
+        valor_centavos_esperado:
+          minimum: 1
+          type: integer
+      required:
+      - pago_em
+      - valor_centavos_esperado
+      type: object
     Me:
       properties:
         email:
@@ -2981,6 +3082,9 @@ components:
       type: object
     Membro:
       properties:
+        contas_atribuidas_qtd:
+          readOnly: true
+          type: integer
         email:
           nullable: true
           readOnly: true
@@ -3002,6 +3106,7 @@ components:
           readOnly: true
           type: string
       required:
+      - contas_atribuidas_qtd
       - email
       - id
       - nome
@@ -3015,6 +3120,8 @@ components:
           items:
             $ref: '#/components/schemas/Ref'
           type: array
+        ex_membro:
+          type: boolean
         pagadores:
           items:
             $ref: '#/components/schemas/Pessoa'
@@ -3023,8 +3130,43 @@ components:
           type: boolean
       required:
       - casas
+      - ex_membro
       - pagadores
       - sem_pagador
+      type: object
+    Pagamento:
+      properties:
+        comprovante_id:
+          format: uuid
+          nullable: true
+          readOnly: true
+          type: string
+        criado_em:
+          format: date-time
+          type: string
+        desfeito_em:
+          format: date-time
+          nullable: true
+          type: string
+        id:
+          format: uuid
+          type: string
+        marcado_por:
+          readOnly: true
+          type: string
+        pago_em:
+          format: date
+          type: string
+        valor_pago_centavos:
+          type: integer
+      required:
+      - comprovante_id
+      - criado_em
+      - desfeito_em
+      - id
+      - marcado_por
+      - pago_em
+      - valor_pago_centavos
       type: object
     Papel:
       properties:
@@ -3149,6 +3291,8 @@ components:
           type: string
         nome:
           type: string
+        pagas_qtd:
+          type: integer
         qtd:
           type: integer
         total_centavos:
@@ -3156,6 +3300,7 @@ components:
       required:
       - id
       - nome
+      - pagas_qtd
       - qtd
       - total_centavos
       type: object
@@ -3234,6 +3379,8 @@ components:
         mes:
           description: AAAA-MM de total_centavos, qtd e por_casa
           type: string
+        pagas_qtd:
+          type: integer
         por_casa:
           items:
             $ref: '#/components/schemas/PorCasa'
@@ -3252,6 +3399,7 @@ components:
       - atencao
       - janela_alerta_dias
       - mes
+      - pagas_qtd
       - por_casa
       - qtd
       - total_centavos
@@ -3327,6 +3475,18 @@ components:
       - pix
       - manual
       type: string
+    URL:
+      properties:
+        expira_em:
+          format: date-time
+          type: string
+        url:
+          format: uri
+          type: string
+      required:
+      - expira_em
+      - url
+      type: object
     URLPDF:
       properties:
         expira_em:
@@ -3338,6 +3498,18 @@ components:
       required:
       - expira_em
       - url
+      type: object
+    Upload:
+      properties:
+        arquivo:
+          format: uri
+          type: string
+        pagamento_id:
+          format: uuid
+          nullable: true
+          type: string
+      required:
+      - arquivo
       type: object
     UploadPDF:
       properties:
@@ -4562,6 +4734,48 @@ paths:
       - cookieAuth: []
       tags:
       - boletos
+  /api/comprovantes/{documento_id}/:
+    get:
+      operationId: comprovantes_detalhe
+      parameters:
+      - in: path
+        name: documento_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Documento'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - comprovantes
+  /api/comprovantes/{documento_id}/arquivo/:
+    get:
+      operationId: comprovantes_arquivo
+      parameters:
+      - in: path
+        name: documento_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/URL'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - comprovantes
   /api/convites/{token}/:
     get:
       operationId: convites_ver
@@ -5898,6 +6112,136 @@ paths:
       security:
       - cookieAuth: []
       summary: Cancelar conta aguardando ou pendente; nada é apagado (RN22, D2)
+      tags:
+      - lancamentos
+  /api/lancamentos/{lancamento_id}/comprovantes/:
+    post:
+      operationId: comprovantes_upload
+      parameters:
+      - in: path
+        name: lancamento_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Upload'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Upload'
+        required: true
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Documento'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - lancamentos
+  /api/lancamentos/{lancamento_id}/pagamentos/:
+    post:
+      operationId: pagamentos_marcar
+      parameters:
+      - in: path
+        name: lancamento_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Marcar'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Marcar'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Marcar'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContaDetalhe'
+          description: ''
+      security:
+      - cookieAuth: []
+      summary: Registra uma declaração integral
+      tags:
+      - lancamentos
+  /api/lancamentos/{lancamento_id}/pagamentos/{pagamento_id}/comprovante/:
+    post:
+      operationId: pagamentos_anexar_comprovante
+      parameters:
+      - in: path
+        name: lancamento_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: pagamento_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Anexar'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Anexar'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Anexar'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContaDetalhe'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - lancamentos
+  /api/lancamentos/{lancamento_id}/pagamentos/{pagamento_id}/desfazer/:
+    post:
+      operationId: pagamentos_desfazer
+      parameters:
+      - in: path
+        name: lancamento_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: pagamento_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContaDetalhe'
+          description: ''
+      security:
+      - cookieAuth: []
       tags:
       - lancamentos
   /api/lancamentos/{lancamento_id}/pdf/:

@@ -530,7 +530,13 @@ def test_d2_cancelada_fora_de_tudo_menos_do_filtro_canceladas(f):
     assert (corpo["total_centavos"], corpo["qtd"], corpo["vencidas_qtd"]) == (1000, 1, 0)
     assert ids(corpo["atencao"]) == {str(viva.pk)}
     assert corpo["por_casa"] == [
-        {"id": str(f.casa.pk), "nome": "Casa da praia", "total_centavos": 1000, "qtd": 1}
+        {
+            "id": str(f.casa.pk),
+            "nome": "Casa da praia",
+            "total_centavos": 1000,
+            "qtd": 1,
+            "pagas_qtd": 0,
+        }
     ]
 
 
@@ -594,9 +600,15 @@ def test_rf13_resumo_total_do_mes_atencao_e_por_casa(f):
     assert [c["status_exibido"] for c in corpo["atencao"]] == ["vencida", "vence"]
     assert (corpo["vencidas_qtd"], corpo["vence_qtd"]) == (1, 1)
     assert corpo["por_casa"] == [
-        {"id": str(f.casa.pk), "nome": "Casa da praia", "total_centavos": 200, "qtd": 1}
+        {
+            "id": str(f.casa.pk),
+            "nome": "Casa da praia",
+            "total_centavos": 200,
+            "qtd": 1,
+            "pagas_qtd": 0,
+        }
     ]
-    assert "pagas_qtd" not in corpo  # Q23
+    assert corpo["pagas_qtd"] == 0  # Q23 delivered in stage 07
     nova(a, f.pessoal["admin"])
     assert resumo(cliente(a), f.pessoal["admin"])["por_casa"] == []
 
@@ -1027,6 +1039,7 @@ def test_rn06_rn07_alterar_papel_preserva_acesso(f):
         "email": "membro@example.com",
         "papel": "pagador",
         "sou_eu": False,
+        "contas_atribuidas_qtd": 0,
     }
     assert com.json().keys() == sem.json().keys() and com.headers.keys() == sem.headers.keys()
     assert set(so_dela.acesso.values_list("pk", flat=True)) == {m.pk}
@@ -1148,7 +1161,9 @@ def test_rn30_nome_por_contexto_membro_sem_nome_ex_membro(f):
     assert admin.get(url(paga)).json()["pagador"]["nome"] == "Ex-membro"
     corpo = lista(admin, f.grupo)
     pagadores = corpo["opcoes"]["pagadores"]
-    assert [p["nome"] for p in pagadores] == ["Ex-membro", "anonimo@example.com"]
+    assert [p["nome"] for p in pagadores] == ["anonimo@example.com"]
+    assert corpo["opcoes"]["ex_membro"] is True
+    assert ids(lista(admin, f.grupo, pagador="ex_membro")["itens"]) == {str(paga.pk)}
     vistos = response.content.decode() + str(corpo) + str(admin.get(url(paga)).json())
     assert "saiu@" not in vistos
 

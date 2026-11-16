@@ -109,7 +109,8 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
                       key={c.id}
                       label={c.nome}
                       caption={resumo.data ? reais(total?.total_centavos ?? 0) : "…"}
-                      caption-2={resumo.data ? `${plural(total?.qtd ?? 0, "conta", "contas")} em ${mes}` : undefined}
+                      caption-2={resumo.data ? total?.qtd ? `${total.pagas_qtd} de ${total.qtd} pagas em ${mes}` : `0 contas em ${mes}` : undefined}
+                      progress={total?.qtd ? total.pagas_qtd / total.qtd * 100 : undefined}
                       onClick={admin ? () => setCasa(c) : undefined}
                     />
                   );
@@ -138,6 +139,7 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
                   role={m.papel}
                   initials={iniciais(nomeDoMembro(m))}
                   name={m.sou_eu ? `${nomeDoMembro(m)} (você)` : nomeDoMembro(m)}
+                  detail={`Paga ${plural(m.contas_atribuidas_qtd, "conta", "contas")} em ${mes || "este mês"}`}
                   onClick={admin ? () => setMembro(m) : undefined}
                 />
               ))}

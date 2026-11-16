@@ -60,7 +60,7 @@ test("ca01/ca04/ca05/ca17 rf04/rf05/rf07 rn04/rn24/rn31: admin cria grupo e casa
   const grupoId = page.url().split("/").pop()!;
   await expect(titulo(page, nome)).toBeVisible();
   await expect(texto(page, "1 membro · 1 casa · você é admin")).toBeVisible();
-  // Etapa 04 (Q12): the HouseCard shows the month total and "N contas", no paid bar.
+  // Q07-7: an empty house has no progress denominator or division by zero.
   await expect(texto(page, `0 contas em ${mesAtual()}`)).toHaveCount(1);
   expect((await me(admin.request)).grupos).toEqual([{ id: grupoId, nome, papel: "admin" }]);
 

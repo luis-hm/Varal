@@ -128,9 +128,9 @@ export async function semRolagemEAlvos44(page: Page) {
     els
       .filter((el) => {
         if (!el.checkVisibility()) return false;
-        // A clipped native file input delegates pointer interaction to its associated label.
+        // A visually hidden native file input delegates pointer interaction to its associated label.
         // Count it as hidden only when that visible label itself meets the touch target size.
-        if (el instanceof HTMLInputElement && el.type === "file" && getComputedStyle(el).clipPath === "inset(50%)") {
+        if (el instanceof HTMLInputElement && el.type === "file" && (getComputedStyle(el).clipPath === "inset(50%)" || getComputedStyle(el).opacity === "0")) {
           return !Array.from(el.labels ?? []).some((label) => {
             const r = label.getBoundingClientRect();
             return label.checkVisibility() && r.width >= 44 && r.height >= 44;

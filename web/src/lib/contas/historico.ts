@@ -65,5 +65,11 @@ export function linhaHistorico(h: Historico): [Trecho[], Trecho[]] {
       return [["Cancelada automaticamente"], ["ficou sem ninguém que pudesse vê-la"]];
     case "acesso_preservado":
       return [["Acesso mantido"], ["o papel mudou e esta conta continuaria sem ninguém que a visse"]];
+    case "paga":
+      return [[quem, " registrou o pagamento"], []];
+    case "pagamento_desfeito":
+      return [[quem, " desfez o pagamento"], []];
+    case "comprovante_anexado":
+      return [[quem, " anexou comprovante"], []];
   }
 }
