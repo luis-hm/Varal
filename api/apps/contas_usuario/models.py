@@ -1,8 +1,21 @@
 import uuid
 
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models, transaction
 from django.db.models.functions import Lower
+
+
+class UsuarioQuerySet(models.QuerySet):
+    def delete(self):
+        from apps.solicitacoes.coordenacao import barreira
+
+        with transaction.atomic():
+            barreira()
+            return super().delete()
+
+
+class UsuarioManager(UserManager.from_queryset(UsuarioQuerySet)):
+    pass
 
 
 class Usuario(AbstractUser):
@@ -13,6 +26,14 @@ class Usuario(AbstractUser):
     nome = models.CharField(max_length=150, blank=True)
     telefone = models.CharField(max_length=30, blank=True)
     prefs_notificacao = models.JSONField(default=dict, blank=True)
+    objects = UsuarioManager()
+
+    def delete(self, *args, **kwargs):
+        from apps.solicitacoes.coordenacao import barreira
+
+        with transaction.atomic():
+            barreira()
+            return super().delete(*args, **kwargs)
 
     class Meta:
         constraints = [models.UniqueConstraint(Lower("email"), name="usuario_email_ci_unique")]

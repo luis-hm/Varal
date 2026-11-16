@@ -1,26 +1,14 @@
-// Doop: k0kB5dc-Vo / mIvLheR2TS (13 · Modo simples) + YTtAtGSyCI (D05) as reference until stage 10.
-// CU11 (Q5: the payer's bills, read only), RF06 (leave the group, any role); RN07: the payer has no group page.
-import { notFound, redirect } from "next/navigation";
-import { ContasPagador } from "@/components/bills/contas-pagador";
-import { SairDoGrupo } from "@/components/groups/sair-do-grupo";
-import { TopBar } from "@/components/layout/top-bar";
+// Doop: k0kB5dc-Vo / 13 · Modo simples (mIvLheR2TS) + D05 (YTtAtGSyCI); CU11, Q10-11.
+import { redirect } from "next/navigation";
+import { ContasSimples } from "@/components/simple/contas-simples";
 import { requireUser } from "@/lib/auth/server";
-import styles from "./simples.module.css";
-
 export const instant = false;
-
-export default async function ModoSimples({ params }: PageProps<"/grupos/[id]/simples">) {
+export default async function ModoSimples({ params, searchParams }: PageProps<"/grupos/[id]/simples">) {
   const { id } = await params;
-  const grupo = (await requireUser()).grupos.find((g) => g.id === id);
-  if (!grupo) notFound();
+  const user = await requireUser();
+  const grupo = user.grupos.find((g) => g.id === id);
+  if (!grupo) redirect("/grupos");
   if (grupo.papel !== "pagador") redirect(`/grupos/${id}`);
-  return (
-    <>
-      <TopBar title={grupo.nome} />
-      <div className={styles.body}>
-        <ContasPagador grupoId={grupo.id} />
-        <SairDoGrupo grupoId={grupo.id} grupoNome={grupo.nome} />
-      </div>
-    </>
-  );
+  const filtros = await searchParams;
+  return <ContasSimples key={`${user.id}:${grupo.id}:${filtros.pagas === "1"}`} grupoId={grupo.id} grupoNome={grupo.nome} nome={user.nome || user.email.split("@")[0]} inicialPagas={filtros.pagas === "1"} />;
 }

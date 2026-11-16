@@ -110,9 +110,10 @@ test("ca01/ca04/ca05/ca17 rf04/rf05/rf07 rn04/rn24/rn31: admin cria grupo e casa
     await visivel(visitante, "Aceitar convite").click();
     // RN07 / decision 6: the payer lands on the simple mode.
     await expect(visitante).toHaveURL(`${ORIGIN}/grupos/${grupoId}/simples`);
-    await expect(titulo(visitante, nome)).toBeVisible();
-    // Etapa 04 (Q5): the payer's own bills, read only.
-    await expect(visitante.getByText(`Nenhuma conta para você pagar em ${mesAtual()}.`, { exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(visitante.locator("header").getByText(nome, { exact: true })).toBeVisible();
+    await expect(visitante.getByRole("heading", { level: 1, name: "Nenhuma conta em aberto." })).toBeVisible();
+    // Etapa 10: the simple view includes all visible open bills, across months.
+    await expect(visitante.getByText("Nenhuma conta em aberto.", { exact: true }).filter({ visible: true })).toBeVisible();
     const pagador = await me(visitante.context().request);
     expect(pagador.email).toBe(email);
     expect(pagador.grupos).toEqual([{ id: grupoId, nome, papel: "pagador" }]);

@@ -124,7 +124,9 @@ class UploadPDFView(APIView):
             with transaction.atomic():
                 from apps.espacos.models import Espaco, Membro
                 from apps.espacos.servicos import _admins_travados
+                from apps.solicitacoes.coordenacao import barreira
 
+                barreira()
                 if espaco.tipo == Espaco.Tipo.GRUPO:
                     _admins_travados([espaco.pk])
                     list(
@@ -159,8 +161,11 @@ class DocumentoPDFView(APIView):
     @extend_schema(operation_id="boletos_pdf_detalhe", responses={200: DocumentoPDFSerializer})
     @transaction.atomic
     def get(self, request, documento_id):
+        from apps.solicitacoes.coordenacao import barreira
+
         from .pdf_servicos import documento_ou_404
 
+        barreira()
         return Response(DocumentoPDFSerializer(documento_ou_404(request.user, documento_id)).data)
 
 
@@ -192,8 +197,11 @@ class ArquivoPDFView(APIView):
     @extend_schema(operation_id="boletos_pdf_arquivo", responses={200: URLPDFSerializer})
     @transaction.atomic
     def get(self, request, documento_id):
+        from apps.solicitacoes.coordenacao import barreira
+
         from .pdf_servicos import documento_ou_404
 
+        barreira()
         return _url_pdf(documento_ou_404(request.user, documento_id))
 
 
@@ -204,9 +212,11 @@ class ContaPDFView(APIView):
         from rest_framework.exceptions import NotFound
 
         from apps.espacos.acesso import lancamento_ou_404
+        from apps.solicitacoes.coordenacao import barreira
 
         from .models import DocumentoBoleto
 
+        barreira()
         conta = lancamento_ou_404(request.user, lancamento_id, travar=True)
         doc = DocumentoBoleto.objects.filter(lancamento=conta).first()
         if not doc:

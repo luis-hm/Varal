@@ -15,6 +15,7 @@ from apps.espacos.servicos import Conflito, _admins_travados
 from apps.lancamentos.models import Acao, Lancamento, Status
 from apps.lancamentos.servicos import _historico, validar
 from apps.lancamentos.servicos import criar as criar_conta
+from apps.solicitacoes.coordenacao import barreira
 
 from .models import CompetenciaDevida, OperacaoRecorrencia, Recorrencia, RevisaoRecorrencia
 
@@ -207,6 +208,7 @@ def criar(usuario, espaco, dados):
     assinatura = _hash({"espaco": str(espaco.pk), "dados": dados, "inicial": inicial})
     atual = mes_atual()
     with transaction.atomic():
+        barreira()
         travar_espaco(usuario, espaco)
         espaco = espaco_ou_404(usuario, espaco.pk, "criar_conta")
         _travar_objeto(uuid.uuid5(usuario.pk, str(chave)))
@@ -279,6 +281,7 @@ def criar(usuario, espaco, dados):
 
 def editar_modelo(usuario, recorrencia_id, dados, competencia_inicio=None):
     with transaction.atomic():
+        barreira()
         modelo = travar_modelo(
             usuario, recorrencia_id, "editar_conta", casas_extra=(dados.get("subgrupo"),)
         )
@@ -307,6 +310,7 @@ def editar_modelo(usuario, recorrencia_id, dados, competencia_inicio=None):
 
 def transicao(usuario, recorrencia_id, acao):
     with transaction.atomic():
+        barreira()
         modelo = travar_modelo(usuario, recorrencia_id, "editar_conta")
         atual = mes_atual()
         if acao == "pausar":
@@ -337,6 +341,7 @@ def transicao(usuario, recorrencia_id, acao):
 
 def processar_recorrencia(pk):
     with transaction.atomic():
+        barreira()
         ref = Recorrencia.objects.select_related("espaco").filter(pk=pk).first()
         if not ref:
             return
@@ -404,6 +409,7 @@ def editar_proximos(usuario, conta_id, dados):
     from apps.lancamentos.servicos import editar
 
     with transaction.atomic():
+        barreira()
         modelo, alvo, ids = _alvo_proximos(usuario, conta_id, casas_extra=(dados.get("subgrupo"),))
         dados = dict(dados)
         tipo = dados.pop("valor_tipo", None)
@@ -448,6 +454,7 @@ def cancelar_proximos(usuario, conta_id):
     from apps.lancamentos.servicos import _cancelar
 
     with transaction.atomic():
+        barreira()
         modelo, alvo, ids = _alvo_proximos(usuario, conta_id)
         materializar(modelo, mes_atual())
         modelo.estado, modelo.motivo_pausa = Recorrencia.Estado.ENCERRADA, ""

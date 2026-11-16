@@ -17,6 +17,7 @@ urlpatterns = [
     path("api/", include("apps.pagamentos.urls")),
     path("api/", include("apps.recorrencias.urls")),
     path("api/", include("apps.notificacoes.urls")),
+    path("api/", include("apps.solicitacoes.urls")),
     path("api/auth/", include("allauth.headless.urls")),
     path("accounts/google/login/callback/", callback, name="google_callback"),
     path("accounts/", include("allauth.urls")),

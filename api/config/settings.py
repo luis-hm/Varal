@@ -22,6 +22,7 @@ DOMAIN_APPS = [
     "apps.pagamentos",
     "apps.recorrencias",
     "apps.notificacoes",
+    "apps.solicitacoes",
 ]
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -230,7 +231,7 @@ STORAGES = {
                 s3={"addressing_style": "path"},
                 connect_timeout=3,
                 read_timeout=15,
-                retries={"max_attempts": 1},
+                retries={"total_max_attempts": 1},
             ),
         },
     },
@@ -283,5 +284,9 @@ CELERY_BEAT_SCHEDULE["recuperar-rotina-notificacoes"] = {
 }
 CELERY_BEAT_SCHEDULE["despachar-notificacoes"] = {
     "task": "apps.notificacoes.tasks.despachar",
+    "schedule": 60.0,
+}
+CELERY_BEAT_SCHEDULE["recuperar-solicitacoes"] = {
+    "task": "apps.solicitacoes.tasks.recuperar_solicitacoes",
     "schedule": 60.0,
 }

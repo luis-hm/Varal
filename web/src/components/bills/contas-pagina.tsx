@@ -44,7 +44,7 @@ export function agrupar(itens: Conta[]): [string, Conta[]][] {
 export function ContasPagina({ contaId }: { contaId?: string }) {
   const router = useRouter();
   const params = useSearchParams();
-  const { espaco } = useSessao();
+  const { espaco, user } = useSessao();
   const conta = useConta(contaId);
   const mes = params.get("mes") || mesAtual();
   const status = (params.get("status") as FiltroStatus | null) || "todas";
@@ -67,7 +67,9 @@ export function ContasPagina({ contaId }: { contaId?: string }) {
   };
   // CA15: filters live in the URL, so Back restores them.
   const ir = (mudar: Record<string, string | undefined>) => router.push(`${contaId ? `/contas/${contaId}` : "/contas"}${query(mudar)}`, { scroll: false });
-  const voltar = `/contas${query({})}`;
+  const origemSimples = params.get("origem") === "simples";
+  const grupoSimples = conta.data?.espaco.tipo === "grupo" && user.grupos.find((grupo) => grupo.id === conta.data?.espaco.id && grupo.papel === "pagador");
+  const voltar = origemSimples ? (grupoSimples ? `/grupos/${encodeURIComponent(grupoSimples.id)}/simples${params.get("pagas") === "1" ? "?pagas=1" : ""}` : "/grupos") : `/contas${query({})}`;
   const naoAchou = conta.error instanceof ApiError && conta.error.status === 404;
 
   return (
@@ -151,7 +153,7 @@ export function ContasPagina({ contaId }: { contaId?: string }) {
             Escolha uma conta para ver os detalhes.
           </p>
         ) : conta.data ? (
-          <ContaDetalhe conta={conta.data} voltar={voltar} />
+          <ContaDetalhe conta={conta.data} voltar={voltar} retornoPagamento={origemSimples ? voltar : undefined} />
         ) : (
           <>
             {/* Ajuste 28: no TabBar on the stacked 07, so loading and errors keep the way back too. */}

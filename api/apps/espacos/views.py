@@ -14,6 +14,8 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from apps.solicitacoes.coordenacao import coordenado
+
 from . import servicos
 from .acesso import espaco_ou_404, espacos_do_usuario, pode
 from .models import Espaco, Membro, Papel, Subgrupo
@@ -553,6 +555,7 @@ class ArquivamentoPreviewView(APIView):
         responses={200: ArquivamentoPreviewSerializer},
     )
     @transaction.atomic
+    @coordenado
     def get(self, request, grupo_id, casa_id):
         from apps.espacos.acesso import lancamentos_visiveis, recorrencias_visiveis
         from apps.lancamentos.models import ABERTOS
@@ -584,6 +587,7 @@ class SubgrupoView(APIView):
         examples=[OpenApiExample("Arquivar", value={"arquivado": True}, request_only=True)],
     )
     @transaction.atomic
+    @coordenado
     def patch(self, request, grupo_id, casa_id):
         from apps.recorrencias.servicos import travar_espaco
 

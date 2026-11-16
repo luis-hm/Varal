@@ -13,6 +13,7 @@ class TipoEvento(models.TextChoices):
     PAGAMENTO = "pagamento", "Pagamento registrado"
     PAGADOR_REMOVIDO = "pagador_removido", "Pagador removido"
     CANCELADA_RN32 = "cancelada_rn32", "Conta cancelada automaticamente"
+    SOLICITACAO = "solicitacao", "Pedido de pagamento"
 
 
 class EventoNotificacao(models.Model):

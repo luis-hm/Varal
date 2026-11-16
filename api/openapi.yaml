@@ -2473,6 +2473,10 @@ components:
           - $ref: '#/components/schemas/InstrumentoDetalhe'
           nullable: true
           readOnly: true
+        mensagem_solicitacao:
+          nullable: true
+          readOnly: true
+          type: string
         pagador:
           allOf:
           - $ref: '#/components/schemas/Pessoa'
@@ -2499,6 +2503,9 @@ components:
         pode_pagar:
           readOnly: true
           type: boolean
+        pode_solicitar:
+          readOnly: true
+          type: boolean
         pode_ver_recorrencia:
           readOnly: true
           type: boolean
@@ -2517,6 +2524,11 @@ components:
         recorrente:
           readOnly: true
           type: boolean
+        solicitacao_ativa:
+          allOf:
+          - $ref: '#/components/schemas/SolicitacaoResumo'
+          nullable: true
+          readOnly: true
         status:
           $ref: '#/components/schemas/StatusEnum'
         status_exibido:
@@ -2530,6 +2542,10 @@ components:
           type: integer
         vencimento:
           format: date
+          type: string
+        versao_compartilhamento:
+          nullable: true
+          readOnly: true
           type: string
         visibilidade:
           $ref: '#/components/schemas/VisibilidadeEnum'
@@ -2545,6 +2561,7 @@ components:
       - historico
       - id
       - instrumento
+      - mensagem_solicitacao
       - pagador
       - pagamento_ativo
       - pagamentos
@@ -2552,15 +2569,18 @@ components:
       - pode_desfazer_pagamento
       - pode_editar
       - pode_pagar
+      - pode_solicitar
       - pode_ver_recorrencia
       - quem_ve
       - recorrencia_id
       - recorrente
+      - solicitacao_ativa
       - status
       - status_exibido
       - subgrupo
       - valor_centavos
       - vencimento
+      - versao_compartilhamento
       - visibilidade
       type: object
     ContaEntrada:
@@ -2649,6 +2669,72 @@ components:
       - contas
       - detail
       - pessoas
+      type: object
+    ContaSimples:
+      properties:
+        criado_em:
+          format: date-time
+          type: string
+        descricao:
+          type: string
+        dias_para_vencer:
+          readOnly: true
+          type: integer
+        documento_pdf:
+          allOf:
+          - $ref: '#/components/schemas/DocumentoPDF'
+          nullable: true
+          readOnly: true
+        espaco:
+          $ref: '#/components/schemas/EspacoRef'
+        id:
+          format: uuid
+          type: string
+        instrumento:
+          allOf:
+          - $ref: '#/components/schemas/InstrumentoDetalhe'
+          nullable: true
+          readOnly: true
+        pagador:
+          allOf:
+          - $ref: '#/components/schemas/Pessoa'
+          nullable: true
+          readOnly: true
+        pode_pagar:
+          readOnly: true
+          type: boolean
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        status_exibido:
+          $ref: '#/components/schemas/StatusExibidoEnum'
+        subgrupo:
+          allOf:
+          - $ref: '#/components/schemas/Ref'
+          nullable: true
+        valor_centavos:
+          nullable: true
+          type: integer
+        vencimento:
+          format: date
+          type: string
+        visibilidade:
+          $ref: '#/components/schemas/VisibilidadeEnum'
+      required:
+      - criado_em
+      - descricao
+      - dias_para_vencer
+      - documento_pdf
+      - espaco
+      - id
+      - instrumento
+      - pagador
+      - pode_pagar
+      - status
+      - status_exibido
+      - subgrupo
+      - valor_centavos
+      - vencimento
+      - visibilidade
       type: object
     Contagens:
       properties:
@@ -2878,6 +2964,34 @@ components:
       - resultado
       - tamanho
       type: object
+    Entrada:
+      properties:
+        confirmar_compartilhamento:
+          type: boolean
+        grupo_id:
+          format: uuid
+          type: string
+        mensagem:
+          default: ''
+          maxLength: 500
+          type: string
+        nonce:
+          format: uuid
+          type: string
+        pagador_id:
+          format: uuid
+          type: string
+        versao_compartilhamento:
+          maxLength: 64
+          minLength: 64
+          type: string
+      required:
+      - confirmar_compartilhamento
+      - grupo_id
+      - nonce
+      - pagador_id
+      - versao_compartilhamento
+      type: object
     Erro:
       properties:
         detail:
@@ -2974,6 +3088,22 @@ components:
       - membros_qtd
       - nome
       - papel
+      type: object
+    GrupoOpcao:
+      properties:
+        id:
+          format: uuid
+          type: string
+        nome:
+          type: string
+        pagadores:
+          items:
+            $ref: '#/components/schemas/PessoaOpcao'
+          type: array
+      required:
+      - id
+      - nome
+      - pagadores
       type: object
     GrupoResumo:
       properties:
@@ -3226,6 +3356,21 @@ components:
       - proximo
       - resultados
       type: object
+    ListaSimples:
+      properties:
+        abertas_qtd:
+          type: integer
+        itens:
+          items:
+            $ref: '#/components/schemas/ContaSimples'
+          type: array
+        pagas_mes_qtd:
+          type: integer
+      required:
+      - abertas_qtd
+      - itens
+      - pagas_mes_qtd
+      type: object
     Marcar:
       properties:
         comprovante_id:
@@ -3345,7 +3490,9 @@ components:
 
         * `pagador_removido` - Pagador removido
 
-        * `cancelada_rn32` - Conta cancelada automaticamente'
+        * `cancelada_rn32` - Conta cancelada automaticamente
+
+        * `solicitacao` - Pedido de pagamento'
       enum:
       - boleto_ausente
       - vence_3
@@ -3354,6 +3501,7 @@ components:
       - pagamento
       - pagador_removido
       - cancelada_rn32
+      - solicitacao
       type: string
     OcorrenciaInicial:
       properties:
@@ -3414,6 +3562,9 @@ components:
         criado_em:
           format: date-time
           type: string
+        derivado:
+          readOnly: true
+          type: boolean
         desfeito_em:
           format: date-time
           nullable: true
@@ -3432,6 +3583,7 @@ components:
       required:
       - comprovante_id
       - criado_em
+      - derivado
       - desfeito_em
       - id
       - marcado_por
@@ -3593,6 +3745,17 @@ components:
       - id
       - nome
       - sou_eu
+      type: object
+    PessoaOpcao:
+      properties:
+        id:
+          format: uuid
+          type: string
+        nome:
+          type: string
+      required:
+      - id
+      - nome
       type: object
     PessoaRef:
       properties:
@@ -3769,6 +3932,48 @@ components:
       - acesso
       - cancelar
       type: string
+    Resultado:
+      properties:
+        copia_id:
+          format: uuid
+          nullable: true
+          readOnly: true
+          type: string
+        estado:
+          $ref: '#/components/schemas/ResultadoEstadoEnum'
+        id:
+          format: uuid
+          type: string
+        nonce:
+          format: uuid
+          type: string
+        pode_cancelar:
+          readOnly: true
+          type: boolean
+      required:
+      - copia_id
+      - estado
+      - id
+      - nonce
+      - pode_cancelar
+      type: object
+    ResultadoEstadoEnum:
+      description: '* `preparando` - Preparando
+
+        * `ativa` - Ativa
+
+        * `quitada` - Quitada
+
+        * `encerrada` - Encerrada
+
+        * `falhou` - Falhou'
+      enum:
+      - preparando
+      - ativa
+      - quitada
+      - encerrada
+      - falhou
+      type: string
     ResultadoPDF:
       properties:
         beneficiario:
@@ -3857,6 +4062,46 @@ components:
             $ref: '#/components/schemas/Resolucao'
           type: array
       type: object
+    SolicitacaoResumo:
+      properties:
+        copia_id:
+          format: uuid
+          nullable: true
+          type: string
+        estado:
+          $ref: '#/components/schemas/SolicitacaoResumoEstadoEnum'
+        id:
+          format: uuid
+          type: string
+        nonce:
+          format: uuid
+          type: string
+        pode_cancelar:
+          type: boolean
+      required:
+      - copia_id
+      - estado
+      - id
+      - nonce
+      - pode_cancelar
+      type: object
+    SolicitacaoResumoEstadoEnum:
+      description: '* `preparando` - preparando
+
+        * `ativa` - ativa
+
+        * `quitada` - quitada
+
+        * `encerrada` - encerrada
+
+        * `falhou` - falhou'
+      enum:
+      - preparando
+      - ativa
+      - quitada
+      - encerrada
+      - falhou
+      type: string
     StatusEnum:
       description: '* `aguardando` - Aguardando boleto
 
@@ -5557,6 +5802,32 @@ paths:
       summary: Nova conta manual; nasce pendente (RF10, RF11, RN11; dono, admin, membro)
       tags:
       - espacos
+  /api/espacos/{espaco_id}/lancamentos/simples/:
+    get:
+      operationId: lancamentos_modo_simples
+      parameters:
+      - in: path
+        name: espaco_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Pagas no mês civil atual
+        in: query
+        name: pagas
+        schema:
+          type: boolean
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListaSimples'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - espacos
   /api/espacos/{espaco_id}/recorrencias/:
     get:
       operationId: recorrencias_listar
@@ -6811,6 +7082,111 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/URLPDF'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - lancamentos
+  /api/lancamentos/{origem_id}/solicitacoes/:
+    post:
+      operationId: solicitacoes_criar
+      parameters:
+      - in: path
+        name: origem_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Entrada'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Entrada'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Entrada'
+        required: true
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resultado'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - lancamentos
+  /api/lancamentos/{origem_id}/solicitacoes/nonce/{nonce}/:
+    delete:
+      operationId: solicitacoes_abandonar_nonce
+      parameters:
+      - in: path
+        name: nonce
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: origem_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: No response body
+      security:
+      - cookieAuth: []
+      tags:
+      - lancamentos
+    get:
+      operationId: solicitacoes_recuperar_nonce
+      parameters:
+      - in: path
+        name: nonce
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: origem_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resultado'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - lancamentos
+  /api/lancamentos/{origem_id}/solicitacoes/opcoes/:
+    get:
+      operationId: solicitacoes_opcoes
+      parameters:
+      - in: path
+        name: origem_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/GrupoOpcao'
+                type: array
           description: ''
       security:
       - cookieAuth: []

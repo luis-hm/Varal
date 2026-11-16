@@ -11,10 +11,10 @@ import { PagamentoFolha } from "./pagamento-folha";
 import { PagamentoSucesso } from "./pagamento-sucesso";
 import styles from "./pagamento.module.css";
 
-export function PagamentoAcoes({ conta }: { conta: ContaDetalhe }) {
+export function PagamentoAcoes({ conta, modoSimples = false, iniciar = false, aoConcluir, aoCancelar, retorno }: { conta: ContaDetalhe; modoSimples?: boolean; iniciar?: boolean; aoConcluir?: () => void; aoCancelar?: () => void; retorno?: string }) {
   const router = useRouter();
   const acoes = useAcoesPagamento();
-  const [modo, setModo] = useState<"marcar" | "anexar" | null>(null);
+  const [modo, setModo] = useState<"marcar" | "anexar" | null>(() => iniciar && conta.pode_pagar ? "marcar" : null);
   const [sucesso, setSucesso] = useState<ContaDetalhe | null>(null);
   const resumo = useContas(sucesso ? conta.espaco.id : undefined, { mes: conta.vencimento.slice(0, 7) });
   const [data, setData] = useState(() => hoje());
@@ -36,6 +36,7 @@ export function PagamentoAcoes({ conta }: { conta: ContaDetalhe }) {
     if (trava.current) return;
     geracao.current++;
     setModo(null); setArquivo(null); setErro(""); setEstado("");
+    if (modoSimples) aoCancelar?.();
   }
   async function salvar() {
     if (trava.current || !modo) return;
@@ -101,20 +102,20 @@ export function PagamentoAcoes({ conta }: { conta: ContaDetalhe }) {
     finally { acoes.abrir.reset(); if (geracao.current === atual) { trava.current = false; setOcupado(false); } }
   }
   return <>
-    {conta.pagamentos.length > 0 && <section className={styles.historicoPagamentos} aria-label="Pagamentos registrados">
+    {!modoSimples && conta.pagamentos.length > 0 && <section className={styles.historicoPagamentos} aria-label="Pagamentos registrados">
       <h2>Pagamentos registrados</h2>
       <ul>{conta.pagamentos.map((p) => <li key={p.id}>
-        <span>{p.desfeito_em ? "Pagamento desfeito" : "Pagamento registrado"} · {dataCivil(p.pago_em)} · {reais(p.valor_pago_centavos)} · {p.marcado_por}</span>
+        <span>{p.desfeito_em ? "Pagamento desfeito" : p.derivado ? "Pagamento derivado de solicitação" : "Pagamento registrado"} · {dataCivil(p.pago_em)} · {reais(p.valor_pago_centavos)} · {p.derivado ? "Sistema" : p.marcado_por}</span>
         {p.comprovante_id && <Button tone="secondary" label="Abrir comprovante" icon="comprovante" disabled={ocupado} onClick={() => abrirArquivo(p.comprovante_id!)} />}
       </li>)}</ul>
     </section>}
     {erro && !modo && <p role="alert" className={styles.erro}>{erro}</p>}
     <div className={styles.acoesConta}>
-      {conta.pode_pagar && <Button tone="success" icon="pago" label="Já paguei" disabled={ocupado} onClick={() => abrir("marcar")} />}
-      {conta.pode_anexar_comprovante && <Button tone="secondary" icon="comprovante" label="Anexar comprovante" disabled={ocupado} onClick={() => abrir("anexar")} />}
-      {conta.pode_desfazer_pagamento && <Button tone="ghost" label={ocupado ? "Aguarde…" : "Desfazer pagamento"} disabled={ocupado} onClick={desfazer} />}
+      {conta.pode_pagar && !iniciar && <Button tone="success" icon="pago" label="Já paguei" disabled={ocupado} onClick={() => abrir("marcar")} />}
+      {!modoSimples && conta.pode_anexar_comprovante && <Button tone="secondary" icon="comprovante" label="Anexar comprovante" disabled={ocupado} onClick={() => abrir("anexar")} />}
+      {!modoSimples && conta.pode_desfazer_pagamento && <Button tone="ghost" label={ocupado ? "Aguarde…" : "Desfazer pagamento"} disabled={ocupado} onClick={desfazer} />}
     </div>
     <PagamentoFolha open={!!modo} descricao={conta.descricao} valor={valorConta(conta.valor_centavos)} data={data} hoje={hoje()} arquivo={arquivo} ocupado={ocupado} erro={erro} estadoArquivo={estado} anexando={modo === "anexar"} onData={setData} onArquivo={(f) => { setArquivo(f); setErro(""); }} onSubmit={salvar} onClose={fechar} />
-    <PagamentoSucesso open={!!sucesso} descricao={conta.descricao} valor={valorConta(conta.valor_centavos)} progresso={resumo.data && !resumo.isFetching && resumo.data.contagens.todas ? `${nomeMes(resumo.data.mes)}: ${resumo.data.contagens.pagas} de ${resumo.data.contagens.todas} contas pagas` : undefined} podeAnexar={!!sucesso?.pode_anexar_comprovante} onAnexar={() => { setSucesso(null); abrir("anexar"); }} onClose={() => { setSucesso(null); if (!window.matchMedia?.("(min-width: 1024px)").matches) router.push("/"); }} />
+    <PagamentoSucesso open={!!sucesso} descricao={conta.descricao} valor={valorConta(conta.valor_centavos)} progresso={resumo.data && !resumo.isFetching && resumo.data.contagens.todas ? `${nomeMes(resumo.data.mes)}: ${resumo.data.contagens.pagas} de ${resumo.data.contagens.todas} contas pagas` : undefined} podeAnexar={!!sucesso?.pode_anexar_comprovante} onAnexar={() => { setSucesso(null); abrir("anexar"); }} rotuloVoltar={modoSimples || retorno ? "Voltar às contas" : undefined} onClose={() => { setSucesso(null); if (modoSimples) aoConcluir?.(); else if (!window.matchMedia?.("(min-width: 1024px)").matches) router.push(retorno ?? "/"); }} />
   </>;
 }
