@@ -1,0 +1,9 @@
+/* Ajuste 29: a name or e-mail stays on one line, cut with an ellipsis (no value of its own, no Doop part). */
+.nome {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}

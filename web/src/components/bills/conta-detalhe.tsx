@@ -4,15 +4,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { TopBar } from "@/components/layout/top-bar";
 import { Icon, type IconName } from "@/components/ui/icon";
+import { Nome } from "@/components/ui/nome";
 import type { ContaDetalhe as Detalhe } from "@/lib/contas/client";
 import { dia, diaSemana, partesReais, prazo, quando } from "@/lib/contas/formato";
-import { linhaHistorico } from "@/lib/contas/historico";
+import { linhaHistorico, type Trecho } from "@/lib/contas/historico";
 import { ContaFolha } from "./conta-folha";
 import { StatusBadge } from "./status-badge";
 import styles from "./contas.module.css";
+
+/** History text with each person's name on one line (ajuste 29); the rest of the line still wraps. */
+const trechos = (t: Trecho[]) => t.map((x, i) => (typeof x === "string" ? x : x.nome && <Nome key={i}>{x.nome}</Nome>));
 
 type Props = {
   conta: Detalhe;
@@ -35,17 +39,24 @@ export function ContaDetalhe({ conta, voltar }: Props) {
       <Icon name="manual" size="md" />
     </button>
   ) : undefined;
-  const linhas: [IconName, string, string][] = [
-    ...(conta.subgrupo ? [["casa", "Casa", conta.subgrupo.nome] as [IconName, string, string]] : []),
+  // Ajuste 29: people's names and e-mails stay on one line (ellipsis + title); house names keep wrapping (decision 11).
+  const linhas: [IconName, string, ReactNode][] = [
+    ...(conta.subgrupo ? [["casa", "Casa", conta.subgrupo.nome] as [IconName, string, ReactNode]] : []),
     ...(conta.espaco.tipo === "grupo"
       ? ([
-          ["perfil", "Quem paga", !conta.pagador ? "Ninguém" : conta.pagador.sou_eu ? "Você" : conta.pagador.nome],
+          ["perfil", "Quem paga", <Nome key="p">{!conta.pagador ? "Ninguém" : conta.pagador.sou_eu ? "Você" : conta.pagador.nome}</Nome>],
           conta.visibilidade === "grupo"
             ? ["grupo", "Quem vê", "Todo o grupo"]
-            : ["cadeado", "Quem vê", conta.acesso.length ? `Só ${conta.acesso.map((p) => p.nome).join(", ")}` : "Só quem criou e quem paga"],
-        ] as [IconName, string, string][])
+            : ["cadeado", "Quem vê", <Nome key="v">{conta.acesso.length ? `Só ${conta.acesso.map((p) => p.nome).join(", ")}` : "Só quem criou e quem paga"}</Nome>],
+        ] as [IconName, string, ReactNode][])
       : []),
-    ["manual", "Criada por", `${conta.criador.sou_eu ? "Você" : conta.criador.nome}, ${dia(conta.criado_em)}`],
+    [
+      "manual",
+      "Criada por",
+      <span key="c" className={styles.nomeData}>
+        <Nome>{conta.criador.sou_eu ? "Você" : conta.criador.nome}</Nome>, {dia(conta.criado_em)}
+      </span>,
+    ],
   ];
 
   return (
@@ -103,8 +114,8 @@ export function ContaDetalhe({ conta, voltar }: Props) {
               const [forte, resto] = linhaHistorico(h);
               return (
                 <li key={i}>
-                  <b>{forte}</b>
-                  {resto && ` · ${resto}`} · {quando(h.criado_em)}
+                  <b>{trechos(forte)}</b>
+                  {resto.length > 0 && <> · {trechos(resto)}</>} · {quando(h.criado_em)}
                 </li>
               );
             })}

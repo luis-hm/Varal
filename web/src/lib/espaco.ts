@@ -14,14 +14,17 @@ export function resolverEspaco(user: Me, id: string | undefined): EspacoAtual {
   return { id: user.espaco_pessoal.id, nome: "Pessoal", tipo: "pessoal" };
 }
 
-/** Spaces where the user may create a bill (RN05: owner, admin, member). */
-export function espacosParaCriar(user: Me): EspacoAtual[] {
-  return [
+/** Spaces where the user may create a bill (RN05: owner, admin, member). Ajuste 30: the current one comes first
+ * (the form selects the first); when it cannot take a bill (observer), the order stays as it is. */
+export function espacosParaCriar(user: Me, atual?: string): EspacoAtual[] {
+  const todos = [
     resolverEspaco(user, undefined),
     ...user.grupos
       .filter((g) => g.papel === "admin" || g.papel === "membro")
       .map((g) => ({ id: g.id, nome: g.nome, tipo: "grupo" as const, papel: g.papel })),
   ];
+  const i = todos.findIndex((e) => e.id === atual);
+  return i > 0 ? [todos[i], ...todos.slice(0, i), ...todos.slice(i + 1)] : todos;
 }
 
 export function gravarEspaco(id: string) {

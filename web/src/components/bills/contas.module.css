@@ -400,15 +400,24 @@
   border-top: 1px solid var(--color-line);
 }
 
+/* The label keeps its width; the value shrinks (a long name is cut, ajuste 29). */
 .ir > span {
-  flex: 1;
+  flex: 1 0 auto;
   color: var(--color-ink-muted);
 }
 
 .ir b {
+  min-width: 0;
   font-weight: 600;
   text-align: right;
   overflow-wrap: anywhere;
+}
+
+/* "Criada por": the name is cut, the date after it stays. */
+.nomeData {
+  display: flex;
+  justify-content: flex-end;
+  white-space: nowrap;
 }
 
 .historico {

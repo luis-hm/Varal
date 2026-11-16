@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { Logo } from "@/components/ui/logo";
+import { Nome } from "@/components/ui/nome";
 import type { Papel } from "@/lib/grupos/client";
 import { secoes, type Secao } from "./secoes";
 import styles from "./side-nav.module.css";
@@ -82,7 +83,7 @@ export function SeletorEspaco({ espaco, espacos, onEscolher, variant = "card" }:
     <>
       <span className={styles.av}>{espaco.iniciais}</span>
       <span className={styles.tx}>
-        {espaco.nome}
+        <Nome>{espaco.nome}</Nome>
         {variant === "card" && <small>{espaco.detalhe}</small>}
       </span>
       <Icon name="chevron" size="sm" className={styles.down} />
@@ -117,7 +118,7 @@ export function SeletorEspaco({ espaco, espacos, onEscolher, variant = "card" }:
               >
                 <span className={styles.av}>{e.iniciais}</span>
                 <span className={styles.tx}>
-                  {e.nome}
+                  <Nome>{e.nome}</Nome>
                   <small>{e.detalhe}</small>
                 </span>
               </button>

@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { agrupar } from "@/components/bills/contas-pagina";
 import type { Conta, Historico } from "./client";
 import { lerValor, reais } from "./formato";
-import { linhaHistorico } from "./historico";
+import { linhaHistorico, texto } from "./historico";
 
 test("money: pt-BR input to cents and back", () => {
   expect(lerValor("287,43")).toBe(28743);
@@ -27,12 +27,21 @@ test("d2: list groups by due date, cancelled only in its own group", () => {
 
 const h = (p: Partial<Historico>) => ({ automatica: false, autor: null, sou_eu: false, dados: {}, criado_em: "2026-11-01T12:00:00Z", ...p }) as Historico;
 
+const linha = (p: Partial<Historico>) => linhaHistorico(h(p)).map(texto);
+
 test("rn22/rn30: automatic actions have no author, a deleted author reads Ex-membro", () => {
-  expect(linhaHistorico(h({ acao: "pagador_removido", automatica: true, dados: { pagador: ["Mãe", null] } }))).toEqual(["Ficou sem pagador", "Mãe saiu do grupo"]);
-  expect(linhaHistorico(h({ acao: "cancelada_automaticamente", automatica: true }))[0]).toBe("Cancelada automaticamente");
-  expect(linhaHistorico(h({ acao: "criada", autor: "Ex-membro" }))[0]).toBe("Ex-membro criou a conta");
-  expect(linhaHistorico(h({ acao: "editada", sou_eu: true, dados: { valor_centavos: [100, 250], motivo: "saida_rn32" } }))).toEqual([
+  expect(linha({ acao: "pagador_removido", automatica: true, dados: { pagador: ["Mãe", null] } })).toEqual(["Ficou sem pagador", "Mãe saiu do grupo"]);
+  expect(linha({ acao: "cancelada_automaticamente", automatica: true })[0]).toBe("Cancelada automaticamente");
+  expect(linha({ acao: "criada", autor: "Ex-membro" })[0]).toBe("Ex-membro criou a conta");
+  expect(linha({ acao: "editada", sou_eu: true, dados: { valor_centavos: [100, 250], motivo: "saida_rn32" } })).toEqual([
     "Você editou ao sair do grupo",
     expect.stringMatching(/^valor: R\$\s1,00 → R\$\s2,50$/),
   ]);
+});
+
+test("ajuste 29: names in a history line are marked, so they stay on one line", () => {
+  const [forte, resto] = linhaHistorico(h({ acao: "editada", autor: "Ana", dados: { pagador: ["Mãe", null], acesso: [[], ["Pai", "Tia"]] } }));
+  expect(forte).toEqual([{ nome: "Ana" }, " editou"]);
+  expect(resto.filter((t) => typeof t !== "string")).toEqual([{ nome: "Mãe" }, { nome: "Pai" }, { nome: "Tia" }]);
+  expect(texto(resto)).toBe("quem paga: Mãe → ninguém · quem mais vê: ninguém → Pai, Tia");
 });

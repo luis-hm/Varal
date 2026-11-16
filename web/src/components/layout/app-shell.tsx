@@ -49,6 +49,8 @@ export function AppShell({ children, user, espaco }: { children: ReactNode; user
   const [nova, setNova] = useState(false);
   const [chave, setChave] = useState(0); // a fresh form on every opening
   const active = secaoAtiva(pathname);
+  // Ajuste 28: the bill detail is a stacked screen below 1024px (07 has TopBar with Back, no TabBar).
+  const empilhada = /^\/contas\/[^/]+/.test(pathname);
   const espacos = user ? espacosDoUsuario(user, espaco?.id) : undefined;
   const name = user?.nome || user?.email.split("@")[0] || "";
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join("").toUpperCase();
@@ -66,7 +68,7 @@ export function AppShell({ children, user, espaco }: { children: ReactNode; user
   };
 
   const shell = (
-    <div className={styles.shell}>
+    <div className={styles.shell} data-empilhada={empilhada || undefined}>
       <div className={styles.side}>
         <SideNav
           active={active}
@@ -78,9 +80,11 @@ export function AppShell({ children, user, espaco }: { children: ReactNode; user
         />
       </div>
       <main className={styles.main}>{children}</main>
-      <div className={styles.bottom}>
-        <TabBar active={active === "avisos" ? undefined : active} onNovaConta={user ? novaConta : undefined} />
-      </div>
+      {!empilhada && (
+        <div className={styles.bottom}>
+          <TabBar active={active === "avisos" ? undefined : active} onNovaConta={user ? novaConta : undefined} />
+        </div>
+      )}
     </div>
   );
   if (!user || !espaco) return shell;
