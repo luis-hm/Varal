@@ -1,6 +1,7 @@
-// Doop: k0kB5dc-Vo / 10 · Grupo (SfhuKVOQIF) + D04 · Grupo (5UzCB5yNaI); CU02, CU03, CU04; RN04, RN05, RN07, RN21.
-// Stage 03 hides what later stages fill (spec CA18): bill totals and bars, "Paga N contas", recurring bills,
-// settings and "Gerenciar papéis". Observers get the same page with no action; the payer never gets here (403).
+// Doop: k0kB5dc-Vo / 10 · Grupo (SfhuKVOQIF) + D04 · Grupo (5UzCB5yNaI); CU02, CU03, CU04; RN04, RN05, RN07,
+// RN13, RN21. Stage 04 (Q10–Q12): HouseCard with the month total and "N contas" (no paid bar until 07) and
+// "Configurações" for admins. Still hidden: paid bars, "Paga N contas" (07), recurring bills (08), "Gerenciar
+// papéis". Observers get the same page with no action; the payer never gets here (403).
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -10,6 +11,8 @@ import { Field } from "@/components/ui/field";
 import { Folha } from "@/components/ui/folha";
 import { Icon } from "@/components/ui/icon";
 import { RadioCard } from "@/components/ui/radio-card";
+import { nomeMes, plural, reais } from "@/lib/contas/formato";
+import { useResumo } from "@/lib/contas/hooks";
 import { ApiError, type Casa, type GrupoDetalhe, type Membro, type Papel } from "@/lib/grupos/client";
 import { useAcoesGrupo, useConvitesPendentes, useGrupo } from "@/lib/grupos/hooks";
 import { expiraEm, iniciais, ordemPapeis, papeis } from "@/lib/grupos/papeis";
@@ -19,7 +22,6 @@ import { MemberRow } from "./member-row";
 import { SairDoGrupo } from "./sair-do-grupo";
 import styles from "./grupo.module.css";
 
-const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 // The API always sends the e-mail when there is no name (RNF04 minimisation).
 export const nomeDoMembro = (m: Membro) => m.nome || m.email || "";
 
@@ -52,6 +54,16 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
   const pendentes = useConvitesPendentes(grupo.id, admin);
   const [membro, setMembro] = useState<Membro | null>(null);
   const [casa, setCasa] = useState<Casa | "nova" | null>(null);
+  const [config, setConfig] = useState(false);
+  const [configN, setConfigN] = useState(0); // fresh form on every opening, kept mounted to return focus
+  const abrirConfig = () => {
+    setConfigN((n) => n + 1);
+    setConfig(true);
+  };
+  // Q11/Q12: real month totals per house, only from the bills you see (RN06).
+  const resumo = useResumo(grupo.id);
+  const porCasa = new Map(resumo.data?.por_casa.map((c) => [c.id, c]));
+  const mes = resumo.data ? nomeMes(resumo.data.mes) : "";
 
   return (
     <div className={styles.page}>
@@ -66,7 +78,15 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
             {papeis[grupo.meu_papel].title.toLowerCase()}
           </p>
         </div>
-        {admin && <Button className={styles.headerAction} label="Convidar pessoa" icon="mais" onClick={convite.abrir} aria-haspopup="dialog" />}
+        {admin && (
+          <>
+            <button type="button" className={`${styles.round} ${styles.mobileOnly}`} aria-label="Configurações" onClick={abrirConfig} aria-haspopup="dialog">
+              <Icon name="manual" size="md" />
+            </button>
+            <Button className={styles.headerAction} tone="secondary" label="Configurações" icon="manual" onClick={abrirConfig} aria-haspopup="dialog" />
+            <Button className={styles.headerAction} label="Convidar pessoa" icon="mais" onClick={convite.abrir} aria-haspopup="dialog" />
+          </>
+        )}
       </header>
 
       <div className={styles.body}>
@@ -82,9 +102,18 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
             </div>
             {grupo.casas.length ? (
               <div className={styles.houses}>
-                {grupo.casas.map((c) => (
-                  <HouseCard key={c.id} label={c.nome} caption="Sem contas ainda" onClick={admin ? () => setCasa(c) : undefined} />
-                ))}
+                {grupo.casas.map((c) => {
+                  const total = porCasa.get(c.id);
+                  return (
+                    <HouseCard
+                      key={c.id}
+                      label={c.nome}
+                      caption={resumo.data ? reais(total?.total_centavos ?? 0) : "…"}
+                      caption-2={resumo.data ? `${plural(total?.qtd ?? 0, "conta", "contas")} em ${mes}` : undefined}
+                      onClick={admin ? () => setCasa(c) : undefined}
+                    />
+                  );
+                })}
               </div>
             ) : (
               <p className={`${styles.card} ${styles.empty}`}>Nenhuma casa ainda.</p>
@@ -154,6 +183,7 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
           <ConviteFolha grupoNome={grupo.nome} estado={convite} />
           <MembroFolha grupoId={grupo.id} membro={membro} onClose={() => setMembro(null)} />
           <CasaFolha grupoId={grupo.id} casa={casa} onClose={() => setCasa(null)} />
+          {configN > 0 && <ConfiguracoesFolha key={configN} open={config} grupo={grupo} onClose={() => setConfig(false)} />}
         </>
       )}
     </div>
@@ -265,6 +295,44 @@ function CasaFolha({ grupoId, casa, onClose }: { grupoId: string; casa: Casa | "
     >
       <form id="casa-form" className={styles.form} onSubmit={salvar}>
         <Field label="Nome da casa" value={valor} onChange={(e) => setNome(e.target.value)} maxLength={150} required autoFocus placeholder="Casa da praia" error={erro} />
+      </form>
+    </Folha>
+  );
+}
+
+/** Q10 / RN13: "Avisar N dias antes", 1 to 7, admin only. No frame (guide "Telas sem frame"). */
+function ConfiguracoesFolha({ open, grupo, onClose }: { open: boolean; grupo: GrupoDetalhe; onClose: () => void }) {
+  const { configurar } = useAcoesGrupo(grupo.id);
+  const [dias, setDias] = useState(String(grupo.janela_alerta_dias));
+  const n = Number(dias);
+  const valido = Number.isInteger(n) && n >= 1 && n <= 7;
+
+  function salvar(event: FormEvent) {
+    event.preventDefault();
+    if (valido) configurar.mutate(n, { onSuccess: onClose });
+  }
+
+  return (
+    <Folha
+      open={open}
+      onClose={onClose}
+      title="Configurações"
+      subtitle={grupo.nome}
+      actions={<Button type="submit" form="config-form" label={configurar.isPending ? "Salvando…" : "Salvar"} disabled={configurar.isPending || !valido} />}
+    >
+      <form id="config-form" className={styles.form} onSubmit={salvar}>
+        <Field
+          label="Avisar quantos dias antes do vencimento"
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={7}
+          value={dias}
+          onChange={(e) => setDias(e.target.value)}
+          hint="De 1 a 7 dias. Com esse prazo a conta aparece como “vence em breve” e entra em “Precisa de atenção”."
+          error={!valido ? "Escolha de 1 a 7 dias." : configurar.error?.message}
+          required
+        />
       </form>
     </Folha>
   );

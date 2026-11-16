@@ -166,9 +166,9 @@ test("ca18: navegação entre as seções com um único item ativo", async ({ pa
   for (const { href, titulo } of [...roteiro.slice(1), roteiro[0]]) {
     await menu.getByRole("link", { name: titulo, exact: true }).click();
     await expect(page).toHaveURL(href);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(titulo);
-    // Etapa 03: /grupos is the real group list now.
-    if (href !== "/grupos") await expect(page.getByText("Em breve", { exact: true }).filter({ visible: true })).toBeVisible();
+    // Etapa 04: Início greets by name (D02); Contas and Grupos are real screens.
+    if (href !== "/") await expect(page.getByRole("heading", { level: 1 })).toHaveText(titulo);
+    if (href === "/avisos" || href === "/perfil") await expect(page.getByText("Em breve", { exact: true }).filter({ visible: true })).toBeVisible();
 
     const ativos = page.locator('[aria-current="page"]:visible');
     await expect(ativos).toHaveCount(1);
@@ -190,7 +190,7 @@ test("ca14: screenshots da vitrine e de uma página Em breve", async ({ page }, 
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: path.join(SCREENS, `vitrine-${info.project.name}.png`), fullPage: true, caret: "initial" });
 
-  await page.goto("/contas");
+  await page.goto("/avisos");
   await expect(page.getByText("Em breve", { exact: true }).filter({ visible: true })).toBeVisible();
-  await page.screenshot({ path: path.join(SCREENS, `contas-em-breve-${info.project.name}.png`), caret: "initial" });
+  await page.screenshot({ path: path.join(SCREENS, `avisos-em-breve-${info.project.name}.png`), caret: "initial" });
 });

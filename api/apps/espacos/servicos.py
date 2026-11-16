@@ -27,6 +27,35 @@ class UltimoAdmin(Conflito):
     default_code = "ultimo_admin"
 
 
+class ContaRestritaSemQuemVeja(Conflito):
+    """RN32 when the person acts (leave, delete own account): 409 listing the bills, which the
+    person sees, and who could be chosen to see them (names only)."""
+
+    default_code = "conta_restrita_orfa"
+    SAIR = (
+        "Você é a única pessoa que vê estas contas restritas. Para cada uma, escolha outra "
+        "pessoa para ver ou cancele a conta; depois saia do grupo."
+    )
+    EXCLUIR = (
+        "Há contas restritas abertas que só você vê. Saia desses grupos resolvendo cada conta "
+        "(escolher outra pessoa para ver ou cancelar) antes de excluir a conta."
+    )
+
+    def __init__(self, contas, pessoas=(), mensagem=SAIR):
+        self.mensagem = mensagem
+        super().__init__(
+            {
+                "detail": mensagem,
+                "code": self.default_code,
+                "contas": [{"id": str(c.pk), "descricao": c.descricao} for c in contas],
+                "pessoas": [{"id": str(p["id"]), "nome": p["nome"]} for p in pessoas],
+            }
+        )
+
+    def __str__(self):
+        return self.mensagem
+
+
 class ConviteInvalido(APIException):
     # Same answer for missing, expired, used or revoked (RN31): nothing is revealed.
     status_code = 410
@@ -51,8 +80,10 @@ def _admins_travados(espaco_ids):
 
 def grupos_sem_outro_admin(usuario, travar=True):
     """RN04: groups where `usuario` is the only admin. `travar` needs a transaction."""
-    seus = Membro.objects.filter(usuario=usuario, papel=Papel.ADMIN).values("espaco_id")
+    seus = Membro.objects.filter(usuario=usuario).values("espaco_id")
     if travar:
+        # Account deletion must serialize with bill creation in every group, including
+        # groups where this person is a member/payer/chosen user rather than an admin.
         admins = _admins_travados(seus)
     else:
         admins = Membro.objects.filter(espaco_id__in=seus, papel=Papel.ADMIN).values_list(
@@ -74,6 +105,31 @@ def proteger_ultimo_admin(sender, instance, **kwargs):
             f"{instance.email} é o único admin de: {nomes}. Promova outra pessoa antes de "
             "excluir a conta."
         )
+
+
+def restritas_de_quem_sai(usuario, travar=True):
+    """RN32 for deleting the account: every group of the user, as if they left it."""
+    from apps.lancamentos.servicos import restritas_sem_quem_veja
+
+    if travar:  # M1: member rows before bills, the order `_desligar` uses
+        list(
+            Membro.objects.select_for_update()
+            .filter(usuario=usuario)
+            .order_by("pk")
+            .values_list("pk", flat=True)
+        )
+    grupos = Espaco.objects.filter(membros__usuario=usuario).order_by("pk")
+    return [c for g in grupos for c in restritas_sem_quem_veja(g, usuario, travar)]
+
+
+@receiver(pre_delete, sender="contas_usuario.Usuario")
+def proteger_conta_restrita(sender, instance, **kwargs):
+    """RN32/ADR 0006: deleting one's own account is the person acting, so it is blocked like
+    leaving (no resolutions here: those exist only in the exit, ADR 0007). Runs after the RN04
+    guard, so locks keep the order admins -> member -> bills."""
+    orfas = restritas_de_quem_sai(instance)
+    if orfas:
+        raise ContaRestritaSemQuemVeja(orfas, mensagem=ContaRestritaSemQuemVeja.EXCLUIR)
 
 
 def criar_grupo(usuario, nome, casas=()):
@@ -148,6 +204,8 @@ def aceitar_convite(usuario, token):
 
 
 def alterar_papel(grupo, membro_id, papel):
+    from apps.lancamentos.servicos import preservar_acesso
+
     with transaction.atomic():
         admins = {pk for _, pk, _ in _admins_travados([grupo.pk])}
         membro = get_object_or_404(Membro.objects.select_for_update(), espaco=grupo, pk=membro_id)
@@ -155,6 +213,8 @@ def alterar_papel(grupo, membro_id, papel):
             raise UltimoAdmin()
         if papel != Papel.ADMIN:
             _revogar_convites_de(grupo, membro.usuario_id)
+        if papel == Papel.PAGADOR and membro.papel != Papel.PAGADOR:
+            preservar_acesso(grupo, membro.usuario)  # ADR 0008, before the role changes
         membro.papel = papel
         membro.save(update_fields=["papel"])
     return membro
@@ -165,20 +225,44 @@ def _revogar_convites_de(grupo, usuario_id):
     convites_pendentes(grupo).filter(criado_por_id=usuario_id).update(revogado_em=timezone.now())
 
 
-def _desligar(grupo, **filtro):
-    """Single exit point for RN21 (Etapa 04: bills lose the payer; Etapa 09: admin notice)."""
+def _desligar(grupo, voluntario, resolucoes=(), por=None, **filtro):
+    """Single exit point for RN21 and RN32 (Etapa 09 adds the notices). Locks: admins ->
+    member -> bills by pk, the same order as `alterar_papel`.
+
+    `voluntario` (leaving): applies the ADR 0007 resolutions, then 409 if any open restricted
+    bill would still be left without anyone who sees it; the raise rolls everything back.
+    Admin removal never blocks: those bills are cancelled automatically and the admin gets the
+    same answer as any removal (the orphan query always runs; no shortcut depends on it)."""
+    from apps.lancamentos import servicos as contas
+
     with transaction.atomic():
         admins = {pk for _, pk, _ in _admins_travados([grupo.pk])}
-        membro = get_object_or_404(Membro.objects.select_for_update(), espaco=grupo, **filtro)
+        # of=self: locking the joined Usuario row too would deadlock with an edit's deferred FK
+        # check on "Quem vê" (it holds the bill this exit waits for).
+        membro = get_object_or_404(
+            Membro.objects.select_for_update(of=("self",)).select_related("usuario"),
+            espaco=grupo,
+            **filtro,
+        )
         if admins == {membro.pk}:
             raise UltimoAdmin()
+        usuario = membro.usuario
+        voluntario = voluntario or usuario == por  # an admin removing themselves is leaving
+        orfas = contas.restritas_sem_quem_veja(grupo, usuario)
+        if voluntario:
+            contas.resolver_na_saida(usuario, grupo, resolucoes, orfas)
+            if contas.restritas_sem_quem_veja(grupo, usuario):
+                raise ContaRestritaSemQuemVeja(orfas, contas.pessoas_para_escolher(grupo, usuario))
+        else:
+            contas.cancelar_orfas(usuario, orfas)
+        contas.desligar_das_contas(usuario, grupo)
         _revogar_convites_de(grupo, membro.usuario_id)
         membro.delete()
 
 
-def remover_membro(grupo, membro_id):
-    _desligar(grupo, pk=membro_id)
+def remover_membro(grupo, membro_id, por=None):
+    _desligar(grupo, voluntario=False, por=por, pk=membro_id)
 
 
-def sair(usuario, grupo):
-    _desligar(grupo, usuario=usuario)
+def sair(usuario, grupo, resolucoes=()):
+    _desligar(grupo, voluntario=True, resolucoes=resolucoes, usuario=usuario)

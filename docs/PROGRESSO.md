@@ -11,7 +11,7 @@
 | 01 | Design system no código | concluída | `etapa/01-design-system` | 12/11/2026 | [relatorio](etapas/01-design-system/relatorio.md) |
 | 02 | Autenticação | concluída | `etapa/02-autenticacao` | 13/11/2026 | [relatorio](etapas/02-autenticacao/relatorio.md) |
 | 03 | Espaços e grupos | concluída | `etapa/03-espacos-grupos` | 15/11/2026 | [relatorio](etapas/03-espacos-grupos/relatorio.md) |
-| 04 | Contas (núcleo) | pendente | — | — | — |
+| 04 | Contas (núcleo) | concluída; revisão delegada validada, pronta para merge local | `etapa/04-contas` | 15/11/2026 (inicial); revisão 16/11/2026 | [relatorio](etapas/04-contas/relatorio.md) |
 | 05 | Boleto e Pix | pendente | — | — | — |
 | 06 | PDF do boleto | pendente | — | — | — |
 | 07 | Pagamento | pendente | — | — | — |
@@ -25,14 +25,17 @@
 Divergências entre as fontes da verdade ou bloqueios. Não escolher sozinho: perguntar ao dono do projeto.
 Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5-b70c-f0790e03de41`).
 
+Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex resolver as decisões e executar as etapas restantes. As escolhas dessa execução são registradas como **decisões delegadas**, sem inventar respostas literais do dono ou leituras pelo conector indisponível.
+
 ### Pendentes
 
 | # | Assunto | Bloqueia |
 | --- | --- | --- |
-| P1 | Rodar uma vez o serviço `minio` (`pgsty/silo`) para verificar o comando e as variáveis: a checagem de segurança do agente bloqueou executar a imagem. O dono do projeto sobe manualmente (`docker compose -f infra/docker-compose.yml --profile storage up -d minio`) ou libera a permissão. | Etapa 06 |
 | P3 | Configurar a cadeia de proxies confiáveis e testar spoofing antes do deploy. Allauth mantém `trusted_proxy_count=0` enquanto a API 8000 está exposta; limite por IP vê o Next como origem. Ativar também o limite de aceite de convite por IP (RN31). | Deploy da Etapa 11 |
 | P4 | Produção: com `DJANGO_DEBUG=0` a API liga `SECURE_SSL_REDIRECT`, e o Next consulta `/api/me/` pela rede interna em HTTP sem `X-Forwarded-Proto`; provável redirecionamento para https e falha das páginas protegidas. Definir como o Next fala com a API em produção (cabeçalho, exceção de rota ou proxy). Omitir também o token de convite do access log do proxy/servidor de produção (RN31). | Deploy da Etapa 11 |
-| P5 | Tornar o limite de cadastro configurável só no E2E/CI (flakiness do E2E): `ACCOUNT_RATE_LIMITS` com `signup` por env. O E2E cria ~40 contas contra o limite de 20/min por IP do allauth. Não é bug de produção. | Não bloqueia |
+| P6 | Claude Code deve reexportar a especificação da origem rev 50 (sem categoria no CU05 e no modelo) e conferir os derivados/ADR 0005. O Codex não faz essa reexportação nem edita a origem à mão; a cópia permanece defasada. O ADR 0005 já aprovado rege a implementação sem categoria. | Pendência administrativa externa; continuidade sem categoria pelo ADR 0005 |
+| P7 | Entregar ao removido o aviso das contas canceladas pela RN32 na remoção pelo admin ([ADR 0006](arquitetura/adr/0006-rn32-conta-restrita-orfa.md)). A Etapa 04 grava `cancelada_automaticamente` com `dados.removido`; entrega na 09 ratificada por delegação em Q04-25. | Etapa 09 |
+| P9 | Confirmar que o CI dispara no próximo push: `gh run list`; se nada aparecer, `gh workflow run web.yml --ref main`. Causa provável e correção em "CI mudo" (Resolvidas). | Nada (verificação) |
 
 ### Resolvidas
 
@@ -44,11 +47,75 @@ Respostas vêm do documento "Varal — Ajustes" (Claude Docs `ce521944-15d6-44a5
 | D4 | Qual armazenamento S3? | `pgsty/silo` com tag fixa, só local; código via `django-storages` com config no `.env`; produção na Etapa 11. Etapa 06 desbloqueada. | [ADR 0002](arquitetura/adr/0002-armazenamento-s3-local.md) |
 | D5 | Onde entra o RNF04 (LGPD)? | Etapa 11, como regra nova **RN30** (exportar JSON; excluir conta com autor "Ex-membro" nos grupos). Tela Perfil não existe no Doop: parar e pedir. | [ADR 0003](arquitetura/adr/0003-rn30-exportar-e-excluir-dados.md) |
 | D6 | Merge da Etapa 00 na main? | Merge local feito agora (`--no-ff`). Daqui em diante, rodar `/etapa` aprova a etapa anterior e faz o merge local dela antes da branch nova. Push só com pedido. | `.claude/commands/etapa.md` |
+| P1 | Verificar execução do armazenamento local | Resolvida em 15/11/2026 pelo Codex: `pgsty/silo:RELEASE.2026-11-12T00-00-00Z` iniciado; healthcheck 200 pela API na rede Compose e autenticação `mc admin info` com as variáveis do ambiente, sem exibir credenciais. Upload/download e URLs assinadas ainda serão validados na 06. | Pré-verificação da Etapa 06 |
 | P2 | Validação completa da Etapa 01 | Resolvida em 13/11/2026: Docker disponível; credenciais do `.env` local alinhadas às já existentes no volume, sem alterar usuários nem dados do banco. `make test`: API 3/3 e web 29/29; `make lint` verde. | Etapa 01, CA17 |
+| P5 | Limite de cadastro do allauth derrubava o E2E (~40 contas do mesmo IP contra 20/min) | Resolvida em 15/11/2026: `ACCOUNT_RATE_LIMIT_SIGNUP` vira `ACCOUNT_RATE_LIMITS["signup"]` só quando definida (o allauth mescla aos padrões; os outros limites seguem). `make e2e` e o job `e2e` do `web.yml` usam `1000/m/ip`; fora deles vale 20/m/ip. Saiu o retry em 429 do E2E. | Etapa 04; [stack](arquitetura/stack.md#variáveis-de-ambiente) |
+| P8 | 429 do allauth no primeiro cadastro do `make e2e` com a API fria | Resolvida em 15/11/2026: os dois workers disputavam a trava do limite do allauth (espera de 1 s) enquanto o servidor de dev ainda importava módulos. O `globalSetup` do Playwright (`web/e2e/global-setup.ts`) faz um cadastro sozinho antes dos workers. Duas medições de geometria passam a esperar `modal-pop`/`sheet-up` terminarem. E2E final a frio: 74 verdes, sem 429. | Etapa 04 |
+| Node local | Node local v20; o projeto pede 22+ | Resolvida em 15/11/2026: Node 22.23.5 local. `web/.nvmrc` (lido pelo CI) e `engines`; o `make` para com Node < 22 (612aa34). | [stack](arquitetura/stack.md) |
+| CI mudo | O CI não disparou no GitHub no push inicial | Causa provável (inferência; o GitHub não mostra o motivo): o push inicial levou todas as branches a um repositório vazio, como branches novas com commit raiz sem pai, e o filtro `paths` não casou nada; o segundo push só mexia em LICENSE, fora do filtro. Correção: `workflow_dispatch` em `api.yml` e `web.yml` (612aa34). Verificação no próximo push: P9. | [stack](arquitetura/stack.md#decisões-de-implementação) |
+| Banco de dev | Dados de teste antigos no banco de dev | Resolvida em 15/11/2026: `make limpar-dev` existe, com prévia e confirmação; não foi executado, o dono roda quando quiser (a prévia apagaria 5 grupos de teste, 302 grupos sem membros e 858 usuários de teste). | [stack](arquitetura/stack.md#decisões-de-implementação) |
 
 ## Log
 
 Ordem cronológica inversa.
+
+### 16/11/2026 — Revisão delegada da Etapa 04 concluída
+
+- Decisões Q04-1–22, Q04-24/25 e Q04-31–39 fechadas sob delegação; Q04-23 e Q04-26–30 preservam as respostas anteriores. Nenhuma pergunta da 04 aguarda o dono. Q04-37 fica na 07 e P7 na 09.
+- ADR 0009 separa prazo de selo: filtro/contagem de Vencidas inclui abertas `pendente` e `aguardando` vencidas; Aguardando conserva estado e selo. Detalhe inclui `quem_ve` efetivos, além de `acesso` editável; nomes individuais não ocultam a lista e espaços/casas revelam nome completo ao escolher.
+- M2 corrigido com consulta central de contas visíveis sem caminho escolhido pela existência; M5 corrigido no Django admin de contas/históricos e na prévia de exclusão. M4 mantém a regra por contexto já respondida, sem lista geral nova ao pagador; M6 aceito só no ambiente de desenvolvimento até `make dev`.
+- Revisão de segurança encontrou e corrigiu B1–B3: autorização antiga na criação, conversão pública → restrita concorrente à saída e releitura de dados após revogação de acesso. Criação serializa vínculos; RN32 trava todas as abertas; detalhe revalida após adquirir a trava e a mantém até serializar. Reauditoria final de segurança: sem bloqueantes.
+- Lote direcionado de 21 regressões validado; seis reproduziram falha antes da correção. **`make test`: 235 pytest e 73 Vitest; lint verde; `make types` preservou hashes; E2E final: 87 passaram, 3 ignorados de propósito e nenhuma falha** (7,1 min). Na rodada anterior, 85 passaram e os dois `ca07` excederam 45 s; após análise do trace, só esse timeout passou a 75 s, sem retirar asserções. Na repetição, passou em 42,4 s mobile/33,8 s desktop.
+- Frontend releu guia/tokens/`varal-ui`, HTML e screenshots de 02/D02, 07/D03, 10/D04, 05/M01 e 06/M02. `dec38` e `dec39` passaram nas duas larguras; QA revisou capturas com pessoas e destino completo visíveis, sem rolagem horizontal. Comparação estrutural com fixtures sintéticas, sem pixel a pixel; canvas preservado. Revisão pronta para merge local e continuidade da 05. Sem push.
+
+### 15/11/2026 — Codex: análise para continuidade até a Etapa 11
+
+- O dono delegou analisar e resolver as decisões pendentes e executar todas as etapas restantes de forma coerente, com agentes especializados. Essa autorização permite avançar entre etapas e resolver escolhas sem repetir pedidos genéricos de ok; não dispensa as fontes atuais obrigatórias.
+- Conferido: `etapa/04-contas`, 17 commits fora da `main`, árvore limpa antes deste registro. Os resultados de testes anteriores são os do relatório; nenhuma suíte foi reexecutada nesta análise.
+- Triagem inicial somente leitura com `varal-decisor`, preservada em [decisoes.md](etapas/04-contas/decisoes.md#triagem-preparatória-do-codex-15112026). Evoluiu para decisões finais delegadas após a conferência atual dos Ajustes pelo dono.
+- **Conferência atual dos Ajustes pelo dono:** ao pedido do texto atual, respondeu "no varal ajustes n tem nenhum pendente". Registrada essa declaração atual, sem atribuí-la a leitura pelo conector nem reutilizar a revisão 24 como atual. Continuidade retomada com decisões delegadas e correções finais da 04 em andamento.
+- **P6 permanece externa:** a reexportação da especificação sem categoria cabe ao Claude Code; a implementação segue o ADR 0005 já aprovado, sem acrescentar categoria por causa da cópia antiga. Deploy na VPS e push continuam sujeitos às autorizações explícitas próprias; este registro não os executa nem os considera autorizados.
+- Próximo passo: registrar decisões finais/ADRs, aplicar e validar as correções da 04, atualizar relatório e matriz e fazer o merge local; depois seguir as etapas 05–11 na ordem do fluxo.
+
+### 15/11/2026 — Revisão do dono da Etapa 04
+
+- Respostas 23 (nome por contexto: membro atual pelo nome ou e-mail, quem saiu "Ex-membro", histórico sem e-mail) e 26 ("Precisa de atenção" com `aguardando` pela data) na API (4c9a1b2); 27–30 na web (3d4ba32): hero do D02 sem vazio (tokens `--hero-padding-y`, `--hero-varal-width`), detalhe mobile sem TabBar, `<Nome>` em uma linha, espaço atual primeiro em "Onde fica".
+- Node 22 obrigatório (`web/.nvmrc`, `engines`, checagem no `make`); CI com `workflow_dispatch`; `make limpar-dev` criado e não executado (612aa34). Pendências Node local, CI mudo e banco de dev resolvidas; nova P9 (confirmar CI no próximo push).
+- Codex usa os mesmos comandos e agentes (`AGENTS.md`, `make codex-sync`, d994907); agente `varal-decisor` e a política de decisões por custo de desfazer (4539db0). [decisoes.md](etapas/04-contas/decisoes.md) com respostas, D04-1 a D04-13 e as perguntas Q04-35 a Q04-39.
+- QA (f78a878): `make test` 207 pytest + 73 Vitest; lint verde; tipos sem diff; E2E 83 passaram e 3 ignorados de propósito, a frio e sem 429.
+- Merge na `main` aguarda o dono confirmar as decisões 1–22, 24, 25, os achados M2/M5/M6 (Q04-31, 33, 34) e Q04-35 a Q04-39. Sem push.
+
+### 15/11/2026 — Etapa 04 (Contas, núcleo) concluída
+
+- `Lancamento` e `Historico` sem categoria; visibilidade só por `acesso.py` (RN06 ao pé da letra, 404 para quem não vê, agregados só sobre o visível); status calculado em Fortaleza com a janela 1–7 (RN13, só admin). RN21 e RN32 nos dois modos, exceção da saída (ADR 0007) e acesso preservado (ADR 0008).
+- Web: Início, Contas e Detalhe (02/D02, 03/07/D03), formulário em folha/modal com aviso de visibilidade, espaço atual por cookie, "Configurações" do grupo, folha de saída barrada, lista do pagador. Sete variáveis fora do Doop, nenhuma cor nova. Canvas não alterado.
+- Segurança sem bloqueantes: I1 (corrida editar × sair, e o deadlock que ela revelou), I2 (histórico só com ids), M1, M3 e M7 corrigidos com testes; M2, M4, M5 e M6 aceitos.
+- `make test` 204 pytest + 65 Vitest; lint verde; tipos sincronizados; E2E 74 passaram e 2 ignorados de propósito. P5 e P8 resolvidas; E2E final a frio sem 429.
+- Ajustes rev 24 relidos ao vivo: 18 itens marcados, nenhum novo. 30 decisões a confirmar no [relatório](etapas/04-contas/relatorio.md#decisões-para-o-dono-confirmar). Sem push.
+
+### 15/11/2026 — Respostas do dono às Q17–Q23 da Etapa 04
+
+- **Q17 / ADR 0006 (RN32) revisto:** sair e excluir a própria conta seguem com 409; remoção pelo admin nunca bloqueia, cancela a restrita órfã ("cancelada automaticamente: ficou sem ninguém que pudesse vê-la") e não dá sinal nenhum ao admin. Aviso ao removido na 09 (P7). Nunca escalar a visibilidade para o admin.
+- **ADR 0007 (Q18):** exceção à RN05 só dentro da saída barrada pela RN32 (acrescentar em "Quem vê" ou cancelar), com histórico.
+- **ADR 0008 (Q19a):** acesso explícito (RN06) prevalece sobre a RN07; trocar alguém para pagador preserva o acesso à restrita que só ele vê. **Q19b:** editar deixando a conta sem ninguém → 400.
+- Q20 (CU04 alternativo fora da 04), Q21 (admin só avisado/desfaz no que vê; anotado em 07 e 09) e Q23 (sem conta "pagas" no varal até a 07) como propostos. Q22: origem rev 50 sem categoria; reexportar na abertura da 05 (P6).
+- Spec (CA01–CA34, sete CAs novos ou reescritos), plano, tarefas, regras, matriz e etapas atualizados. Sem código nem commit.
+
+### 15/11/2026 — Ok do dono à Etapa 04, com correções
+
+- Especificação reexportada da origem rev 47 (Claude Docs, aba "Tab 1"): única diferença é o RF11, agora "Definir espaço, subgrupo, pagador e visibilidade". Derivados: `requisitos/funcionais.md`, CU05 (nota), `dados/modelo.md` (nota e ER sem categoria), matriz.
+- **ADR 0005:** RF11 sem categoria; categoria é da v3, sem campo nem tabela agora ou para depois.
+- **ADR 0006 / RN32** (nova regra): sair, ser removido ou excluir a conta é bloqueado (409) se deixaria uma conta restrita aberta sem ninguém que a veja; calculado já com a RN21. Guarda em `_desligar` e no `pre_delete` de `Usuario`.
+- Decisões na [spec](etapas/04-contas/spec.md#decisões-resolvidas-ok-do-dono-15112026): RN06 ao pé da letra (admin não entra; sem vazamento indireto; 404, não 403; pagador vê pela RN06); aviso "Quem paga também vê esta conta"; rótulo do mês nos totais; "Configurações" volta no D04 só para admin (nota datada no relatório da 03); sem barra de pagas até a 07. CAs renumerados (CA01–CA29).
+- Guia `varal-ui` relido: igual ao registrado na Etapa 03. Canvas não alterado.
+- Sete perguntas novas (Q17–Q23): resposta ao admin no 409 da RN32, último que vê sem poder editar, RN32 em alterar papel e editar, CU04 alternativo adiado pela 03, admin × restrita nas RN16/RN19/RN21, categoria ainda na origem (CU05 e seção 8), conta "pagas" do varal. Sem código nem commit.
+
+### 15/11/2026 — Merge da Etapa 03 e preparação da Etapa 04 (Contas, núcleo)
+
+- A pedido do dono: merge local da `etapa/03-espacos-grupos` na `main` (`--no-ff`), LICENSE proprietário (todos os direitos reservados) e push inicial no GitHub `luis-hm/Varal`. Criada `etapa/04-contas` a partir da `main`.
+- "Varal — Ajustes" rev 24 lido ao vivo: nenhum item novo; D2 (conta cancelada) entra nesta etapa.
+- `spec.md`, `plano.md` e `tarefas.md` em `etapas/04-contas/`. Frames 02, D02, 03, D03, 07, 05, M01, 06 e M02 lidos, todos draft; canvas não alterado.
+- Proposto: visibilidade em `acesso.py` (`lancamentos_visiveis`), RN21 em `_desligar`, `criador` `SET_NULL` ("Ex-membro"), espaço atual por cookie, formulário manual direto. Dezesseis perguntas (Q1–Q16) com padrão; Q2 é divergência especificação × Doop (categoria sem campo). Código só depois do ok do dono.
 
 ### 15/11/2026 — Etapa 03 (Espaços e grupos) concluída
 

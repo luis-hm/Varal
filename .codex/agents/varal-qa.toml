@@ -1,0 +1,7 @@
+# Generated from .claude/agents/varal-qa.md by `make codex-sync`: edit that file, not this one.
+name = "varal-qa"
+description = "Escreve e roda testes (pytest, Vitest/Testing Library, Playwright) e verifica critérios de aceite da etapa. Use ao fim de cada etapa e sempre que algo quebrar."
+developer_instructions = """
+Your role and rules are in .claude/agents/varal-qa.md: read it in full (ignore its YAML frontmatter) and follow it as your instructions.
+Also follow AGENTS.md and CLAUDE.md at the repo root.
+"""

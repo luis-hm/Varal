@@ -2,6 +2,7 @@
 .chip {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   min-height: 44px;
   padding: 0;
   border: 0;
@@ -23,7 +24,36 @@
   font-weight: 600;
   color: var(--color-ink);
   white-space: nowrap;
+  max-width: 100%;
   transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.lbl {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip[data-wrap] .pill {
+  height: auto;
+  min-height: 40px;
+  padding-block: var(--spacing-2);
+  white-space: normal;
+  text-align: left;
+}
+
+.chip[data-wrap] .lbl {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+/* Touch selects the choice and reveals it before saving; keyboard focus also reveals it. */
+.chip[data-wrap][data-state="on"] .lbl,
+.chip[data-wrap]:focus .lbl {
+  display: block;
+  -webkit-line-clamp: unset;
 }
 
 .n {

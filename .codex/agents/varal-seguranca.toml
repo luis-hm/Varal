@@ -1,0 +1,8 @@
+# Generated from .claude/agents/varal-seguranca.md by `make codex-sync`: edit that file, not this one.
+name = "varal-seguranca"
+description = "Revisor de segurança e privacidade (somente leitura). Use antes de fechar qualquer etapa que toque dados, permissões, arquivos ou autenticação."
+sandbox_mode = "read-only"
+developer_instructions = """
+Your role and rules are in .claude/agents/varal-seguranca.md: read it in full (ignore its YAML frontmatter) and follow it as your instructions.
+Also follow AGENTS.md and CLAUDE.md at the repo root.
+"""

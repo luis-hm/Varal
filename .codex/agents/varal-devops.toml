@@ -1,0 +1,7 @@
+# Generated from .claude/agents/varal-devops.md by `make codex-sync`: edit that file, not this one.
+name = "varal-devops"
+description = "Docker Compose, Makefile, CI do GitHub Actions, MinIO, variáveis de ambiente e deploy na VPS. Use para infra/, Makefile e .github/."
+developer_instructions = """
+Your role and rules are in .claude/agents/varal-devops.md: read it in full (ignore its YAML frontmatter) and follow it as your instructions.
+Also follow AGENTS.md and CLAUDE.md at the repo root.
+"""

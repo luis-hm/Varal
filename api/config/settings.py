@@ -119,6 +119,10 @@ ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = False
 ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
 ACCOUNT_EMAIL_NOTIFICATIONS = True
+# allauth merges this dict over its defaults. Only `make e2e`/CI set the env (many signups from
+# one IP); unset keeps allauth's signup limit (20/m/ip) and every other limit.
+_signup_rl = env("ACCOUNT_RATE_LIMIT_SIGNUP")
+ACCOUNT_RATE_LIMITS = {"signup": _signup_rl} if _signup_rl else {}
 SOCIALACCOUNT_ADAPTER = "apps.contas_usuario.adapters.SocialAccountAdapter"
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = False

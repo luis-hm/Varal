@@ -4,80 +4,35 @@
 // Next 16 keeps visited routes mounted but hidden, hence the `visible` filters.
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import type { APIRequestContext, Browser, Page, PlaywrightWorkerArgs } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import { ORIGIN, TEST_PASSWORD, createAccount, csrf, me, uniqueEmail } from "./fixtures";
+import {
+  ORIGIN,
+  TEST_PASSWORD,
+  convidar,
+  criarGrupo,
+  descartarContas,
+  entrarNoGrupo,
+  logar,
+  me,
+  mesAtual,
+  novaConta,
+  outraAba,
+  semBadge,
+  semRolagemEAlvos44,
+  uniqueEmail,
+  api,
+} from "./fixtures";
 
 const SCREENS = path.join(__dirname, "__screens__");
 const INVALIDO = "Este convite não vale mais. Peça um novo a quem convidou.";
 const RN04 = /pelo menos um admin/;
-type Papel = "admin" | "membro" | "pagador" | "observador";
-type Conta = { request: APIRequestContext; email: string };
-
-const semBadge = () =>
-  addEventListener("DOMContentLoaded", () => {
-    const style = document.createElement("style");
-    style.textContent = "nextjs-portal { display: none !important; }";
-    document.head.append(style);
-  });
-
-// Signups share allauth's 20/min/IP limit with the other specs; createAccount waits on 429.
-test.describe.configure({ timeout: 150_000 });
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(semBadge);
   page.on("dialog", (d) => d.accept()); // window.confirm of remove/leave/archive
 });
-
-const contas: APIRequestContext[] = [];
-test.afterEach(async () => {
-  await Promise.all(contas.splice(0).map((r) => r.dispose()));
-});
-
-async function novaConta(playwright: PlaywrightWorkerArgs["playwright"]): Promise<Conta> {
-  const request = await playwright.request.newContext({ baseURL: ORIGIN });
-  contas.push(request);
-  return { request, email: await createAccount(request) };
-}
-
-async function api(request: APIRequestContext, method: string, url: string, data?: unknown) {
-  return request.fetch(url, { method, headers: { Origin: ORIGIN, "X-CSRFToken": await csrf(request) }, data });
-}
-
-async function criarGrupo(admin: Conta, casas = ["Casa da praia"]) {
-  const response = await api(admin.request, "POST", "/api/grupos/", { nome: `Família ${randomUUID().slice(0, 6)}`, casas });
-  expect(response.status(), await response.text()).toBe(201);
-  return (await response.json()) as { id: string; nome: string };
-}
-
-async function convidar(admin: Conta, grupo: string, papel: Papel) {
-  const response = await api(admin.request, "POST", `/api/grupos/${grupo}/convites/`, { papel });
-  expect(response.status()).toBe(201);
-  return ((await response.json()) as { url: string }).url;
-}
-
-async function entrarNoGrupo(admin: Conta, grupo: string, papel: Papel, pessoa: Conta) {
-  const token = (await convidar(admin, grupo, papel)).split("/c/")[1];
-  expect((await api(pessoa.request, "POST", `/api/convites/${token}/aceitar/`)).status()).toBe(201);
-}
-
-/** Copies the API session into the browser page. */
-async function logar(page: Page, conta: Conta) {
-  await page.context().addCookies((await conta.request.storageState()).cookies);
-}
-
-/** Another browser (same viewport), signed in as `conta` or anonymous. */
-async function outraAba(browser: Browser, page: Page, conta?: Conta) {
-  const context = await browser.newContext({
-    baseURL: ORIGIN,
-    viewport: page.viewportSize(),
-    storageState: conta ? await conta.request.storageState() : undefined,
-  });
-  await context.addInitScript(semBadge);
-  const nova = await context.newPage();
-  nova.on("dialog", (d) => d.accept());
-  return nova;
-}
+test.afterEach(descartarContas);
 
 const visivel = (page: Page, nome: string | RegExp) => page.getByRole("button", { name: nome }).filter({ visible: true });
 const titulo = (page: Page, nome: string) => page.getByRole("heading", { level: 1, name: nome }).filter({ visible: true });
@@ -85,18 +40,6 @@ const titulo = (page: Page, nome: string) => page.getByRole("heading", { level: 
 const texto = (page: Page, t: string) => page.getByText(t, { exact: true }).filter({ visible: true });
 // "Convidar pessoa" (header, ≥1024px) or "+ Convidar" (Membros, <1024px): one visible per layout.
 const botaoConvidar = (page: Page) => visivel(page, /Convidar/);
-
-async function semRolagemEAlvos44(page: Page) {
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-  const pequenos = await page.locator("a, button, input:not([type=hidden])").evaluateAll((els) =>
-    els
-      .filter((el) => el.checkVisibility())
-      .map((el) => ({ el: el.outerHTML.slice(0, 80), r: el.getBoundingClientRect() }))
-      .filter(({ r }) => r.width < 44 || r.height < 44)
-      .map(({ el, r }) => `${Math.round(r.width)}×${Math.round(r.height)} ${el}`),
-  );
-  expect(pequenos).toEqual([]);
-}
 
 test("ca01/ca04/ca05/ca17 rf04/rf05/rf07 rn04/rn24/rn31: admin cria grupo e casa, convida; visitante cria conta com ?proximo e aceita; reuso é 410", async ({ page, context, browser, playwright }) => {
   const admin = await novaConta(playwright);
@@ -117,7 +60,8 @@ test("ca01/ca04/ca05/ca17 rf04/rf05/rf07 rn04/rn24/rn31: admin cria grupo e casa
   const grupoId = page.url().split("/").pop()!;
   await expect(titulo(page, nome)).toBeVisible();
   await expect(texto(page, "1 membro · 1 casa · você é admin")).toBeVisible();
-  await expect(texto(page, "Sem contas ainda")).toHaveCount(1);
+  // Etapa 04 (Q12): the HouseCard shows the month total and "N contas", no paid bar.
+  await expect(texto(page, `0 contas em ${mesAtual()}`)).toHaveCount(1);
   expect((await me(admin.request)).grupos).toEqual([{ id: grupoId, nome, papel: "admin" }]);
 
   // RF07: + Nova casa.
@@ -127,7 +71,7 @@ test("ca01/ca04/ca05/ca17 rf04/rf05/rf07 rn04/rn24/rn31: admin cria grupo e casa
   await casa.getByRole("button", { name: "Criar", exact: true }).click();
   await expect(casa).toBeHidden();
   await expect(visivel(page, /Apartamento centro/)).toBeVisible();
-  await expect(texto(page, "Sem contas ainda")).toHaveCount(2);
+  await expect(texto(page, `0 contas em ${mesAtual()}`)).toHaveCount(2);
 
   // CA19: Pagador comes checked; the link is shortened on screen and whole in the copy.
   await botaoConvidar(page).click();
@@ -161,18 +105,14 @@ test("ca01/ca04/ca05/ca17 rf04/rf05/rf07 rn04/rn24/rn31: admin cria grupo e casa
     const email = uniqueEmail();
     await visitante.getByLabel("E-mail", { exact: true }).filter({ visible: true }).fill(email);
     await visitante.getByLabel("Senha", { exact: true }).filter({ visible: true }).fill(TEST_PASSWORD);
-    // A 429 (signup limit shared with parallel tests) leaves the form on screen: submit again later.
-    await expect(async () => {
-      if (!visitante.url().includes("/criar-conta")) return;
-      await visitante.getByRole("button", { name: "Criar conta", exact: true }).click();
-      await expect(visitante).toHaveURL(`${ORIGIN}/c/${token}`, { timeout: 5_000 });
-    }).toPass({ intervals: [10_000], timeout: 80_000 });
+    await visitante.getByRole("button", { name: "Criar conta", exact: true }).click();
     await expect(visitante).toHaveURL(`${ORIGIN}/c/${token}`);
     await visivel(visitante, "Aceitar convite").click();
     // RN07 / decision 6: the payer lands on the simple mode.
     await expect(visitante).toHaveURL(`${ORIGIN}/grupos/${grupoId}/simples`);
     await expect(titulo(visitante, nome)).toBeVisible();
-    await expect(visitante.getByText("Em breve", { exact: true }).filter({ visible: true })).toBeVisible();
+    // Etapa 04 (Q5): the payer's own bills, read only.
+    await expect(visitante.getByText(`Nenhuma conta para você pagar em ${mesAtual()}.`, { exact: true }).filter({ visible: true })).toBeVisible();
     const pagador = await me(visitante.context().request);
     expect(pagador.email).toBe(email);
     expect(pagador.grupos).toEqual([{ id: grupoId, nome, papel: "pagador" }]);
@@ -224,7 +164,7 @@ test("ca09/ca11/ca15/ca17 rn01/rn05/rn07 rnf01: admin com ações, membro e obse
       await expect(titulo(aba, grupo.nome)).toBeVisible();
       await expect(texto(aba, `4 membros · 1 casa · você é ${papel}`)).toBeVisible();
       await expect(aba.getByText(admin.email, { exact: true })).toBeVisible();
-      await expect(texto(aba, "Sem contas ainda")).toBeVisible();
+      await expect(texto(aba, `0 contas em ${mesAtual()}`)).toBeVisible();
       // No management action: only "Sair do grupo" (Q3) besides the shell navigation.
       await expect(botaoConvidar(aba)).toHaveCount(0);
       await expect(visivel(aba, "+ Nova casa")).toHaveCount(0);
@@ -243,13 +183,18 @@ test("ca09/ca11/ca15/ca17 rn01/rn05/rn07 rnf01: admin com ações, membro e obse
     await expect(abaPagador).toHaveURL(`${ORIGIN}${url}/simples`);
     await expect(visivel(abaPagador, "Sair do grupo")).toBeVisible();
     expect((await pagador.request.get(`/api/grupos/${grupo.id}/`)).status()).toBe(403);
-    // CA17 (desktop): the space selector sends the payer to /simples.
+    // CA17 (desktop): the space selector sends the payer to /simples (Etapa 04: options are buttons
+    // that store the `espaco` cookie; a payer group is never stored).
     if (info.project.name === "desktop") {
+      await abaPagador.goto("/grupos");
       await abaPagador.getByRole("button", { name: /Trocar de espaço/ }).click();
-      await expect(abaPagador.getByRole("link", { name: new RegExp(grupo.nome) })).toHaveAttribute("href", `${url}/simples`);
       await expect(abaPagador.getByRole("link", { name: "Criar grupo" })).toBeVisible();
       await abaPagador.keyboard.press("Escape");
       await expect(abaPagador.getByRole("link", { name: "Criar grupo" })).toBeHidden();
+      await abaPagador.getByRole("button", { name: /Trocar de espaço/ }).click();
+      await visivel(abaPagador, new RegExp(grupo.nome)).click();
+      await expect(abaPagador).toHaveURL(`${ORIGIN}${url}/simples`);
+      expect((await abaPagador.context().cookies()).find((c) => c.name === "espaco")).toBeUndefined();
     }
   } finally {
     await abaPagador.context().close();
@@ -272,8 +217,8 @@ test("ca09/ca11/ca15/ca17 rn01/rn05/rn07 rnf01: admin com ações, membro e obse
   // CA17 (desktop): the admin's selector lists Pessoal and the group (full page).
   if (info.project.name === "desktop") {
     await page.getByRole("button", { name: /Trocar de espaço/ }).click();
-    await expect(page.getByRole("link", { name: /Pessoal/ })).toBeVisible();
-    await expect(page.getByRole("link", { name: new RegExp(grupo.nome) })).toHaveAttribute("href", url);
+    await expect(visivel(page, /Espaço pessoal/)).toBeVisible();
+    await expect(visivel(page, new RegExp(`${grupo.nome}.*Grupo · Admin`))).toBeVisible();
   }
 });
 
@@ -375,6 +320,8 @@ test("ca19/ca20 rn31 rnf08/rnf09: folha/modal com foco preso, Esc, setas no Radi
     return { nome: s.animationName, vezes: s.animationIterationCount, duracao: s.animationDuration, atraso: s.animationDelay };
   });
   expect(shine).toEqual({ nome: expect.stringMatching(/shine/), vezes: "2", duracao: "2.4s", atraso: desktop ? "0.6s" : "0.8s" });
+  // Measure once sheet-up/modal-pop (the dialog's own animation) has settled.
+  await convite.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
   const box = await convite.boundingBox();
   if (desktop) {
     expect(box).toMatchObject({ width: 560, height: 480 });

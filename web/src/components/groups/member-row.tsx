@@ -1,4 +1,5 @@
 // Doop: k0kB5dc-Vo / componente MemberRow (10 · Grupo, D04 · Grupo)
+import { Nome } from "@/components/ui/nome";
 import type { Papel } from "@/lib/grupos/client";
 import { papeis } from "@/lib/grupos/papeis";
 import styles from "./member-row.module.css";
@@ -17,8 +18,9 @@ export function MemberRow({ role = "membro", initials, name, detail, onClick }: 
     <>
       <span className={styles.av} aria-hidden="true">{initials}</span>
       <span className={styles.bd}>
-        <span className={styles.nm}>{name}</span>
-        {detail && <span className={styles.dt}>{detail}</span>}
+        {/* Ajuste 29: a long name or e-mail is cut on one line, whole in title. */}
+        <Nome className={styles.nm}>{name}</Nome>
+        {detail && <Nome className={styles.dt}>{detail}</Nome>}
       </span>
       {/* RNF09: the role is text, never colour alone. */}
       <span className={styles.rl}>{papeis[role].title}</span>

@@ -46,6 +46,15 @@ Monorepo: `api/` (Django + DRF + Celery), `web/` (Next.js), `infra/` (Docker Com
 | `varal-devops` | `infra/`, `Makefile`, `.github/`, variáveis de ambiente, deploy |
 | `varal-qa` | Testes e critérios de aceite, ao fim de cada etapa e quando algo quebra |
 | `varal-seguranca` | Revisão (somente leitura) antes de fechar etapa que toca dados, permissões, arquivos ou auth |
+| `varal-decisor` | Triagem das decisões depois da spec, dúvida que trava um agente, auditoria antes do relatório |
+
+**Política de decisões (vale para todo agente):** o teste é "quanto custa desfazer?". O que se desfaz só no código, sem mudar
+o que alguém vê, o agente decide e registra em `docs/etapas/NN-slug/decisoes.md` (decisão, motivo, como desfazer).
+Regra de negócio, privacidade/visibilidade, segurança, dados gravados, tela (inclusive número, ordem ou texto que muda) e
+conflito entre fontes são sempre do dono: vão ao `varal-decisor` como pergunta. Detalhes em `.claude/agents/varal-decisor.md`.
+
+Codex (GPT) usa as mesmas fontes via `AGENTS.md`: `.codex/agents/` e `.agents/skills/` são gerados destes arquivos
+por `make codex-sync`. Mudou um agente ou comando aqui, rode `make codex-sync`.
 
 Fluxo do `/etapa`: ler ajustes → merge local (`--no-ff`) da etapa anterior concluída → branch nova → docs (spec/plano/tarefas)
 → resumo e **parar até o ok** → boletos → backend → `make types` → frontend → devops → qa → segurança → revisão de ajustes
@@ -78,6 +87,8 @@ Requisitos: Docker (com Compose), Node 22+ (para `make test-web`/`lint`/`types`)
 | `make types` | Exporta/valida schema composto DRF + allauth (`export_schema`) e gera `web/src/types/api.ts` |
 | `make migrate` | `makemigrations` + `migrate` |
 | `make seed` | Dados de desenvolvimento (usuário `dev`) |
+| `make limpar-dev` | Apaga do banco de dev os grupos e usuários de teste, com prévia e confirmação (`SIM=1` pula); nunca o `dev` |
+| `make codex-sync` | Regenera `.codex/agents/` e `.agents/skills/` a partir de `.claude/` (veja `AGENTS.md`) |
 
 O S3 local (`pgsty/silo`, ADR 0002) fica no profile `storage`: `docker compose -f infra/docker-compose.yml --profile storage up -d minio`.
 
