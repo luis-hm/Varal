@@ -1,7 +1,7 @@
 # API e OpenAPI
 
 > **Contém:** endpoints, sessão/CSRF e geração do contrato composto e dos tipos do frontend.
-> **Origem:** RNF12, seção 9 de `docs/especificacao-varal.md` e implementação das Etapas 00 e 02–07.
+> **Origem:** RNF12, seção 9 de `docs/especificacao-varal.md` e implementação das Etapas 00 e 02–08 (08 concluída).
 
 ## Fluxo
 
@@ -97,7 +97,7 @@ Toda consulta passa pelo filtro central de `acesso.py`: `lancamentos_visiveis` d
 | `PATCH /api/lancamentos/{id}/` | `editar_conta` | `instrumento` omitido preserva a relação; `{codigo}`/`{chave_pix}` troca e `null` remove explicitamente para manual. Mesmo omitido, instrumento persistido é revalidado contra valor/data finais. Conflito → 400 sem gravação parcial; troca/remoção em paga ou confirmada → 409 |
 | `GET /api/lancamentos/{id}/` e respostas de mutação | acesso autorizado à conta | `ContaDetalhe` acrescenta `instrumento: {tipo, codigo, chave_pix, beneficiario}\|null`. Tipo é `boleto_bancario\|boleto_arrecadacao\|pix`. Manual não tem relação e retorna `null` |
 
-O tipo é inferido pela leitura, não confiado à entrada. Não há rota de instrumento por id nem acesso próprio no Django admin; o acesso vem exclusivamente da conta e mantém as guardas de concorrência da 04. Código/chave não são enviados em listas/resumos nem registrados no histórico; a alteração registra apenas tipos antes/depois e `codigo_alterado: true`. Reenvio idêntico não duplica histórico. Conta aguardando com instrumento válido e dados completos passa a pendente na mesma transação; esta etapa não cria aguardando avulsa nem aceita PATCH livre de status.
+O tipo é inferido pela leitura, não confiado à entrada. Não há rota de instrumento por id nem acesso próprio no Django admin; o acesso vem exclusivamente da conta e mantém as guardas de concorrência da 04. Código/chave não são enviados em listas/resumos nem registrados no histórico; a alteração registra apenas tipos antes/depois e `codigo_alterado: true`. Reenvio idêntico não duplica histórico. Na Etapa 08, conta aguardando exige `confirmar_chegada: true` e valor/data completos para passar a pendente na mesma transação; instrumento/upload isolado não confirma; esta etapa não cria aguardando avulsa nem aceita PATCH livre de status.
 
 **Vencimento bancário (Q05-4):** fator 0000 não sugere data; 0001–0999 usa a base legada; 1000–9999 sugere o ciclo reiniciado em 22/02/2025 e também retorna a alternativa legada em `vencimentos_possiveis`. O usuário escolhe explicitamente uma data codificada; ao adicionar/trocar instrumento ambíguo, omitir a data dá 400. Não há escolha por proximidade com o relógio. Arrecadação/Pix/fator zero requerem data informada pelo usuário. Valor aplicável no código prevalece e conflito explícito é rejeitado; zero monetário do boleto significa ausência a preencher, não conta de valor zero. Avisos legíveis usam dd/mm/aaaa, enquanto campos de data do DTO mantêm ISO 8601.
 
@@ -167,3 +167,27 @@ Contrato presente no OpenAPI/tipos; resultados finais de QA no [relatório07](..
 **Retenção e manutenção:** undo preserva arquivo privado ligado à conta/pagamento histórico; qualquer espectador atual pode baixá-lo. Novas assinaturas revalidam acesso, mas URL já emitida pode valer até expirar. Draft expira em24h; exclusão física gera intenção durável de limpeza após commit. `recuperar_comprovantes` roda pelo beat a cada5min (D07-1), sem implementar recorrência mensal08. Alias `comprovantes` preserva MIME validado, separado do MIME fixoPDF do boleto.
 
 **Evento07→09:** EventoPagamento único é gravado na transação da marca, sem transporte nesta etapa. Anexo não duplica evento e undo não o apaga. A09 deve revalidar destinatário, acesso e marca ativa, consumir/descartar quando inaplicável e evitar entrega duplicada. A interface07 confirma apenas “Pagamento registrado.”
+
+## Recorrências e valores desconhecidos (Etapa 08)
+
+Contrato implementado no OpenAPI e nos tipos gerados, conforme [ADR 0012](../arquitetura/adr/0012-recorrencias-e-valores-desconhecidos.md). Validação final concluída no [relatório](../etapas/08-recorrencia-agendador/relatorio.md).
+
+| Método e rota | Entrada / resultado |
+| --- | --- |
+| `GET /api/espacos/{id}/recorrencias/` | Lista de `Recorrencia` somente visíveis, inclusive pausadas/encerradas; autorização própria do modelo |
+| `POST /api/espacos/{id}/recorrencias/` | `CriarRecorrencia`: descrição, `dia_vencimento` 1–31, `valor_tipo: fixo\|variavel`, `valor_centavos?`, `subgrupo?`, `pagador?`, `visibilidade?`, `acesso?`, `chave_idempotencia` UUID obrigatória e `ocorrencia_inicial?`; 201 `{recorrencia, ocorrencia}` ou 200 no retry idêntico |
+| `GET /api/recorrencias/{id}/` | Modelo autorizado; invisível/inexistente retorna 404 |
+| `PATCH /api/recorrencias/{id}/` | Campos opcionais de `RecorrenciaEntrada`; sem trocar espaço, competência ou estado livremente |
+| `POST /api/recorrencias/{id}/pausar/`, `/retomar/`, `/encerrar/` | Sem corpo; retorna modelo atualizado. Pausar/encerrar não cancelam contas geradas; encerramento terminal |
+| `PATCH /api/lancamentos/{id}/` | Acrescenta `escopo: mes\|proximos` e `confirmar_chegada: boolean`; confirmação exige valor/data completos e as guardas de instrumento/PDF |
+| `POST /api/lancamentos/{id}/cancelar/` | Corpo opcional `{escopo: mes\|proximos}`; próximos encerra futuro e cancela só abertas visíveis/editáveis desde a competência |
+| `GET /api/grupos/{id}/subgrupos/{sid}/arquivamento/` | Preview autorizado `{contas_qtd, recorrencias_qtd}`, sem sinal de itens invisíveis |
+| `PATCH /api/grupos/{id}/subgrupos/{sid}/` | Arquivar requer `{arquivado: true, destino_subgrupo: UUID\|null}` explícito; renomear junto é recusado. Move só abertas/modelos autorizados; finais/invisíveis conservam referência histórica |
+
+`Recorrencia` contém `id`, `espaco_id`, descrição, dia, tipo/valor, ids opcionais de casa/pagador, visibilidade/acesso, `estado: ativa|pausada|encerrada`, `motivo_pausa`, criação e flags `pode_editar`, `pode_pausar`, `pode_retomar`, `pode_encerrar`. As flags orientam a UI; cada escrita revalida autorização/estado no backend. Fixo exige positivo e variável exige NULL no modelo.
+
+`OcorrenciaInicial` contém valor positivo e vencimento obrigatórios, mais `instrumento?`, `documento_pdf?`, `data_emissao?` e `beneficiario?`. A criação confirma somente o mês atual em Fortaleza, com as mesmas validações da 05/06; fixa deve coincidir com o valor conferido. Template nunca armazena documento/instrumento reutilizável. A primeira variável pode sair pendente na mesma transação; futuras nascem aguardando/NULL. Falha reverte modelo/conta/vínculo/histórico sem excluir draft válido. A chave é única por ator e assinatura da entrada/espaço; reuso divergente retorna 409. Não há deduplicação por descrição/valor.
+
+`ContaDetalhe` acrescenta `recorrente`, `competencia`, `recorrencia_id` e `pode_ver_recorrencia`; o id é null quando o modelo não é visível, mesmo vendo a ocorrência. Competência é imutável e independente do vencimento editado. `valor_centavos` é nullable, inclusive em cancelada; positivo legado em aguardando é preservado (D08-1). Lista, resumo e `por_casa` acrescentam `valores_indefinidos_qtd` no mesmo universo da soma conhecida; canceladas continuam fora dos totais padrão. Nunca substituir NULL por zero. Progresso permanece por quantidade.
+
+Reingresso usa UUID do criador e papel/vínculo atuais (Q08-10); não restaura pagador ou escolhidos removidos, inclusive via revisão antiga. Ver uma ocorrência não concede gestão do modelo. Rotina/comando revalidam audiência atual, mantêm competência bloqueada em pausa sem audiência e não dão acesso ao admin invisível. Não há envio de push/e-mail nesta etapa.

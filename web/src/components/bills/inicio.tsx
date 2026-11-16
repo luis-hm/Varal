@@ -8,7 +8,7 @@ import { espacosDoUsuario, useSessao } from "@/components/layout/app-shell";
 import { SeletorEspaco } from "@/components/layout/side-nav";
 import { HouseCard } from "@/components/groups/house-card";
 import { useResumo } from "@/lib/contas/hooks";
-import { mesAno, nomeMes, partesReais, plural, reais, saudacao } from "@/lib/contas/formato";
+import { mesAno, nomeMes, partesReais, plural, reais, saudacao, totalConhecido } from "@/lib/contas/formato";
 import { ContaCard } from "./bill-card";
 import { useContagem } from "./contagem";
 import { ProgressoPagas } from "./progresso-pagas";
@@ -43,7 +43,7 @@ export function Inicio() {
         <p className={styles.vazio} role="status">Carregando contas…</p>
       ) : (
         <>
-          <Heroi mes={resumo.data.mes} total={resumo.data.total_centavos} qtd={resumo.data.qtd} pagas={resumo.data.pagas_qtd} vencidas={resumo.data.vencidas_qtd} vencem={resumo.data.vence_qtd} janela={resumo.data.janela_alerta_dias} />
+          <Heroi mes={resumo.data.mes} total={resumo.data.total_centavos} indefinidos={resumo.data.valores_indefinidos_qtd} qtd={resumo.data.qtd} pagas={resumo.data.pagas_qtd} vencidas={resumo.data.vencidas_qtd} vencem={resumo.data.vence_qtd} janela={resumo.data.janela_alerta_dias} />
           <div className={styles.grade} data-grupo={espaco.tipo === "grupo" || undefined}>
             <section aria-labelledby="atencao-t">
               <div className={`${styles.sec} ${styles.in} ${styles.d1}`}>
@@ -73,7 +73,7 @@ export function Inicio() {
                 {resumo.data.por_casa.length ? (
                   <div className={`${styles.houses} ${styles.in} ${styles.d3}`}>
                     {resumo.data.por_casa.map((c) => (
-                      <HouseCard key={c.id} label={c.nome} caption={reais(c.total_centavos)} progress={c.qtd ? c.pagas_qtd / c.qtd * 100 : undefined} caption-2={c.qtd ? `${c.pagas_qtd} de ${c.qtd} pagas em ${nomeMes(resumo.data.mes)}` : `0 contas em ${nomeMes(resumo.data.mes)}`} />
+                      <HouseCard key={c.id} label={c.nome} caption={`${c.valores_indefinidos_qtd ? "Total conhecido: " : ""}${totalConhecido(c.total_centavos, c.valores_indefinidos_qtd)}`} progress={c.qtd ? c.pagas_qtd / c.qtd * 100 : undefined} caption-2={c.qtd ? `${c.pagas_qtd} de ${c.qtd} pagas em ${nomeMes(resumo.data.mes)}` : `0 contas em ${nomeMes(resumo.data.mes)}`} />
                     ))}
                   </div>
                 ) : (
@@ -88,12 +88,12 @@ export function Inicio() {
   );
 }
 
-type HeroiProps = { mes: string; total: number; qtd: number; pagas: number; vencidas: number; vencem: number; janela: number };
+type HeroiProps = { mes: string; total: number; indefinidos: number; qtd: number; pagas: number; vencidas: number; vencem: number; janela: number };
 
 /** Month total (count-up) and the clothesline (swing). Q12/Q23: no paid bar and no "pagas" tag until stage 07. */
-function Heroi({ mes, total, qtd, pagas, vencidas, vencem, janela }: HeroiProps) {
+function Heroi({ mes, total, indefinidos, qtd, pagas, vencidas, vencem, janela }: HeroiProps) {
   const [inteiro, centavos] = partesReais(useContagem(total));
-  const rotulo = `Total de ${nomeMes(mes)}`;
+  const rotulo = `${indefinidos ? "Total conhecido" : "Total"} de ${nomeMes(mes)}`;
   return (
     <section className={`${styles.hero} ${styles.in}`} aria-label={rotulo}>
       <div className={styles.heroTopo}>
@@ -107,6 +107,7 @@ function Heroi({ mes, total, qtd, pagas, vencidas, vencem, janela }: HeroiProps)
           <span className={styles.cent}>{centavos}</span>
         </span>
       </p>
+      {!!indefinidos && <p>{plural(indefinidos, "valor a definir", "valores a definir")}</p>}
       <ProgressoPagas pagas={pagas} total={qtd} mes={nomeMes(mes)} />
       <div className={styles.varal} role="img" aria-label={`Precisa de atenção: ${plural(vencidas, "vencida", "vencidas")}, ${vencem} ${vencem === 1 ? "vence" : "vencem"} em até ${plural(janela, "dia", "dias")}, ${plural(pagas, "paga", "pagas")}`}>
         <svg className={styles.fio} viewBox="0 0 366 44" preserveAspectRatio="none" aria-hidden="true">

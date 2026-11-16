@@ -26,8 +26,8 @@ Telas: frame mobile ↔ frame desktop no canvas `k0kB5dc-Vo` (ids e equivalênci
 | RF15 | CU08 | RN14 | 08 · Marcar como paga ↔ M03 | 07 | `test_rn14_rn22_pagamento_e_evento_atomicos`, `test_rn14_valor_data_e_edicao_com_marca`, `test_rnf11_rn14_data_civil_perto_da_virada_utc`, `test_rf15_rn22_concorrencia_duas_marcacoes` (`api/tests/test_pagamentos.py`); E2E `rf15/rn14/rn16…` (`web/e2e/pagamentos.spec.ts`) |
 | RF16 | CU08 | RN15 | 08 · Marcar como paga ↔ M03, 09 · Conta paga ↔ M04 | 07 | `test_rf16_rn15_retencao_historica_e_draft_antigo`, `test_rf16_rnf06_worker_preserva_original_e_mime`, `test_rn15_upload_tardio_concorrente_com_undo` (`api/tests/test_pagamentos.py`); `test_rnf03_rn15_draft_expirado_nao_pode_ser_lido_assinado_ou_vinculado` (`api/tests/test_pagamentos_qa.py`); E2E `rf16/rn15…` (`web/e2e/pagamentos.spec.ts`) |
 | RF17 | CU08 | RN16 | 07 · Detalhe da conta ↔ D03 | 07 | `test_rn16_autor_observador_pode_desfazer_sem_pagar`, `test_rn16_concorrencia_dois_undos`, `test_rn06_comprovante_historico_revoga_acesso` (`api/tests/test_pagamentos.py`); E2E `rf15/rn14/rn16…`, `rf16/rn15/rn16…` (`web/e2e/pagamentos.spec.ts`) |
-| RF18 | CU09 | RN17, RN23 | 05 · Nova conta ↔ M01, 10 · Grupo ↔ D04 | 08 | — |
-| RF19 | CU12 | RN17, RN18, RN23 | — (agendador) | 08 | — |
+| RF18 | CU09 | RN17, RN23 | 05 · Nova conta ↔ M01, 10 · Grupo ↔ D04 | 08 | `test_rn17_variavel_null_e_retry_idempotente`, `test_q08_9_primeira_conferida_variavel_sem_copia`, `test_q08_9_primeiro_pdf_permanece_na_primeira_conta`, `test_rn23_dias_curtos` (`api/tests/test_recorrencias.py`); E2E `web/e2e/recorrencias.spec.ts` |
+| RF19 | CU12 | RN17, RN18, RN23 | — (agendador) | 08 | `test_rn17_catchup_pausa_retomada_sem_gerar_meses_pausados`, `test_rnf07_duas_execucoes_concorrentes_geram_uma`, `test_rn23_dias_curtos` (`api/tests/test_recorrencias.py`); prova real de beat e worker documentada no relatório |
 | RF20 | CU12 | RN18, RN19 | 04 · Avisos ↔ D06 | 09 | — |
 | RF21 | CU10 | RN20 | 12 · Pedir para alguém pagar ↔ M06 | 10 | — |
 | RF22 | CU11 | RN07, RN14, RN15 | 13 · Modo simples ↔ D05 | 10 | — |
@@ -120,6 +120,19 @@ Casos de uso: CU05 = RF10 e RF11 (só o manual); CU06 = RF13; CU07 = RF12 (teste
 | CA35 · criação × desligamento | `test_rn01_rn05_criar_revalida_vinculo_apos_autorizacao`, `test_rn01_rn21_rn32_criacao_serializa_vinculos_com_desligamento` (criador, pagador e escolhido × saída, remoção e exclusão) |
 | CA36 · grupo → restrita × desligamento | `test_rn32_concorrencia_grupo_para_restrita_e_saida` (saída e remoção) |
 | CA37 · detalhe e resposta de edição consistentes | `test_rn06_detalhe_revalida_acesso_na_consulta_que_carrega_dados`, `test_rn06_detalhe_mantem_snapshot_ate_prefetch_e_historico`, `test_rn06_detalhe_espera_edicao_e_rele_acesso_em_snapshot_novo`, `test_rn06_resposta_propria_edicao_nao_le_edicao_alheia_posterior` |
+
+## Rastreabilidade da Etapa 08
+
+| Critérios / regras | Testes |
+| --- | --- |
+| CA01–04, RN17/RN23 · geração, competência e recuperação | `test_rn17_variavel_null_e_retry_idempotente`, `test_rn23_dias_curtos`, `test_rn17_catchup_pausa_retomada_sem_gerar_meses_pausados`, `test_rnf07_duas_execucoes_concorrentes_geram_uma` (`api/tests/test_recorrencias.py`); prova real de beat/worker em ambiente isolado |
+| CA05–07, RN11/RN17/RN22 · escopo, NULL e permissão | `test_q08_3_proximos_rollback_quando_valor_diverge_codigo`, `test_q08_3_editar_e_cancelar_proximos_preserva_final`, `test_q08_1_somas_e_contagens_ignoram_cancelada_desconhecida`, `test_q08_5_ausencia_audiencia_pausa_privada`, `test_rn32_concorrencia_geracao_e_saida_sem_orfa`, `test_q08_10_reingresso_recupera_autoria_mas_nao_grant_antigo` (`api/tests/test_recorrencias.py`); `test_d08_1_constraint_sql_rejeita_valor_nao_positivo_em_todo_estado` (`api/tests/test_recorrencias_qa.py`); E2E `rn17/rn11…`, `q08-3…` (`web/e2e/recorrencias.spec.ts`) |
+| CA08, RN06/RN22 · arquivamento de casa | `test_q08_6_arquivar_casa_preserva_invisiveis_e_futuro_sem_casa`, `test_cu04_concorrencia_renomear_e_arquivar_nao_reabre` (`api/tests/test_recorrencias.py`); E2E `q08-6…` com destino e modelo restrito |
+| CA09/11, Q08-8 · telas e gestão pessoal | E2E `q08-8…`, `rnf08: rótulos…` e capturas Pix/PDF nas duas larguras (`web/e2e/recorrencias.spec.ts`); `test_rn06_conta_visivel_nao_revela_modelo_invisivel` (`api/tests/test_recorrencias.py`) |
+| CA12/13, Q08-9 · primeira conferida e rollback | `test_q08_9_primeira_conferida_variavel_sem_copia`, `test_q08_9_mes_diferente_faz_rollback`, `test_q08_9_primeiro_pdf_permanece_na_primeira_conta` (`api/tests/test_recorrencias.py`); `test_q08_9_nonce_reutilizado_com_payload_divergente_nao_cria_ou_altera`, `test_q08_9_mes_errado_preserva_draft_pdf_e_nao_cria_modelo` (`api/tests/test_recorrencias_qa.py`); E2E `q08-9…` (nonce, mês errado, PDF e chave Pix) |
+| RN22 · autoria no histórico | `test_rn22_criacao_automatica_de_recorrencia_identifica_sistema`, `test_rn22_criacao_manual_autor_excluido_permanece_ex_membro` (`api/tests/test_recorrencias.py`); E2E `rn17/rn11…` |
+
+Validação em 16/11/2026: duas gerações de tipos sem diferenças e 448 pytest após correção de autoria; após ajuste de espera no teste de clipboard, 101 Vitest passaram. Lint final passou; E2E final teve 123 testes aprovados e 3 skips previstos. As rodadas anteriores com falhas ou interrupções são documentadas no relatório, sem somar seus resultados.
 
 ## Rastreabilidade da Etapa 07
 

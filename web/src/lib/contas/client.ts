@@ -5,6 +5,7 @@ type S = components["schemas"];
 export type Conta = S["Conta"];
 export type ContaDetalhe = S["ContaDetalhe"];
 export type ContaEntrada = S["ContaEntrada"];
+export type ContaAlteracao = S["PatchedContaEntrada"];
 export type Historico = S["Historico"];
 export type Lista = S["Lista"];
 export type Resumo = S["Resumo"];
@@ -26,7 +27,7 @@ export const verResumo = (espacoId: string) => call<Resumo>(e(espacoId, "resumo/
 export const criarConta = (espacoId: string, body: ContaEntrada) => call<ContaDetalhe>(e(espacoId, "lancamentos/"), "POST", body);
 export const verConta = (id: string) => call<ContaDetalhe>(l(id));
 export const editarConta = (id: string, body: S["PatchedContaEntrada"]) => call<ContaDetalhe>(l(id), "PATCH", body);
-export const cancelarConta = (id: string) => call<ContaDetalhe>(l(id, "cancelar/"), "POST");
+export const cancelarConta = (id: string, body?: S["CancelarEntrada"]) => call<ContaDetalhe>(l(id, "cancelar/"), "POST", body);
 export const lerInstrumento = (body: InstrumentoEntrada) => call<Leitura>("boletos/ler/", "POST", body);
 export function enviarPdf(espaco: string, arquivo: File, lancamentoId?: string) {
   const dados = new FormData();
@@ -49,3 +50,11 @@ export const linkComprovante = (id: string) => call<S["URL"]>(`comprovantes/${en
 export const marcarPagamento = (id: string, body: S["Marcar"]) => call<ContaDetalhe>(l(id, "pagamentos/"), "POST", body);
 export const anexarComprovante = (id: string, pagamento: string, body: S["Anexar"]) => call<ContaDetalhe>(l(id, `pagamentos/${encodeURIComponent(pagamento)}/comprovante/`), "POST", body);
 export const desfazerPagamento = (id: string, pagamento: string) => call<ContaDetalhe>(l(id, `pagamentos/${encodeURIComponent(pagamento)}/desfazer/`), "POST");
+export type Recorrencia = S["Recorrencia"];
+export type CriarRecorrencia = S["CriarRecorrencia"];
+export type EditarRecorrencia = S["PatchedRecorrenciaEntrada"];
+export const listarRecorrencias = (espaco: string) => call<Recorrencia[]>(e(espaco, "recorrencias/"));
+export const verRecorrencia = (id: string) => call<Recorrencia>(`recorrencias/${encodeURIComponent(id)}/`);
+export const criarRecorrencia = (espaco: string, body: CriarRecorrencia) => call<S["CriacaoResultado"]>(e(espaco, "recorrencias/"), "POST", body);
+export const editarRecorrencia = (id: string, body: EditarRecorrencia) => call<Recorrencia>(`recorrencias/${encodeURIComponent(id)}/`, "PATCH", body);
+export const acaoRecorrencia = (id: string, acao: "pausar" | "retomar" | "encerrar") => call<Recorrencia>(`recorrencias/${encodeURIComponent(id)}/${acao}/`, "POST");

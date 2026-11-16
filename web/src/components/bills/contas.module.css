@@ -373,6 +373,7 @@
   text-decoration: line-through;
   opacity: var(--opacity-cancelled);
 }
+.valor[data-indefinido] { font-size: var(--text-xl); line-height: var(--leading-body); }
 
 .vence {
   margin-top: 10px;

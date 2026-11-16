@@ -136,6 +136,13 @@ export async function semRolagemEAlvos44(page: Page) {
             return label.checkVisibility() && r.width >= 44 && r.height >= 44;
           });
         }
+        // Native checkbox/radio activation also covers their visible associated label.
+        if (el instanceof HTMLInputElement && (el.type === "checkbox" || el.type === "radio")) {
+          return !Array.from(el.labels ?? []).some((label) => {
+            const r = label.getBoundingClientRect();
+            return label.checkVisibility() && r.width >= 44 && r.height >= 44;
+          });
+        }
         return true;
       })
       .map((el) => ({ el: el.outerHTML.slice(0, 80), r: el.getBoundingClientRect() }))

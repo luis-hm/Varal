@@ -69,14 +69,16 @@ def espaco_ou_404(usuario, espaco_id, acao=None, tipo=None):
 # ---- bills (lancamentos): the single definition of "who sees" ------------------------------
 
 
-def _ve(usuario, papel_):
+def _ve(usuario, papel_, modelo=None):
     """Q over Lancamento for what a user with `papel_` sees inside one space (RN02/RN06/RN07).
     The admin gets no exception (Q6). Explicit access beats RN07 for restricted bills
     (ADR 0008). None = sees nothing."""
     from apps.lancamentos.models import Lancamento, Visibilidade
 
+    modelo = modelo or Lancamento
+    chave = modelo._meta.model_name
     escolhido = Exists(
-        Lancamento.acesso.through.objects.filter(lancamento=OuterRef("pk"), usuario=usuario)
+        modelo.acesso.through.objects.filter(**{chave: OuterRef("pk"), "usuario": usuario})
     )
     if papel_ == DONO:
         return Q()
@@ -173,3 +175,38 @@ def quem_ve(conta, sem=None):
         and (filtro := _ve(usuario_id, papel_)) is not None
         and so_ela.filter(filtro).exists()
     }
+
+
+def recorrencias_visiveis(usuario, espaco):
+    from apps.recorrencias.models import Recorrencia
+
+    filtro = _ve(usuario, papel(usuario, espaco), Recorrencia)
+    modelos = Recorrencia.objects.filter(espaco=espaco)
+    return modelos.none() if filtro is None else modelos.filter(filtro)
+
+
+def recorrencias_do_usuario(usuario):
+    from apps.recorrencias.models import Recorrencia
+
+    espacos = espacos_do_usuario(usuario).filter(pk=OuterRef("espaco_id"))
+    modelos = Recorrencia.objects.annotate(meu_papel=Subquery(espacos.values("meu_papel")[:1]))
+    return modelos.filter(
+        Q(meu_papel=DONO)
+        | (Q(meu_papel=Papel.PAGADOR) & _ve(usuario, Papel.PAGADOR, Recorrencia))
+        | (
+            Q(meu_papel__in=(Papel.ADMIN, Papel.MEMBRO, Papel.OBSERVADOR))
+            & _ve(usuario, Papel.MEMBRO, Recorrencia)
+        )
+    )
+
+
+def recorrencia_ou_404(usuario, recorrencia_id, acao=None):
+    modelo = (
+        recorrencias_do_usuario(usuario).select_related("espaco").filter(pk=recorrencia_id).first()
+    )
+    if not modelo:
+        raise NotFound()
+    modelo.espaco.meu_papel = modelo.meu_papel
+    if acao and not pode(modelo.meu_papel, acao):
+        raise PermissionDenied()
+    return modelo

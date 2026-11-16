@@ -165,12 +165,12 @@ test("ca09/ca11/ca15/ca17 rn01/rn05/rn07 rnf01: admin com ações, membro e obse
       await expect(texto(aba, `4 membros · 1 casa · você é ${papel}`)).toBeVisible();
       await expect(aba.getByText(admin.email, { exact: true })).toBeVisible();
       await expect(texto(aba, `0 contas em ${mesAtual()}`)).toBeVisible();
-      // No management action: only "Sair do grupo" (Q3) besides the shell navigation.
+      // Reading recurring models is available; management remains unavailable.
       await expect(botaoConvidar(aba)).toHaveCount(0);
       await expect(visivel(aba, "+ Nova casa")).toHaveCount(0);
       await expect(aba.locator("main [aria-haspopup=dialog]:visible")).toHaveCount(0);
       await expect(aba.getByRole("heading", { name: "Convites pendentes" })).toHaveCount(0);
-      expect(await aba.locator("main button:visible").allTextContents()).toEqual(["Sair do grupo"]);
+      expect(await aba.locator("main button:visible").allTextContents()).toEqual(["Ver todas", "Sair do grupo"]);
       expect((await api(conta.request, "POST", `/api/grupos/${grupo.id}/convites/`, { papel: "admin" })).status()).toBe(403);
     } finally {
       await aba.context().close();

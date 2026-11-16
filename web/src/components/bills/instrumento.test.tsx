@@ -26,6 +26,7 @@ const contaBanco = (): ContaDetalhe => ({
   espaco: pessoal, subgrupo: null, visibilidade: "grupo", acesso: [], quem_ve: [], pagador: null, criador: { nome: "Dev", sou_eu: true }, criado_em: "2000-07-01T12:00:00Z", historico: [], pode_editar: true,
   instrumento: { ...banco.instrumento, data_emissao: null }, documento_pdf: null,
   pagamento_ativo: null, pagamentos: [], pode_pagar: true, pode_desfazer_pagamento: false, pode_anexar_comprovante: false,
+  recorrente: false, recorrencia_id: null, competencia: null, pode_ver_recorrencia: false,
 });
 
 beforeEach(() => {
@@ -123,7 +124,8 @@ test("rn22: editing the description keeps the original instrument and legacy dat
   fireEvent.change(screen.getByLabelText("Descrição"), { target: { value: "Nome corrigido" } });
   fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
   await waitFor(() => expect(enviados).toHaveLength(1));
-  expect(enviados[0]).toMatchObject({ descricao: "Nome corrigido", vencimento: "2000-07-03" });
+  expect(enviados[0]).toMatchObject({ descricao: "Nome corrigido" });
+  expect(enviados[0]).not.toHaveProperty("vencimento");
   expect(enviados[0]).not.toHaveProperty("instrumento");
 });
 

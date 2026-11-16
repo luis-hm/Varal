@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import (
@@ -532,18 +533,80 @@ class SubgruposView(APIView):
         return Response(entrada.data, status=status.HTTP_201_CREATED)
 
 
+class CasaAlterarSerializer(serializers.ModelSerializer):
+    destino_subgrupo = serializers.UUIDField(allow_null=True, required=False, write_only=True)
+
+    class Meta:
+        model = Subgrupo
+        fields = ["id", "nome", "arquivado", "destino_subgrupo"]
+        read_only_fields = ["id"]
+
+
+class ArquivamentoPreviewSerializer(serializers.Serializer):
+    contas_qtd = serializers.IntegerField()
+    recorrencias_qtd = serializers.IntegerField()
+
+
+class ArquivamentoPreviewView(APIView):
+    @extend_schema(
+        operation_id="grupos_casas_arquivamento_preview",
+        responses={200: ArquivamentoPreviewSerializer},
+    )
+    @transaction.atomic
+    def get(self, request, grupo_id, casa_id):
+        from apps.espacos.acesso import lancamentos_visiveis, recorrencias_visiveis
+        from apps.lancamentos.models import ABERTOS
+        from apps.recorrencias.servicos import travar_espaco
+
+        grupo = _grupo(request, grupo_id, "gerenciar_grupo")
+        travar_espaco(request.user, grupo)
+        grupo = _grupo(request, grupo_id, "gerenciar_grupo")
+        casa = get_object_or_404(Subgrupo, espaco=grupo, pk=casa_id)
+        return Response(
+            {
+                "contas_qtd": lancamentos_visiveis(request.user, grupo)
+                .filter(subgrupo=casa, status__in=ABERTOS)
+                .count(),
+                "recorrencias_qtd": recorrencias_visiveis(request.user, grupo)
+                .filter(subgrupo=casa)
+                .exclude(estado="encerrada")
+                .count(),
+            }
+        )
+
+
 class SubgrupoView(APIView):
     @extend_schema(
         operation_id="grupos_casas_alterar",
         summary="Renomear ou arquivar casa (admin; CU04). Arquivada sai da lista e fica no banco.",
-        request=CasaSerializer(partial=True),
+        request=CasaAlterarSerializer(partial=True),
         responses={200: CasaSerializer, **_erros(403, 404)},
         examples=[OpenApiExample("Arquivar", value={"arquivado": True}, request_only=True)],
     )
+    @transaction.atomic
     def patch(self, request, grupo_id, casa_id):
+        from apps.recorrencias.servicos import travar_espaco
+
+        grupo = _grupo(request, grupo_id, "gerenciar_grupo")
+        travar_espaco(request.user, grupo)
         grupo = _grupo(request, grupo_id, "gerenciar_grupo")
         casa = get_object_or_404(Subgrupo, espaco=grupo, pk=casa_id)
-        entrada = CasaSerializer(casa, data=request.data, partial=True)
+        entrada = CasaAlterarSerializer(casa, data=request.data, partial=True)
         entrada.is_valid(raise_exception=True)
-        entrada.save()
-        return Response(entrada.data)
+        dados = dict(entrada.validated_data)
+        if dados.get("arquivado") is True:
+            if "destino_subgrupo" not in dados:
+                raise serializers.ValidationError(
+                    {"destino_subgrupo": ["Informe uma casa de destino ou Sem casa."]}
+                )
+            if "nome" in dados:
+                raise serializers.ValidationError({"nome": ["Renomeie antes de arquivar a casa."]})
+            casa = servicos.arquivar_casa(request.user, grupo, casa_id, dados["destino_subgrupo"])
+        else:
+            dados.pop("destino_subgrupo", None)
+            casa = get_object_or_404(Subgrupo.objects.select_for_update(), espaco=grupo, pk=casa_id)
+            for campo, valor in dados.items():
+                setattr(casa, campo, valor)
+            if dados:
+                casa.save(update_fields=list(dados))
+        return Response(CasaSerializer(casa).data)

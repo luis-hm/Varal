@@ -1526,6 +1526,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/espacos/{espaco_id}/recorrencias/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["recorrencias_listar"];
+        put?: never;
+        post: operations["recorrencias_criar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/espacos/{espaco_id}/resumo/": {
         parameters: {
             query?: never;
@@ -1686,6 +1702,22 @@ export interface paths {
         patch: operations["grupos_casas_alterar"];
         trace?: never;
     };
+    "/api/grupos/{grupo_id}/subgrupos/{casa_id}/arquivamento/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["grupos_casas_arquivamento_preview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health/": {
         parameters: {
             query?: never;
@@ -1828,6 +1860,70 @@ export interface paths {
         get: operations["me_retrieve"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recorrencias/{recorrencia_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["recorrencias_detalhe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["recorrencias_editar"];
+        trace?: never;
+    };
+    "/api/recorrencias/{recorrencia_id}/encerrar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["recorrencias_encerrar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recorrencias/{recorrencia_id}/pausar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["recorrencias_pausar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recorrencias/{recorrencia_id}/retomar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["recorrencias_retomar"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2471,6 +2567,13 @@ export interface components {
             /** Format: uuid */
             comprovante_id: string;
         };
+        ArquivamentoPreview: {
+            contas_qtd: number;
+            recorrencias_qtd: number;
+        };
+        CancelarEntrada: {
+            escopo?: components["schemas"]["EscopoEnum"];
+        };
         CandidatoPDF: {
             avisos: string[];
             codigo: string;
@@ -2503,13 +2606,15 @@ export interface components {
             status: components["schemas"]["StatusEnum"];
             status_exibido: components["schemas"]["StatusExibidoEnum"];
             subgrupo: components["schemas"]["Ref"] | null;
-            valor_centavos: number;
+            valor_centavos: number | null;
             /** Format: date */
             vencimento: string;
             visibilidade: components["schemas"]["VisibilidadeEnum"];
         };
         ContaDetalhe: {
             readonly acesso: components["schemas"]["Ref"][];
+            /** Format: date */
+            competencia: string | null;
             /** Format: date-time */
             criado_em: string;
             readonly criador: components["schemas"]["Criador"];
@@ -2528,12 +2633,16 @@ export interface components {
             readonly pode_desfazer_pagamento: boolean;
             readonly pode_editar: boolean;
             readonly pode_pagar: boolean;
+            readonly pode_ver_recorrencia: boolean;
             /** @description Acesso efetivo da restrita: criador, pagador e escolhidos; vazio nas demais. */
             readonly quem_ve: components["schemas"]["Ref"][];
+            /** Format: uuid */
+            readonly recorrencia_id: string | null;
+            readonly recorrente: boolean;
             status: components["schemas"]["StatusEnum"];
             status_exibido: components["schemas"]["StatusExibidoEnum"];
             subgrupo: components["schemas"]["Ref"] | null;
-            valor_centavos: number;
+            valor_centavos: number | null;
             /** Format: date */
             vencimento: string;
             visibilidade: components["schemas"]["VisibilidadeEnum"];
@@ -2542,17 +2651,20 @@ export interface components {
             /** @description Quem vê (restrita) */
             acesso?: string[];
             beneficiario?: string | null;
+            confirmar_chegada?: boolean;
             /** Format: date */
             data_emissao?: string | null;
             descricao: string;
             /** Format: uuid */
             documento_pdf?: string | null;
+            escopo?: components["schemas"]["EscopoEnum"];
             instrumento?: components["schemas"]["InstrumentoEntrada"] | null;
             /** Format: uuid */
             pagador?: string | null;
             /** Format: uuid */
             subgrupo?: string | null;
             valor_centavos: number;
+            valor_tipo?: components["schemas"]["ValorTipoEnum"];
             /** Format: date */
             vencimento: string;
             visibilidade?: components["schemas"]["VisibilidadeEnum"];
@@ -2601,6 +2713,10 @@ export interface components {
             grupo_nome: string;
             papel: components["schemas"]["PapelEnum"];
         };
+        CriacaoResultado: {
+            ocorrencia: components["schemas"]["ContaDetalhe"] | null;
+            recorrencia: components["schemas"]["Recorrencia"];
+        };
         Criador: {
             nome: string;
             sou_eu: boolean;
@@ -2609,16 +2725,40 @@ export interface components {
             casas?: string[];
             nome: string;
         };
+        CriarRecorrencia: {
+            acesso?: string[];
+            /** Format: uuid */
+            chave_idempotencia: string;
+            descricao: string;
+            dia_vencimento: number;
+            ocorrencia_inicial?: components["schemas"]["OcorrenciaInicial"] | null;
+            /** Format: uuid */
+            pagador?: string | null;
+            /** Format: uuid */
+            subgrupo?: string | null;
+            valor_centavos?: number | null;
+            valor_tipo: components["schemas"]["ValorTipoEnum"];
+            visibilidade?: components["schemas"]["VisibilidadeEnum"];
+        };
         Documento: {
             /** Format: date-time */
             readonly criado_em: string;
-            estado?: components["schemas"]["EstadoEnum"];
+            estado?: components["schemas"]["DocumentoEstadoEnum"];
             /** Format: uuid */
             readonly id: string;
             mime?: string;
             nome: string;
             tamanho: number;
         };
+        /**
+         * @description * `pendente` - Aguardando validação
+         *     * `lendo` - Validando
+         *     * `valido` - Validado
+         *     * `invalido` - Arquivo inválido
+         *     * `erro` - Falha na validação
+         * @enum {string}
+         */
+        DocumentoEstadoEnum: "pendente" | "lendo" | "valido" | "invalido" | "erro";
         DocumentoPDF: {
             avisos: string[];
             estado: string;
@@ -2631,6 +2771,12 @@ export interface components {
         Erro: {
             detail: string;
         };
+        /**
+         * @description * `mes` - mes
+         *     * `proximos` - proximos
+         * @enum {string}
+         */
+        EscopoEnum: "mes" | "proximos";
         EspacoPessoal: {
             /** Format: uuid */
             readonly id: string;
@@ -2643,15 +2789,6 @@ export interface components {
             nome: string;
             tipo: components["schemas"]["TipoEspacoEnum"];
         };
-        /**
-         * @description * `pendente` - Aguardando validação
-         *     * `lendo` - Validando
-         *     * `valido` - Validado
-         *     * `invalido` - Arquivo inválido
-         *     * `erro` - Falha na validação
-         * @enum {string}
-         */
-        EstadoEnum: "pendente" | "lendo" | "valido" | "invalido" | "erro";
         GrupoDetalhe: {
             readonly casas: components["schemas"]["Casa"][];
             /** Format: uuid */
@@ -2739,8 +2876,9 @@ export interface components {
             mes: string;
             /** @description Casas e pagadores das contas visíveis do mês */
             opcoes: components["schemas"]["Opcoes"];
-            /** @description Não canceladas do mês, com casa/pagador */
+            /** @description Valor conhecido não cancelado do mês */
             total_centavos: number;
+            valores_indefinidos_qtd: number;
         };
         Marcar: {
             /** Format: uuid */
@@ -2768,6 +2906,17 @@ export interface components {
             readonly sou_eu: boolean;
             /** Format: uuid */
             readonly usuario: string;
+        };
+        OcorrenciaInicial: {
+            beneficiario?: string | null;
+            /** Format: date */
+            data_emissao?: string | null;
+            /** Format: uuid */
+            documento_pdf?: string | null;
+            instrumento?: components["schemas"]["InstrumentoEntrada"] | null;
+            valor_centavos: number;
+            /** Format: date */
+            vencimento: string;
         };
         Opcoes: {
             casas: components["schemas"]["Ref"][];
@@ -2800,8 +2949,10 @@ export interface components {
          * @enum {string}
          */
         PapelEnum: "admin" | "membro" | "pagador" | "observador";
-        PatchedCasa: {
+        PatchedCasaAlterar: {
             arquivado?: boolean;
+            /** Format: uuid */
+            destino_subgrupo?: string | null;
             /** Format: uuid */
             readonly id?: string;
             nome?: string;
@@ -2813,23 +2964,38 @@ export interface components {
             /** @description Quem vê (restrita) */
             acesso?: string[];
             beneficiario?: string | null;
+            confirmar_chegada?: boolean;
             /** Format: date */
             data_emissao?: string | null;
             descricao?: string;
             /** Format: uuid */
             documento_pdf?: string | null;
+            escopo?: components["schemas"]["EscopoEnum"];
             instrumento?: components["schemas"]["InstrumentoEntrada"] | null;
             /** Format: uuid */
             pagador?: string | null;
             /** Format: uuid */
             subgrupo?: string | null;
             valor_centavos?: number;
+            valor_tipo?: components["schemas"]["ValorTipoEnum"];
             /** Format: date */
             vencimento?: string;
             visibilidade?: components["schemas"]["VisibilidadeEnum"];
         };
         PatchedPapel: {
             papel?: components["schemas"]["PapelEnum"];
+        };
+        PatchedRecorrenciaEntrada: {
+            acesso?: string[];
+            descricao?: string;
+            dia_vencimento?: number;
+            /** Format: uuid */
+            pagador?: string | null;
+            /** Format: uuid */
+            subgrupo?: string | null;
+            valor_centavos?: number | null;
+            valor_tipo?: components["schemas"]["ValorTipoEnum"];
+            visibilidade?: components["schemas"]["VisibilidadeEnum"];
         };
         Pessoa: {
             /** Format: uuid */
@@ -2849,7 +3015,39 @@ export interface components {
             pagas_qtd: number;
             qtd: number;
             total_centavos: number;
+            valores_indefinidos_qtd: number;
         };
+        Recorrencia: {
+            readonly acesso: string[];
+            /** Format: date-time */
+            criado_em: string;
+            descricao: string;
+            dia_vencimento: number;
+            /** Format: uuid */
+            espaco_id: string;
+            estado: components["schemas"]["RecorrenciaEstadoEnum"];
+            /** Format: uuid */
+            id: string;
+            motivo_pausa: string;
+            /** Format: uuid */
+            pagador: string | null;
+            readonly pode_editar: boolean;
+            readonly pode_encerrar: boolean;
+            readonly pode_pausar: boolean;
+            readonly pode_retomar: boolean;
+            /** Format: uuid */
+            subgrupo: string | null;
+            valor_centavos: number | null;
+            valor_tipo: components["schemas"]["ValorTipoEnum"];
+            visibilidade: components["schemas"]["VisibilidadeEnum"];
+        };
+        /**
+         * @description * `ativa` - Ativa
+         *     * `pausada` - Pausada
+         *     * `encerrada` - Encerrada
+         * @enum {string}
+         */
+        RecorrenciaEstadoEnum: "ativa" | "pausada" | "encerrada";
         Ref: {
             /** Format: uuid */
             id: string;
@@ -2888,6 +3086,7 @@ export interface components {
             por_casa: components["schemas"]["PorCasa"][];
             qtd: number;
             total_centavos: number;
+            valores_indefinidos_qtd: number;
             /** @description Em atencao (dentro da janela) */
             vence_qtd: number;
             /** @description Em atencao (qualquer mês) */
@@ -2954,6 +3153,12 @@ export interface components {
             /** Format: uuid */
             lancamento_id?: string;
         };
+        /**
+         * @description * `fixo` - Fixo
+         *     * `variavel` - Variável
+         * @enum {string}
+         */
+        ValorTipoEnum: "fixo" | "variavel";
         /**
          * @description * `grupo` - Todo o grupo
          *     * `restrita` - Só algumas pessoas
@@ -3888,6 +4093,62 @@ export interface operations {
             };
         };
     };
+    recorrencias_listar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                espaco_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Recorrencia"][];
+                };
+            };
+        };
+    };
+    recorrencias_criar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                espaco_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CriarRecorrencia"];
+                "application/x-www-form-urlencoded": components["schemas"]["CriarRecorrencia"];
+                "multipart/form-data": components["schemas"]["CriarRecorrencia"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriacaoResultado"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CriacaoResultado"];
+                };
+            };
+        };
+    };
     lancamentos_resumo: {
         parameters: {
             query?: never;
@@ -4394,9 +4655,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedCasa"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedCasa"];
-                "multipart/form-data": components["schemas"]["PatchedCasa"];
+                "application/json": components["schemas"]["PatchedCasaAlterar"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedCasaAlterar"];
+                "multipart/form-data": components["schemas"]["PatchedCasaAlterar"];
             };
         };
         responses: {
@@ -4424,6 +4685,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    grupos_casas_arquivamento_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                casa_id: string;
+                grupo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArquivamentoPreview"];
                 };
             };
         };
@@ -4549,7 +4832,13 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CancelarEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["CancelarEntrada"];
+                "multipart/form-data": components["schemas"]["CancelarEntrada"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -4727,6 +5016,117 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Me"];
+                };
+            };
+        };
+    };
+    recorrencias_detalhe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recorrencia_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Recorrencia"];
+                };
+            };
+        };
+    };
+    recorrencias_editar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recorrencia_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedRecorrenciaEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedRecorrenciaEntrada"];
+                "multipart/form-data": components["schemas"]["PatchedRecorrenciaEntrada"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Recorrencia"];
+                };
+            };
+        };
+    };
+    recorrencias_encerrar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recorrencia_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Recorrencia"];
+                };
+            };
+        };
+    };
+    recorrencias_pausar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recorrencia_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Recorrencia"];
+                };
+            };
+        };
+    };
+    recorrencias_retomar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recorrencia_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Recorrencia"];
                 };
             };
         };
