@@ -95,6 +95,8 @@ class DocumentoComprovante(models.Model):
 class LimpezaComprovante(models.Model):
     id = models.UUIDField(primary_key=True)
     criado_em = models.DateTimeField(auto_now_add=True)
+    geracao = models.PositiveBigIntegerField(default=1)
+    incerta = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Limpeza {self.pk}"

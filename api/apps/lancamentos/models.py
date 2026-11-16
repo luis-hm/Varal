@@ -2,7 +2,7 @@ import uuid
 from datetime import timedelta
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Case, F, Q, Value, When
 from django.utils import timezone
 
@@ -28,6 +28,13 @@ class Visibilidade(models.TextChoices):
 
 
 class LancamentoQuerySet(models.QuerySet):
+    def delete(self):
+        from apps.solicitacoes.coordenacao import barreira
+
+        with transaction.atomic():
+            barreira()
+            return super().delete()
+
     def com_status(self, janela, hoje=None):
         """Annotate `status_exibido` (RN12/RN13) so filters and counts run in SQL. Only
         `pendente` turns into `vencida`/`vence`; `hoje` is the civil date in Fortaleza."""
@@ -139,6 +146,13 @@ class Lancamento(models.Model):
     def __str__(self):
         return self.descricao
 
+    def delete(self, *args, **kwargs):
+        from apps.solicitacoes.coordenacao import barreira
+
+        with transaction.atomic():
+            barreira()
+            return super().delete(*args, **kwargs)
+
 
 class Acao(models.TextChoices):
     CRIADA = "criada", "Criou"
@@ -190,6 +204,24 @@ class Historico(models.Model):
     def automatica(self):
         # Recurrence creation is system-authored and records the server-generated competence.
         # A deleted author of an ordinary creation is still an ex-member, not the system.
-        return self.acao in self.AUTOMATICAS or (
-            self.acao == Acao.CRIADA and self.usuario_id is None and "competencia" in self.dados
+        return (
+            self.acao in self.AUTOMATICAS
+            or (
+                self.acao == Acao.CRIADA and self.usuario_id is None and "competencia" in self.dados
+            )
+            or (
+                self.acao == Acao.PAGA
+                and self.usuario_id is None
+                and self.dados.get("derivado") is True
+            )
+            or (
+                self.acao == Acao.PAGAMENTO_DESFEITO
+                and self.usuario_id is None
+                and self.dados.get("derivado") is True
+            )
+            or (
+                self.acao == Acao.CANCELADA
+                and self.usuario_id is None
+                and self.dados.get("cancelamento_solicitacao") is True
+            )
         )

@@ -7,6 +7,8 @@ from email.utils import parsedate_to_datetime
 from django.db import transaction
 from django.utils import timezone
 
+from apps.solicitacoes.coordenacao import barreira
+
 from . import push, transportes
 from .acesso import autorizadas
 from .models import (
@@ -174,12 +176,14 @@ def enviar_email_entrega(pk):
     if not ref:
         return
     with transaction.atomic():
+        barreira()
         n = _contexto(ref["notificacao_id"])
         entrega = EntregaNotificacao.objects.select_for_update().filter(pk=pk).first()
         token = _marcar_iniciada(entrega, n, "email") if entrega else None
     if not token:
         return
     with transaction.atomic():
+        barreira()
         n = _contexto(ref["notificacao_id"])
         entrega = EntregaNotificacao.objects.select_for_update().filter(pk=pk).first()
         if not entrega or not _iniciar(entrega, n, "email", token):
@@ -220,6 +224,7 @@ def enviar_push_dispositivo(pk):
     if not ref:
         return
     with transaction.atomic():
+        barreira()
         n = _contexto(ref["entrega__notificacao_id"])
         entrega = EntregaNotificacao.objects.select_for_update().get(pk=ref["entrega_id"])
         item = (
@@ -241,6 +246,7 @@ def enviar_push_dispositivo(pk):
     if not token:
         return
     with transaction.atomic():
+        barreira()
         n = _contexto(ref["entrega__notificacao_id"])
         entrega = EntregaNotificacao.objects.select_for_update().get(pk=ref["entrega_id"])
         item = (

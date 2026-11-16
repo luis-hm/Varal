@@ -18,6 +18,7 @@ import { ContaFolha } from "./conta-folha";
 import { CopiarCodigo } from "./copiar-codigo";
 import { PagamentoAcoes } from "./pagamento-acoes";
 import { StatusBadge } from "./status-badge";
+import { SolicitacaoAcoes } from "./solicitacao-acoes";
 import styles from "./contas.module.css";
 import instrumentoStyles from "./instrumento.module.css";
 
@@ -28,9 +29,10 @@ type Props = {
   conta: Detalhe;
   /** Back (07) and close (D03 panel) both go to the list with the same filters. */
   voltar: string;
+  retornoPagamento?: string;
 };
 
-export function ContaDetalhe({ conta, voltar }: Props) {
+export function ContaDetalhe({ conta, voltar, retornoPagamento }: Props) {
   const [editando, setEditando] = useState(false);
   const [recorrencia, setRecorrencia] = useState(false);
   const [edicao, setEdicao] = useState(0); // fresh form state on every opening, kept mounted to return focus
@@ -155,6 +157,9 @@ export function ContaDetalhe({ conta, voltar }: Props) {
           ))}
         </section>
 
+        {conta.mensagem_solicitacao && <section className={styles.info} aria-label="Mensagem do pedido"><h2>Mensagem do pedido</h2><p>{conta.mensagem_solicitacao}</p></section>}
+        {conta.espaco.tipo === "pessoal" && <SolicitacaoAcoes key={`pedido:${conta.id}`} conta={conta} />}
+
         <section className={`${styles.historico} ${styles.in} ${styles.d2}`} aria-labelledby="historico-t">
           <h2 id="historico-t">Histórico</h2>
           <ol>
@@ -169,7 +174,7 @@ export function ContaDetalhe({ conta, voltar }: Props) {
             })}
           </ol>
         </section>
-        <PagamentoAcoes key={conta.id} conta={conta} />
+        <PagamentoAcoes key={`pagamento:${conta.id}`} conta={conta} retorno={retornoPagamento} />
       </div>
       {edicao > 0 && <ContaFolha key={edicao} open={editando} onClose={() => setEditando(false)} conta={conta} />}
       {recorrencia && conta.recorrencia_id && <RecorrenciasFolha open espacoId={conta.espaco.id} pessoal={conta.espaco.tipo === "pessoal"} inicial={conta.recorrencia_id} onClose={() => setRecorrencia(false)} />}

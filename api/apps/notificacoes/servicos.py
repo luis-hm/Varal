@@ -2,6 +2,7 @@ from datetime import datetime, time, timedelta
 from uuid import UUID, uuid5
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.boletos.tasks import _travar_objeto, agendar
@@ -10,6 +11,7 @@ from apps.espacos.models import Espaco, Membro, Papel, Subgrupo
 from apps.lancamentos.models import ABERTOS, Acao, Historico, Lancamento, Status
 from apps.pagamentos.models import EventoPagamento, Pagamento
 from apps.recorrencias.servicos import travar_espaco
+from apps.solicitacoes.coordenacao import barreira
 
 from .acesso import autorizadas
 from .models import (
@@ -140,6 +142,33 @@ def capturar_historico(historico, conta):
 
 
 def revogar_obsoletas(conta=None, usuario=None, grupo=None):
+    from apps.solicitacoes.models import EventoSolicitacao
+
+    fontes = EventoSolicitacao.objects.filter(processado_em__isnull=True)
+    if conta is not None:
+        fontes = fontes.filter(solicitacao__copia=conta)
+    if usuario is not None:
+        fontes = fontes.filter(destinatario=usuario)
+    if grupo is not None:
+        fontes = fontes.filter(solicitacao__grupo=grupo)
+    for fonte in fontes.select_related("solicitacao__copia").order_by("pk"):
+        reserva = fonte.solicitacao
+        copia = reserva.copia
+        if not (
+            copia
+            and copia.status in ABERTOS
+            and reserva.estado == "ativa"
+            and copia.pagador_id == fonte.destinatario_id
+            and Membro.objects.filter(
+                espaco_id=reserva.grupo_id,
+                usuario_id=fonte.destinatario_id,
+                papel__in=[Papel.ADMIN, Papel.MEMBRO, Papel.PAGADOR],
+            ).exists()
+            and _usuarios_visiveis(copia, [fonte.destinatario_id])
+        ):
+            fonte.resultado = "inaplicavel"
+            fonte.processado_em = timezone.now()
+            fonte.save(update_fields=["resultado", "processado_em"])
     base = Notificacao.objects.filter(revogado_em__isnull=True).exclude(
         evento__tipo=TipoEvento.CANCELADA_RN32
     )
@@ -162,10 +191,13 @@ def revogar_obsoletas(conta=None, usuario=None, grupo=None):
 
 
 def consumir_pagamento(pk):
+    from apps.solicitacoes.models import ParPagamento
+
     ref = EventoPagamento.objects.filter(pk=pk).values("pagamento__lancamento_id").first()
     if not ref:
         return
     with transaction.atomic():
+        barreira()
         conta = _conta_travada_sistema(ref["pagamento__lancamento_id"])
         if not conta:
             return
@@ -182,9 +214,28 @@ def consumir_pagamento(pk):
             .filter(pk=fonte.pagamento_id, lancamento=conta)
             .first()
         )
-        evento = _evento(
-            f"pagamento:{fonte.pk}", TipoEvento.PAGAMENTO, lancamento=conta, pagamento=pagamento
+        par = (
+            ParPagamento.objects.filter(Q(copia=pagamento) | Q(derivada=pagamento)).first()
+            if pagamento
+            else None
         )
+        chave = f"pagamento:{fonte.pk}"
+        if par and fonte.destinatario_id:
+            chave = f"pagamento-par:{par.pk}:{fonte.destinatario_id}"
+            if par.derivada_id:
+                pessoal = (
+                    Pagamento.objects.select_related("lancamento")
+                    .filter(pk=par.derivada_id)
+                    .first()
+                )
+                if (
+                    pessoal
+                    and pessoal.evento.destinatario_id == fonte.destinatario_id
+                    and _usuarios_visiveis(pessoal.lancamento, [fonte.destinatario_id])
+                ):
+                    pagamento = pessoal
+                    conta = pessoal.lancamento
+        evento = _evento(chave, TipoEvento.PAGAMENTO, lancamento=conta, pagamento=pagamento)
         if not pagamento or pagamento.desfeito_em:
             evento.resultado = "pagamento_desfeito"
         elif not fonte.destinatario_id:
@@ -207,6 +258,7 @@ def importar_historico(pk):
     if not ref:
         return
     with transaction.atomic():
+        barreira()
         conta = _conta_travada_sistema(ref["lancamento_id"])
         if not conta:
             return
@@ -263,6 +315,14 @@ def importar_historico(pk):
 
 
 def consumir_fontes():
+    from apps.solicitacoes.models import EventoSolicitacao
+
+    for pk in (
+        EventoSolicitacao.objects.filter(processado_em__isnull=True)
+        .values_list("pk", flat=True)
+        .iterator()
+    ):
+        consumir_solicitacao(pk)
     for pk in (
         EventoPagamento.objects.filter(processado_em__isnull=True)
         .values_list("pk", flat=True)
@@ -279,6 +339,43 @@ def consumir_fontes():
     )
     for pk in pendentes.values_list("pk", flat=True).iterator():
         importar_historico(pk)
+
+
+def consumir_solicitacao(pk):
+    from apps.solicitacoes.models import EventoSolicitacao
+
+    with transaction.atomic():
+        barreira()
+        fonte = (
+            EventoSolicitacao.objects.select_for_update()
+            .select_related("solicitacao")
+            .filter(pk=pk, processado_em__isnull=True)
+            .first()
+        )
+        if not fonte:
+            return
+        reserva = fonte.solicitacao
+        conta = _conta_travada_sistema(reserva.copia_id) if reserva.copia_id else None
+        evento = _evento(f"solicitacao:{fonte.pk}", TipoEvento.SOLICITACAO, lancamento=conta)
+        elegiveis = (
+            _usuarios_visiveis(conta, [fonte.destinatario_id])
+            if conta
+            and conta.status in ABERTOS
+            and reserva.estado == "ativa"
+            and conta.pagador_id == fonte.destinatario_id
+            and Membro.objects.filter(
+                espaco_id=reserva.grupo_id,
+                usuario_id=fonte.destinatario_id,
+                papel__in=[Papel.ADMIN, Papel.MEMBRO, Papel.PAGADOR],
+            ).exists()
+            else []
+        )
+        for usuario in elegiveis:
+            criar_notificacao(evento, usuario)
+        fonte.resultado = evento.resultado = "materializado" if elegiveis else "inaplicavel"
+        fonte.processado_em = evento.materializado_em = timezone.now()
+        fonte.save(update_fields=["resultado", "processado_em"])
+        evento.save(update_fields=["resultado", "materializado_em"])
 
 
 def reagendar_lembretes(conta):
@@ -331,6 +428,7 @@ def varrer_lembretes():
     )
     for conta_id in ids.iterator():
         with transaction.atomic():
+            barreira()
             conta = _conta_travada_sistema(conta_id)
             if not conta or conta.status not in ABERTOS:
                 continue

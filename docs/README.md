@@ -13,6 +13,7 @@ Sessão nova começa por [PROGRESSO.md](PROGRESSO.md). Cada agente lê **só** o
 | Em que etapa estamos? O que foi decidido? | [PROGRESSO.md](PROGRESSO.md) |
 | Quais são as etapas e o que cada uma cobre? | [etapas/README.md](etapas/README.md) |
 | O que a etapa NN entrega e como se aceita? | `etapas/NN-slug/spec.md`, `plano.md`, `tarefas.md`, `relatorio.md` |
+| O que a etapa 10 entregou? | [Solicitação e modo simples](etapas/10-solicitacao-modo-simples/spec.md), [plano](etapas/10-solicitacao-modo-simples/plano.md), [tarefas](etapas/10-solicitacao-modo-simples/tarefas.md), [decisões](etapas/10-solicitacao-modo-simples/decisoes.md) e [ADR0014](arquitetura/adr/0014-solicitacao-e-sincronizacao-privada.md) |
 | Qual RF vira qual CU, RN, tela, etapa e teste? | [matriz-rastreabilidade.md](matriz-rastreabilidade.md) |
 | Para que serve o produto? O que está no MVP? | [produto/visao-e-escopo.md](produto/visao-e-escopo.md) |
 | Quem usa e com que papel? | [produto/atores-e-personas.md](produto/atores-e-personas.md) |

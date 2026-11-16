@@ -7,6 +7,9 @@
   display: none;
 }
 
+.shell[data-simples] .side { display: none; }
+.shell[data-simples] .main { padding: 0; }
+
 .main {
   min-width: 0;
   padding-bottom: 84px; /* TabBar height */
@@ -37,6 +40,9 @@
     height: 100dvh;
     flex: none;
   }
+
+  .shell[data-simples] .side { display: none; }
+  .shell[data-simples] .main { padding: 0; }
 
   .main,
   .shell[data-empilhada] .main {

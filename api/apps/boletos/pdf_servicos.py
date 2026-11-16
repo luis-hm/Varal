@@ -10,7 +10,7 @@ from apps.espacos.acesso import espaco_ou_404, lancamento_ou_404
 from apps.espacos.servicos import Conflito
 from apps.lancamentos.models import ABERTOS
 
-from .models import DocumentoBoleto, LimpezaPDF, TipoInstrumento
+from .models import DocumentoBoleto, TipoInstrumento
 from .servicos import AUSENTE
 from .tasks import agendar, recuperar_limpeza
 
@@ -121,7 +121,6 @@ def metadados_mudaram(conta, alteracao, instrumento):
 def aplicar_pdf(conta, alteracao, instrumento):
     doc, atual, mudou, emissao, beneficiario = alteracao
     if mudou and atual:
-        LimpezaPDF.objects.get_or_create(pk=atual.pk)
         atual.delete()
         transaction.on_commit(lambda: agendar(recuperar_limpeza))
     if mudou and doc:

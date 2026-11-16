@@ -18,6 +18,7 @@ from apps.espacos.acesso import lancamento_ou_404
 from apps.espacos.servicos import Conflito
 from apps.lancamentos.models import Status
 from apps.lancamentos.views import CentavosField, ContaDetalheSerializer, _detalhe
+from apps.solicitacoes.coordenacao import barreira, coordenado
 
 from . import servicos
 from .models import DocumentoComprovante
@@ -59,6 +60,7 @@ class MarcarView(APIView):
         summary="Registra uma declaração integral",
     )
     @transaction.atomic
+    @coordenado
     def post(self, request, lancamento_id):
         conta = lancamento_ou_404(request.user, lancamento_id)
         servicos.exigir_pagar(request.user, conta)
@@ -73,6 +75,7 @@ class DesfazerView(APIView):
         operation_id="pagamentos_desfazer", request=None, responses={200: ContaDetalheSerializer}
     )
     @transaction.atomic
+    @coordenado
     def post(self, request, lancamento_id, pagamento_id):
         conta = servicos.desfazer(request.user, lancamento_id, pagamento_id)
         return _detalhe(request, conta.pk, conta.espaco)
@@ -85,6 +88,7 @@ class AnexarView(APIView):
         responses={200: ContaDetalheSerializer},
     )
     @transaction.atomic
+    @coordenado
     def post(self, request, lancamento_id, pagamento_id):
         conta = lancamento_ou_404(request.user, lancamento_id)
         servicos.exigir_pagar(request.user, conta)
@@ -128,11 +132,16 @@ class UploadView(APIView):
                 for chunk in arquivo.chunks():
                     out.write(chunk)
             with transaction.atomic():
+                barreira()
                 conta = servicos.conta_travada(request.user, lancamento_id)
                 servicos.exigir_pagar(request.user, conta)
                 alvo_id = entrada.validated_data.get("pagamento_id")
                 if alvo_id:
                     pagamento = servicos.pagamento_alvo(conta, alvo_id)
+                    from apps.solicitacoes.models import ParPagamento
+
+                    if ParPagamento.objects.filter(derivada=pagamento).exists():
+                        raise Conflito("Comprovante deve ser registrado no grupo.")
                     if not servicos.pode_desfazer(request.user, conta, pagamento):
                         raise PermissionDenied()
                     if (
@@ -162,6 +171,7 @@ class UploadView(APIView):
 class DocumentoView(APIView):
     @extend_schema(operation_id="comprovantes_detalhe", responses={200: DocumentoSerializer})
     @transaction.atomic
+    @coordenado
     def get(self, request, documento_id):
         return Response(
             DocumentoSerializer(servicos.documento_ou_404(request.user, documento_id)).data
@@ -171,6 +181,7 @@ class DocumentoView(APIView):
 class ArquivoView(APIView):
     @extend_schema(operation_id="comprovantes_arquivo", responses={200: URLSerializer})
     @transaction.atomic
+    @coordenado
     def get(self, request, documento_id):
         doc = servicos.documento_ou_404(request.user, documento_id)
         if doc.estado != "valido":

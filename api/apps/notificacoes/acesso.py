@@ -15,8 +15,15 @@ def autorizadas(usuario):
     admin = Membro.objects.filter(
         espaco_id=OuterRef("evento__lancamento__espaco_id"), usuario=usuario, papel=Papel.ADMIN
     )
+    pagador_elegivel = Membro.objects.filter(
+        espaco_id=OuterRef("evento__lancamento__espaco_id"),
+        usuario=usuario,
+        papel__in=[Papel.ADMIN, Papel.MEMBRO, Papel.PAGADOR],
+    )
     consulta = Notificacao.objects.filter(destinatario=usuario, revogado_em__isnull=True).annotate(
-        _conta_visivel=Exists(visiveis), _admin_atual=Exists(admin)
+        _conta_visivel=Exists(visiveis),
+        _admin_atual=Exists(admin),
+        _pagador_elegivel=Exists(pagador_elegivel),
     )
     conta_aberta = Q(evento__lancamento__status__in=ABERTOS)
     return consulta.filter(
@@ -47,6 +54,14 @@ def autorizadas(usuario):
                         | Q(evento__lancamento__criador=usuario)
                         | Q(_admin_atual=True)
                     )
+                )
+                | (
+                    Q(evento__tipo=TipoEvento.SOLICITACAO)
+                    & Q(_pagador_elegivel=True)
+                    & conta_aberta
+                    & Q(evento__lancamento__solicitacao_copia__estado="ativa")
+                    & Q(evento__lancamento__pagador=usuario)
+                    & Q(evento__lancamento__solicitacao_copia__pagador_inicial=usuario)
                 )
                 | (
                     Q(
