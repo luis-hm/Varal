@@ -68,10 +68,10 @@ const abertas: APIRequestContext[] = [];
 /** Call in afterEach: disposes the API contexts opened by `novaConta`. */
 export const descartarContas = () => Promise.all(abertas.splice(0).map((r) => r.dispose()));
 
-export async function novaConta(playwright: PlaywrightWorkerArgs["playwright"]): Promise<Conta> {
+export async function novaConta(playwright: PlaywrightWorkerArgs["playwright"], email?: string): Promise<Conta> {
   const request = await playwright.request.newContext({ baseURL: ORIGIN });
   abertas.push(request);
-  return { request, email: await createAccount(request) };
+  return { request, email: await createAccount(request, email) };
 }
 
 export async function api(request: APIRequestContext, method: string, url: string, data?: unknown) {

@@ -31,6 +31,11 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
+// Waits for the mocked group (its payer chips). The fetch resolves at once, but the first render of the file
+// pays the cold JSDOM/React Query start: under a loaded machine (full `make test`, parallel runs) it took
+// 1.5–2s and broke the 1s default. 5s still fails fast if the group never loads.
+const grupoCarregado = () => screen.findByRole("button", { name: "Mãe" }, { timeout: 5_000 });
+
 function preencher() {
   fireEvent.change(screen.getByLabelText("Valor"), { target: { value: "287,43" } });
   fireEvent.change(screen.getByLabelText("Vencimento"), { target: { value: "2026-11-20" } });
@@ -39,7 +44,7 @@ function preencher() {
 
 test("ca28: restricted bill with another payer warns before saving; observer is not a payer option", async () => {
   renderComSessao(<ContaFolha open onClose={() => {}} />);
-  const mae = await screen.findByRole("button", { name: "Mãe" });
+  const mae = await grupoCarregado();
   expect(screen.getByRole("button", { name: "Eu" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.queryByText(AVISO_VISIBILIDADE)).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Só algumas pessoas" }));
@@ -56,7 +61,7 @@ test("q19b: the API's 400 message shows next to Quem vê and nothing navigates",
   const msg = "Você é a única pessoa que vê esta conta. Escolha outra pessoa antes de sair da lista.";
   criar = { status: 400, body: { acesso: [msg] } };
   renderComSessao(<ContaFolha open onClose={() => {}} />);
-  await screen.findByRole("button", { name: "Mãe" });
+  await grupoCarregado();
   preencher();
   fireEvent.click(screen.getByRole("button", { name: "Salvar conta" }));
   expect(await screen.findByText(msg)).toBeTruthy();
@@ -66,7 +71,7 @@ test("q19b: the API's 400 message shows next to Quem vê and nothing navigates",
 test("creating sends cents and opens the new bill in its month", async () => {
   criar = { status: 201, body: { id: "n1", vencimento: "2026-11-20" } };
   renderComSessao(<ContaFolha open onClose={() => {}} />);
-  await screen.findByRole("button", { name: "Mãe" });
+  await grupoCarregado();
   preencher();
   fireEvent.click(screen.getByRole("button", { name: "Salvar conta" }));
   await waitFor(() => expect(push).toHaveBeenCalledWith("/contas/n1?mes=2026-11"));
@@ -88,7 +93,7 @@ test("ajuste 30: in a group, that group comes first and selected; the others kee
   const user = { ...me, grupos: [{ id: "g0", nome: "Trabalho", papel: "membro" as const }, ...me.grupos] };
   renderComSessao(<ContaFolha open onClose={() => {}} />, { id: "g1", nome: "Família", tipo: "grupo", papel: "admin" }, user);
   expect(onde()).toEqual(["Família*", "Pessoal", "Trabalho"]);
-  await screen.findByRole("button", { name: "Mãe" });
+  await grupoCarregado();
 });
 
 test("ajuste 30: in a group where you only observe, the order stays and the first is selected", () => {

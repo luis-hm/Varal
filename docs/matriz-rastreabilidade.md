@@ -99,9 +99,22 @@ Casos de uso: CU02 = RF04; CU03 = RF05 e RF06; CU04 = RF07 (testes nas linhas ac
 
 Casos de uso: CU05 = RF10 e RF11 (só o manual); CU06 = RF13; CU07 = RF12 (testes nas linhas acima).
 
+### Decisões da revisão da Etapa 04 (23, 26–30)
+
+| Decisão | Testes |
+| --- | --- |
+| 23 · nome por contexto (RN30) | `test_rn30_nome_por_contexto_membro_sem_nome_ex_membro`, `test_rn30_historico_sem_email_ex_membro_apos_saida_ou_exclusao`, `test_rn30_criador_excluido_ex_membro` (`api/tests/test_contas.py`); Vitest `rn22/rn30: automatic actions have no author, a deleted author reads Ex-membro` (`contas.test.ts`); E2E `dec23 rn30: quem saiu do grupo aparece como Ex-membro em Criada por…` (o e-mail não aparece em lugar nenhum do DOM) e `ca19/ca22/ca23 rn32 adr0007…` (membro atual sem nome aparece pelo e-mail) (`web/e2e/contas.spec.ts`) |
+| 26 · "Precisa de atenção" com `aguardando` (RN13) | `test_rn13_atencao_inclui_aguardando_na_janela` (`api/tests/test_contas.py`). Sem E2E: a API ainda não cria contas `aguardando` |
+| 27 · hero do D02 sem vazio | E2E `dec27: no desktop o hero do Início tem a altura do conteúdo…` (só desktop) (`web/e2e/contas.spec.ts`) |
+| 28 · `/contas/[id]` sem TabBar abaixo de 1024px | Vitest `ajuste 28: the bill detail (07) is a stacked screen without TabBar…` (`app-shell.test.tsx`); E2E `dec28: abaixo de 1024px /contas/[id] não tem TabBar e tem TopBar com voltar; no desktop o D03 segue…` e `ca29…` (formulário aberto a partir do Início) (`web/e2e/contas.spec.ts`) |
+| 29 · nomes e e-mails em uma linha | Vitest `ajuste 29: …` (3 em `nome.test.tsx`, 1 em `contas.test.ts`); E2E `dec29: e-mail longo sem nome fica em uma linha no BillCard, em Quem paga e na MemberRow…` (altura de uma linha, `scrollWidth > clientWidth`, `title` inteiro; 360px sem rolagem no mobile) (`web/e2e/contas.spec.ts`) |
+| 30 · espaço atual primeiro em "Onde fica" | Vitest `ajuste 30: …` (pessoal, grupo, observador; `conta-folha.test.tsx`); E2E `dec30: Nova conta abre com o espaço atual primeiro e selecionado…` (dois grupos e o pessoal) (`web/e2e/contas.spec.ts`) |
+
 ## Validação da Etapa 04
 
 Em 15/11/2026 (QA): `make test` passou (199 pytest, 65 Vitest; 204 pytest após as correções de segurança em f072ce5), `make lint` passou, `make types` regenerou sem diff e `make e2e` passou (74 Playwright e 2 ignorados de propósito: os testes de 360px rodam só no projeto mobile), sem nenhum 429. Uma execução anterior teve um 429 isolado no primeiro cadastro logo após o `make e2e` recriar a API (trava de cache do allauth com espera de 1 s em partida a frio); a reexecução completa passou. `web/e2e/contas.spec.ts` (12 testes × 2 resoluções) usa API e PostgreSQL reais, com usuários, grupos e contas criados pelo próprio teste. QA corrigiu: rolagem horizontal da vitrine em 360px (coluna do BillCard) e Chip com nome longo (e-mail de quem não tem nome) saindo da folha/modal (reticências). Screenshots em `web/e2e/__screens__/` (`inicio-*`, `contas-*`, `conta-detalhe-*`, `conta-form-*`, além de `grupo-*`); a comparação com 02/D02, 03/D03, 07 e 05/M01/06/M02 vai no relatório.
+
+Em 15/11/2026, após as decisões 23 e 26–30 (4c9a1b2, 3d4ba32), QA com Node 22 e a API fria: `make test` passou (207 pytest, 73 Vitest), `make lint` passou, `make types` sem diff e `make e2e` passou (83 Playwright, 3 ignorados de propósito: os de 360px e o `dec27`, só desktop). Entraram 5 E2E `dec23`/`dec27`–`dec30` (tabela acima); `ca29` abre o formulário a partir do Início (o 07 empilhado não tem FAB) e `ca19/ca22/ca23` escolhe o admin sem nome pelo e-mail (decisão 23). O Vitest `ca28` estourava o `findBy` de 1 s sob carga (3 de 3 rodadas paralelas): a espera pelo grupo em `conta-folha.test.tsx` passou a 5 s, com justificativa no arquivo.
 
 ## Validação da Etapa 03
 
