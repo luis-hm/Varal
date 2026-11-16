@@ -2294,6 +2294,36 @@ components:
       required:
       - request_options
       type: object
+    CandidatoPDF:
+      properties:
+        avisos:
+          items:
+            type: string
+          type: array
+        codigo:
+          type: string
+        tipo:
+          type: string
+        valor_centavos:
+          nullable: true
+          type: integer
+        vencimento:
+          format: date
+          nullable: true
+          type: string
+        vencimentos_possiveis:
+          items:
+            format: date
+            type: string
+          type: array
+      required:
+      - avisos
+      - codigo
+      - tipo
+      - valor_centavos
+      - vencimento
+      - vencimentos_possiveis
+      type: object
     Casa:
       properties:
         arquivado:
@@ -2382,6 +2412,11 @@ components:
         dias_para_vencer:
           readOnly: true
           type: integer
+        documento_pdf:
+          allOf:
+          - $ref: '#/components/schemas/DocumentoPDF'
+          nullable: true
+          readOnly: true
         espaco:
           $ref: '#/components/schemas/EspacoRef'
         historico:
@@ -2393,7 +2428,7 @@ components:
           type: string
         instrumento:
           allOf:
-          - $ref: '#/components/schemas/Instrumento'
+          - $ref: '#/components/schemas/InstrumentoDetalhe'
           nullable: true
           readOnly: true
         pagador:
@@ -2432,6 +2467,7 @@ components:
       - criador
       - descricao
       - dias_para_vencer
+      - documento_pdf
       - espaco
       - historico
       - id
@@ -2455,8 +2491,20 @@ components:
             type: string
           maxItems: 50
           type: array
+        beneficiario:
+          maxLength: 200
+          nullable: true
+          type: string
+        data_emissao:
+          format: date
+          nullable: true
+          type: string
         descricao:
           maxLength: 150
+          type: string
+        documento_pdf:
+          format: uuid
+          nullable: true
           type: string
         instrumento:
           allOf:
@@ -2615,6 +2663,31 @@ components:
           type: string
       required:
       - nome
+      type: object
+    DocumentoPDF:
+      properties:
+        avisos:
+          items:
+            type: string
+          type: array
+        estado:
+          type: string
+        id:
+          format: uuid
+          type: string
+        nome:
+          type: string
+        resultado:
+          $ref: '#/components/schemas/ResultadoPDF'
+        tamanho:
+          type: integer
+      required:
+      - avisos
+      - estado
+      - id
+      - nome
+      - resultado
+      - tamanho
       type: object
     Erro:
       properties:
@@ -2798,6 +2871,30 @@ components:
       - codigo
       - tipo
       type: object
+    InstrumentoDetalhe:
+      properties:
+        beneficiario:
+          nullable: true
+          type: string
+        chave_pix:
+          nullable: true
+          type: string
+        codigo:
+          nullable: true
+          type: string
+        data_emissao:
+          format: date
+          nullable: true
+          type: string
+        tipo:
+          $ref: '#/components/schemas/TipoInstrumentoEnum'
+      required:
+      - beneficiario
+      - chave_pix
+      - codigo
+      - data_emissao
+      - tipo
+      type: object
     InstrumentoEntrada:
       properties:
         chave_pix:
@@ -2978,8 +3075,20 @@ components:
             type: string
           maxItems: 50
           type: array
+        beneficiario:
+          maxLength: 200
+          nullable: true
+          type: string
+        data_emissao:
+          format: date
+          nullable: true
+          type: string
         descricao:
           maxLength: 150
+          type: string
+        documento_pdf:
+          format: uuid
+          nullable: true
           type: string
         instrumento:
           allOf:
@@ -3086,6 +3195,34 @@ components:
       - acesso
       - cancelar
       type: string
+    ResultadoPDF:
+      properties:
+        beneficiario:
+          nullable: true
+          type: string
+        candidatos:
+          items:
+            $ref: '#/components/schemas/CandidatoPDF'
+          type: array
+        data_emissao:
+          format: date
+          nullable: true
+          type: string
+        valor_centavos:
+          nullable: true
+          type: integer
+        valor_textual_centavos:
+          nullable: true
+          type: integer
+        vencimento:
+          format: date
+          nullable: true
+          type: string
+        vencimento_textual:
+          format: date
+          nullable: true
+          type: string
+      type: object
     Resumo:
       properties:
         atencao:
@@ -3181,12 +3318,38 @@ components:
 
         * `boleto_arrecadacao` - Boleto de arrecadação
 
-        * `pix` - Pix'
+        * `pix` - Pix
+
+        * `manual` - Manual'
       enum:
       - boleto_bancario
       - boleto_arrecadacao
       - pix
+      - manual
       type: string
+    URLPDF:
+      properties:
+        expira_em:
+          format: date-time
+          type: string
+        url:
+          format: uri
+          type: string
+      required:
+      - expira_em
+      - url
+      type: object
+    UploadPDF:
+      properties:
+        arquivo:
+          format: uri
+          type: string
+        lancamento_id:
+          format: uuid
+          type: string
+      required:
+      - arquivo
+      type: object
     VisibilidadeEnum:
       description: '* `grupo` - Todo o grupo
 
@@ -4357,6 +4520,48 @@ paths:
       summary: Conferir boleto/Pix sem gravar; não consulta URL nem titularidade (RF08/RF09)
       tags:
       - boletos
+  /api/boletos/pdfs/{documento_id}/:
+    get:
+      operationId: boletos_pdf_detalhe
+      parameters:
+      - in: path
+        name: documento_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentoPDF'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - boletos
+  /api/boletos/pdfs/{documento_id}/arquivo/:
+    get:
+      operationId: boletos_pdf_arquivo
+      parameters:
+      - in: path
+        name: documento_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/URLPDF'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - boletos
   /api/convites/{token}/:
     get:
       operationId: convites_ver
@@ -4435,6 +4640,36 @@ paths:
       summary: Aceitar convite (exige sessão; uso único; 10 tentativas por hora)
       tags:
       - convites
+  /api/espacos/{espaco_id}/boletos/pdf/:
+    post:
+      operationId: boletos_pdf_upload
+      parameters:
+      - in: path
+        name: espaco_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UploadPDF'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadPDF'
+        required: true
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentoPDF'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - espacos
   /api/espacos/{espaco_id}/lancamentos/:
     get:
       operationId: lancamentos_listar
@@ -5663,6 +5898,27 @@ paths:
       security:
       - cookieAuth: []
       summary: Cancelar conta aguardando ou pendente; nada é apagado (RN22, D2)
+      tags:
+      - lancamentos
+  /api/lancamentos/{lancamento_id}/pdf/:
+    get:
+      operationId: lancamentos_pdf_arquivo
+      parameters:
+      - in: path
+        name: lancamento_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/URLPDF'
+          description: ''
+      security:
+      - cookieAuth: []
       tags:
       - lancamentos
   /api/me/:

@@ -10,10 +10,17 @@ dependencies = [
     "psycopg[binary]>=3.2",
     "django-allauth[headless-spec,socialaccount]>=65,<66",
     "openapi-spec-validator>=0.9.0",
+    "pdfplumber==0.11.10",
+    "django-storages[s3]>=1.14.6",
 ]
 
 [dependency-groups]
-dev = ["pytest>=8", "pytest-django>=4.9", "ruff>=0.8"]
+dev = [
+    "pytest>=8",
+    "pytest-django>=4.9",
+    "reportlab==5.1.0",
+    "ruff>=0.8",
+]
 
 [tool.uv]
 package = false

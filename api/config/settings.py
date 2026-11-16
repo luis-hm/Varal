@@ -193,3 +193,43 @@ CACHES = {
         "KEY_PREFIX": "varal-cache",
     }
 }
+
+PDF_SPOOL_DIR = env("PDF_SPOOL_DIR", "/tmp/varal-pdf")
+PDF_EXTRACAO_TIMEOUT = int(env("PDF_EXTRACAO_TIMEOUT", "20"))
+PDF_EXTRACAO_MEMORIA = int(env("PDF_EXTRACAO_MEMORIA", str(512 * 1024 * 1024)))
+S3_ENDPOINT_URL = env("S3_ENDPOINT_URL", "http://localhost:9000")
+S3_PUBLIC_ENDPOINT_URL = env("S3_PUBLIC_ENDPOINT_URL", "http://localhost:9000")
+S3_BUCKET_NAME = env("S3_BUCKET_NAME", "varal-pdfs")
+S3_REGION_NAME = env("S3_REGION_NAME", "us-east-1")
+AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID") or (env("MINIO_ROOT_USER") if DEBUG else None)
+AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY") or (
+    env("MINIO_ROOT_PASSWORD") if DEBUG else None
+)
+
+
+from botocore.config import Config as S3Config  # noqa: E402
+
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    "pdf": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": S3_BUCKET_NAME,
+            "endpoint_url": S3_ENDPOINT_URL,
+            "access_key": AWS_ACCESS_KEY_ID,
+            "secret_key": AWS_SECRET_ACCESS_KEY,
+            "region_name": S3_REGION_NAME,
+            "default_acl": None,
+            "file_overwrite": True,
+            "object_parameters": {"ContentType": "application/pdf"},
+            "client_config": S3Config(
+                signature_version="s3v4",
+                s3={"addressing_style": "path"},
+                connect_timeout=3,
+                read_timeout=15,
+                retries={"max_attempts": 1},
+            ),
+        },
+    },
+}

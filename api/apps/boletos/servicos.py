@@ -43,13 +43,27 @@ def preparar(dados, conta=None):
         else None
     )
     tipo_anterior = atual.tipo if atual else "manual"
+    if entrada is AUSENTE and atual and atual.tipo == "manual":
+        return AlteracaoInstrumento(
+            {
+                "tipo": "manual",
+                "codigo": None,
+                "chave_pix": None,
+                "beneficiario": atual.beneficiario,
+            },
+            False,
+            tipo_anterior,
+        )
     if (entrada is AUSENTE and atual is None) or entrada is None:
         alteracao = AlteracaoInstrumento(None, atual is not None, tipo_anterior)
     else:
-        if entrada is AUSENTE:
+        preservado = entrada is AUSENTE
+        if preservado:
             entrada = {"codigo": atual.codigo} if atual.codigo else {"chave_pix": atual.chave_pix}
         resultado = ler_entrada(entrada)
         novo = dados_instrumento(resultado)
+        if preservado and atual and not novo["beneficiario"]:
+            novo["beneficiario"] = atual.beneficiario
         mudou = novo != anterior
         if resultado.valor_centavos is not None:
             if not 0 < resultado.valor_centavos <= 2**31 - 1:

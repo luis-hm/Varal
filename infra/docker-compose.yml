@@ -3,10 +3,14 @@ name: varal
 x-api: &api
   build: ../api
   env_file: .env
-  volumes: ["../api:/app"]
+  volumes: ["../api:/app", "pdfspool:/varal/staging", "./scripts/api-entrypoint.sh:/varal/entrypoint.sh:ro"]
+  entrypoint: ["/bin/sh", "/varal/entrypoint.sh"]
+  environment:
+    PDF_SPOOL_DIR: /varal/staging
   depends_on:
     postgres: { condition: service_healthy }
     redis: { condition: service_started }
+    storage-init: { condition: service_completed_successfully }
 
 services:
   postgres:
@@ -23,20 +27,34 @@ services:
 
   minio:
     # Local-only S3 (ADR 0002): pgsty/silo, the continuation of pgsty/minio, same API and MINIO_*
-    # vars. Pinned release, never `latest`. Opt-in until it has been run once and verified:
-    # `docker compose -f infra/docker-compose.yml --profile storage up -d minio`. Needed from stage 06.
-    profiles: ["storage"]
+    # vars. Pinned release, never `latest`.
     image: pgsty/silo:RELEASE.2026-11-12T00-00-00Z
     command: server /data --console-address :9001
     env_file: .env
     ports: ["9000:9000", "9001:9001"]
     volumes: ["miniodata:/data"]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:9000/minio/health/ready"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  storage-init:
+    build: ../api
+    env_file: .env
+    volumes: ["./scripts/api-entrypoint.sh:/varal/entrypoint.sh:ro"]
+    entrypoint: ["/bin/sh", "/varal/entrypoint.sh"]
+    depends_on:
+      minio: { condition: service_healthy }
+    command: python manage.py preparar_storage
+    restart: "no"
 
   api:
     <<: *api
     command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
     ports: ["8000:8000"]
     environment:
+      PDF_SPOOL_DIR: /varal/staging
       # Only `make e2e` sets it; empty keeps allauth's signup limit (P5).
       ACCOUNT_RATE_LIMIT_SIGNUP: ${ACCOUNT_RATE_LIMIT_SIGNUP:-}
 
@@ -59,3 +77,4 @@ services:
 volumes:
   pgdata:
   miniodata:
+  pdfspool:

@@ -1394,6 +1394,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/boletos/pdfs/{documento_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["boletos_pdf_detalhe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/boletos/pdfs/{documento_id}/arquivo/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["boletos_pdf_arquivo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/convites/{token}/": {
         parameters: {
             query?: never;
@@ -1422,6 +1454,22 @@ export interface paths {
         put?: never;
         /** Aceitar convite (exige sessão; uso único; 10 tentativas por hora) */
         post: operations["convites_aceitar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/espacos/{espaco_id}/boletos/pdf/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["boletos_pdf_upload"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1651,6 +1699,22 @@ export interface paths {
         put?: never;
         /** Cancelar conta aguardando ou pendente; nada é apagado (RN22, D2) */
         post: operations["lancamentos_cancelar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lancamentos/{lancamento_id}/pdf/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["lancamentos_pdf_arquivo"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2306,6 +2370,15 @@ export interface components {
              */
             request_options: Record<string, never>;
         };
+        CandidatoPDF: {
+            avisos: string[];
+            codigo: string;
+            tipo: string;
+            valor_centavos: number | null;
+            /** Format: date */
+            vencimento: string | null;
+            vencimentos_possiveis: string[];
+        };
         Casa: {
             arquivado?: boolean;
             /** Format: uuid */
@@ -2341,11 +2414,12 @@ export interface components {
             readonly criador: components["schemas"]["Criador"];
             descricao: string;
             readonly dias_para_vencer: number;
+            readonly documento_pdf: components["schemas"]["DocumentoPDF"] | null;
             espaco: components["schemas"]["EspacoRef"];
             historico: components["schemas"]["Historico"][];
             /** Format: uuid */
             id: string;
-            readonly instrumento: components["schemas"]["Instrumento"] | null;
+            readonly instrumento: components["schemas"]["InstrumentoDetalhe"] | null;
             readonly pagador: components["schemas"]["Pessoa"] | null;
             readonly pode_editar: boolean;
             /** @description Acesso efetivo da restrita: criador, pagador e escolhidos; vazio nas demais. */
@@ -2361,7 +2435,12 @@ export interface components {
         ContaEntrada: {
             /** @description Quem vê (restrita) */
             acesso?: string[];
+            beneficiario?: string | null;
+            /** Format: date */
+            data_emissao?: string | null;
             descricao: string;
+            /** Format: uuid */
+            documento_pdf?: string | null;
             instrumento?: components["schemas"]["InstrumentoEntrada"] | null;
             /** Format: uuid */
             pagador?: string | null;
@@ -2423,6 +2502,15 @@ export interface components {
         CriarGrupo: {
             casas?: string[];
             nome: string;
+        };
+        DocumentoPDF: {
+            avisos: string[];
+            estado: string;
+            /** Format: uuid */
+            id: string;
+            nome: string;
+            resultado: components["schemas"]["ResultadoPDF"];
+            tamanho: number;
         };
         Erro: {
             detail: string;
@@ -2496,6 +2584,14 @@ export interface components {
             codigo: string | null;
             tipo: components["schemas"]["TipoInstrumentoEnum"];
         };
+        InstrumentoDetalhe: {
+            beneficiario: string | null;
+            chave_pix: string | null;
+            codigo: string | null;
+            /** Format: date */
+            data_emissao: string | null;
+            tipo: components["schemas"]["TipoInstrumentoEnum"];
+        };
         InstrumentoEntrada: {
             chave_pix?: string;
             codigo?: string;
@@ -2565,7 +2661,12 @@ export interface components {
         PatchedContaEntrada: {
             /** @description Quem vê (restrita) */
             acesso?: string[];
+            beneficiario?: string | null;
+            /** Format: date */
+            data_emissao?: string | null;
             descricao?: string;
+            /** Format: uuid */
+            documento_pdf?: string | null;
             instrumento?: components["schemas"]["InstrumentoEntrada"] | null;
             /** Format: uuid */
             pagador?: string | null;
@@ -2614,6 +2715,18 @@ export interface components {
          * @enum {string}
          */
         ResolucaoAcaoEnum: "acesso" | "cancelar";
+        ResultadoPDF: {
+            beneficiario?: string | null;
+            candidatos?: components["schemas"]["CandidatoPDF"][];
+            /** Format: date */
+            data_emissao?: string | null;
+            valor_centavos?: number | null;
+            valor_textual_centavos?: number | null;
+            /** Format: date */
+            vencimento?: string | null;
+            /** Format: date */
+            vencimento_textual?: string | null;
+        };
         Resumo: {
             atencao: components["schemas"]["Conta"][];
             janela_alerta_dias: number;
@@ -2660,9 +2773,22 @@ export interface components {
          * @description * `boleto_bancario` - Boleto bancário
          *     * `boleto_arrecadacao` - Boleto de arrecadação
          *     * `pix` - Pix
+         *     * `manual` - Manual
          * @enum {string}
          */
-        TipoInstrumentoEnum: "boleto_bancario" | "boleto_arrecadacao" | "pix";
+        TipoInstrumentoEnum: "boleto_bancario" | "boleto_arrecadacao" | "pix" | "manual";
+        URLPDF: {
+            /** Format: date-time */
+            expira_em: string;
+            /** Format: uri */
+            url: string;
+        };
+        UploadPDF: {
+            /** Format: uri */
+            arquivo: string;
+            /** Format: uuid */
+            lancamento_id?: string;
+        };
         /**
          * @description * `grupo` - Todo o grupo
          *     * `restrita` - Só algumas pessoas
@@ -3307,6 +3433,48 @@ export interface operations {
             };
         };
     };
+    boletos_pdf_detalhe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoPDF"];
+                };
+            };
+        };
+    };
+    boletos_pdf_arquivo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["URLPDF"];
+                };
+            };
+        };
+    };
     convites_ver: {
         parameters: {
             query?: never;
@@ -3381,6 +3549,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    boletos_pdf_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                espaco_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["UploadPDF"];
+                "multipart/form-data": components["schemas"]["UploadPDF"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoPDF"];
                 };
             };
         };
@@ -4183,6 +4377,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    lancamentos_pdf_arquivo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lancamento_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["URLPDF"];
                 };
             };
         };

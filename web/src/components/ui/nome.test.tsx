@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { expect, test, vi } from "vitest";
 import { ContaCard } from "@/components/bills/bill-card";
 import { ContaDetalhe } from "@/components/bills/conta-detalhe";
@@ -50,7 +51,7 @@ test("ajuste 29: detail Quem paga, Quem vê, Criada por and history keep a long 
     pode_editar: false,
     historico: [{ acao: "criada", automatica: false, autor: EMAIL, sou_eu: false, dados: {}, criado_em: "2026-11-01T12:00:00Z" }],
   } as unknown as Detalhe;
-  render(<ContaDetalhe conta={detalhe} voltar="/contas" />);
+  render(<QueryClientProvider client={new QueryClient()}><ContaDetalhe conta={detalhe} voltar="/contas" /></QueryClientProvider>);
   const info = screen.getByRole("region", { name: "Informações" });
   cortado(within(info).getAllByTitle(EMAIL)[0], EMAIL); // Quem paga
   const quemVe = within(info).getByText("Quem vê").parentElement!;
