@@ -31,6 +31,12 @@
 
 As contagens direcionadas são evidências separadas, não parcelas a adicionar à suíte integral. Logs temporários dos agentes sustentam esta consolidação; o estado durável está neste relatório e nos arquivos do repositório.
 
+## QA visual, foco e limites da prova
+
+QA inspecionou capturas de topo/fundo de Pix/PDF em 390×844 e 1440×900 e comparou com 05/M01 e 06/M02. Cabeçalho/ações ficam acessíveis pela rolagem da folha/modal; E2E comprovou Tab, foco visível, clique nos rótulos de repetição/confirmação, alvos de pelo menos 44 px e ausência de rolagem horizontal. Os 16 casos de recorrência (oito cenários nas duas larguras) passaram, incluindo autoria automática, escopos e arquivamento privado. Frames 07/D03 e 10/D04 foram lidos no Doop; não há captura dedicada final desses estados, portanto não se declara comparação visual final deles.
+
+Datas curtas, catch-up, concorrência e fallback Sem casa na geração foram comprovados no backend; o navegador cobre arquivamento com destino ativo sem revelar restritas. A data nativa usa apresentação en-US do Chromium de teste, com data civil Fortaleza verificada na API. A prova beat/worker é local e isolada, com disparo curto e agenda 07:00 verificada separadamente, sem espera real pelo horário diário. Runner, lint, E2E e Next próprios foram encerrados pelo QA. Matriz final sob responsabilidade do QA, estável no fechamento.
+
 ## Segurança e desvios corrigidos
 
 **B08-3 fechado por reauditoria em leitura.** RecorrenciasFolha e ContaFolha passaram a comparar a edição com uma base capturada na abertura do formulário, preservando flags de autorização atuais. Refetch não vira intenção de alterar ACL, valor, dia/data, casa ou pagador; dois testes de regressão exigem payload apenas dos campos alterados, inclusive no escopo próximos. Audiência-base pública é normalizada sem apagar concessões latentes. Segurança não identificou novo bloqueante no delta; B08-1/B08-2 continuam corrigidos. Esse parecer não substitui QA/visual nem executou testes.
@@ -43,7 +49,7 @@ A repetição lint/E2E anterior foi interrompida por solicitação da orquestra�
 
 ## Fechamento e continuidade
 
-Resultado final: **448 pytest, 101 Vitest, duas gerações de tipos determinísticas, lint verde e E2E 123 aprovados/3 skips previstos**. Os 448 pytest são posteriores a B08-4; os 101 Vitest foram revalidados após espera assíncrona apenas no teste Clipboard, mantendo foco/seleção. Segurança encerrou B08-1–4, sem bloqueantes; decisões auditadas sem pendências. Prova operacional real do agendador permanece válida, com os limites descritos acima. A matriz e as evidências visuais/operacionais são consolidadas pelo QA sem alterar as contagens finais.
+Resultado final: **448 pytest, 101 Vitest, duas gerações de tipos determinísticas, lint verde e E2E 123 aprovados/3 skips previstos**. Os 448 pytest são posteriores a B08-4; os 101 Vitest foram revalidados após espera assíncrona apenas no teste Clipboard, mantendo foco/seleção. Segurança encerrou B08-1–4, sem bloqueantes; decisões auditadas sem pendências. Prova operacional real do agendador permanece válida, com os limites descritos acima. QA confirmou matriz estável, evidências finais e encerramento do runner/Next, sem processos próprios remanescentes.
 
 O dono atestou no chat não haver Ajustes pendentes também no fechamento. Não houve leitura/marcação por conector nem reexportação. Itens a marcar como “ — feito na etapa 08”: nenhum pendente identificado pela declaração vigente. P6 continua administrativa externa; P10/Perfil e P11/implantação permanecem sem resposta no [PROGRESSO](../../PROGRESSO.md), específicas da 11. Canvas e especificação de origem preservados.
 
