@@ -8,6 +8,7 @@ from apps.boletos.serializers import InstrumentoEntradaSerializer
 from apps.espacos.acesso import espaco_ou_404, pode, recorrencias_visiveis
 from apps.lancamentos.models import Visibilidade
 from apps.lancamentos.views import CentavosField, ContaDetalheSerializer, _detalhe
+from apps.solicitacoes.coordenacao import coordenado
 
 from . import servicos
 from .models import Recorrencia
@@ -97,6 +98,7 @@ class RecorrenciasView(APIView):
         operation_id="recorrencias_listar", responses={200: RecorrenciaSerializer(many=True)}
     )
     @transaction.atomic
+    @coordenado
     def get(self, request, espaco_id):
         espaco = espaco_ou_404(request.user, espaco_id)
         servicos.travar_espaco(request.user, espaco)
@@ -118,6 +120,7 @@ class RecorrenciasView(APIView):
         responses={201: CriacaoResultadoSerializer, 200: CriacaoResultadoSerializer},
     )
     @transaction.atomic
+    @coordenado
     def post(self, request, espaco_id):
         espaco = espaco_ou_404(request.user, espaco_id, "criar_conta")
         entrada = CriarRecorrenciaSerializer(data=request.data)
@@ -133,6 +136,7 @@ class RecorrenciasView(APIView):
 class RecorrenciaView(APIView):
     @extend_schema(operation_id="recorrencias_detalhe", responses={200: RecorrenciaSerializer})
     @transaction.atomic
+    @coordenado
     def get(self, request, recorrencia_id):
         modelo = servicos.travar_modelo(request.user, recorrencia_id)
         return Response(_modelo(modelo, request))
@@ -143,6 +147,7 @@ class RecorrenciaView(APIView):
         responses={200: RecorrenciaSerializer},
     )
     @transaction.atomic
+    @coordenado
     def patch(self, request, recorrencia_id):
         from apps.espacos.acesso import recorrencia_ou_404
 
@@ -160,6 +165,7 @@ class AcaoView(APIView):
         operation_id="recorrencias_transicao", request=None, responses={200: RecorrenciaSerializer}
     )
     @transaction.atomic
+    @coordenado
     def post(self, request, recorrencia_id):
         modelo = servicos.transicao(request.user, recorrencia_id, self.acao)
         return Response(_modelo(modelo, request))

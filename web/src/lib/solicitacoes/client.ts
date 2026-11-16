@@ -1,0 +1,10 @@
+import type { components } from "@/types/api";
+import { call } from "@/lib/grupos/client";
+type S = components["schemas"];
+export type EntradaSolicitacao = S["Entrada"];
+export type Solicitacao = S["Resultado"];
+const base = (origem: string) => `lancamentos/${encodeURIComponent(origem)}/solicitacoes/`;
+export const opcoesSolicitacao = (origem: string) => call<S["GrupoOpcao"][]>(`${base(origem)}opcoes/`);
+export const criarSolicitacao = (origem: string, body: EntradaSolicitacao) => call<S["Resultado"]>(base(origem), "POST", body);
+export const recuperarSolicitacao = (origem: string, nonce: string) => call<S["Resultado"]>(`${base(origem)}nonce/${encodeURIComponent(nonce)}/`);
+export const abandonarSolicitacao = (origem: string, nonce: string) => call<null>(`${base(origem)}nonce/${encodeURIComponent(nonce)}/`, "DELETE");

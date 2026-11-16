@@ -13,9 +13,10 @@ type Props = {
   podeAnexar: boolean;
   onAnexar: () => void;
   onClose: () => void;
+  rotuloVoltar?: string;
 };
 
-export function PagamentoSucesso({ open, descricao, valor, progresso, podeAnexar, onAnexar, onClose }: Props) {
+export function PagamentoSucesso({ open, descricao, valor, progresso, podeAnexar, onAnexar, onClose, rotuloVoltar = "Voltar ao início" }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
   const titulo = useId();
@@ -44,7 +45,7 @@ export function PagamentoSucesso({ open, descricao, valor, progresso, podeAnexar
       {progresso && <p className={styles.progresso}>{progresso}</p>}
       <div className={styles.acoes}>
         {podeAnexar && <button type="button" className={styles.anexar} onClick={onAnexar}><Icon name="camera" size="md" />Anexar comprovante</button>}
-        <button type="button" className={styles.fechar} onClick={onClose}><span className={styles.mobile}>Voltar ao início</span><span className={styles.desktop}>Fechar</span></button>
+        <button type="button" className={styles.fechar} onClick={onClose}><span className={styles.mobile}>{rotuloVoltar}</span><span className={styles.desktop}>Fechar</span></button>
       </div>
     </div>}
   </dialog>;

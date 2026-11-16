@@ -4,6 +4,11 @@ from . import views
 
 urlpatterns = [
     path(
+        "espacos/<uuid:espaco_id>/lancamentos/simples/",
+        views.ListaSimplesView.as_view(),
+        name="lancamentos_simples",
+    ),
+    path(
         "espacos/<uuid:espaco_id>/lancamentos/",
         views.LancamentosView.as_view(),
         name="lancamentos",

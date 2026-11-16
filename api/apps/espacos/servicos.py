@@ -13,6 +13,8 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import APIException, NotFound, ValidationError
 
+from apps.solicitacoes.coordenacao import barreira
+
 from .models import Convite, Espaco, Membro, Papel, Subgrupo
 
 VALIDADE_CONVITE = timedelta(days=7)  # RN24
@@ -140,6 +142,7 @@ def proteger_conta_restrita(sender, instance, **kwargs):
 
 def criar_grupo(usuario, nome, casas=()):
     with transaction.atomic():
+        barreira()
         grupo = Espaco.objects.create(tipo=Espaco.Tipo.GRUPO, nome=nome)
         Membro.objects.create(espaco=grupo, usuario=usuario, papel=Papel.ADMIN)
         Subgrupo.objects.bulk_create(Subgrupo(espaco=grupo, nome=casa) for casa in casas)
@@ -185,6 +188,7 @@ def convite_valido(token, travar=False):
 
 def revogar_convite(grupo, convite_id):
     with transaction.atomic():
+        barreira()
         convite = get_object_or_404(convites_pendentes(grupo).select_for_update(), pk=convite_id)
         convite.revogado_em = timezone.now()
         convite.save(update_fields=["revogado_em"])
@@ -192,6 +196,7 @@ def revogar_convite(grupo, convite_id):
 
 def aceitar_convite(usuario, token):
     with transaction.atomic():
+        barreira()
         # The row lock makes acceptance single-use under concurrency (RN24).
         convite = convite_valido(token, travar=True)
         if Membro.objects.filter(espaco_id=convite.espaco_id, usuario=usuario).exists():
@@ -213,6 +218,7 @@ def alterar_papel(grupo, membro_id, papel):
     from apps.lancamentos.servicos import preservar_acesso
 
     with transaction.atomic():
+        barreira()
         admins = {pk for _, pk, _ in _admins_travados([grupo.pk])}
         membro = get_object_or_404(Membro.objects.select_for_update(), espaco=grupo, pk=membro_id)
         if papel != Papel.ADMIN and admins == {membro.pk}:
@@ -223,6 +229,9 @@ def alterar_papel(grupo, membro_id, papel):
             preservar_acesso(grupo, membro.usuario)  # ADR 0008, before the role changes
         membro.papel = papel
         membro.save(update_fields=["papel"])
+        from apps.solicitacoes.servicos import invalidar_preparacoes
+
+        invalidar_preparacoes(grupo, membro.usuario)
         from apps.notificacoes.servicos import revogar_obsoletas
 
         revogar_obsoletas(usuario=membro.usuario, grupo=grupo)
@@ -245,6 +254,7 @@ def _desligar(grupo, voluntario, resolucoes=(), por=None, **filtro):
     from apps.lancamentos import servicos as contas
 
     with transaction.atomic():
+        barreira()
         admins = {pk for _, pk, _ in _admins_travados([grupo.pk])}
         # of=self: locking the joined Usuario row too would deadlock with an edit's deferred FK
         # check on "Quem vê" (it holds the bill this exit waits for).
@@ -296,6 +306,9 @@ def _desligar(grupo, voluntario, resolucoes=(), por=None, **filtro):
         contas.desligar_das_contas(usuario, grupo)
         _revogar_convites_de(grupo, membro.usuario_id)
         membro.delete()
+        from apps.solicitacoes.servicos import invalidar_preparacoes
+
+        invalidar_preparacoes(grupo, usuario)
         from apps.notificacoes.servicos import agendar_consumo, revogar_obsoletas
 
         revogar_obsoletas(usuario=usuario, grupo=grupo)
@@ -319,6 +332,7 @@ def arquivar_casa(usuario, grupo, casa_id, destino_id):
     from apps.recorrencias.servicos import travar_espaco
 
     with transaction.atomic():
+        barreira()
         travar_espaco(usuario, grupo)
         grupo = espaco_ou_404(usuario, grupo.pk, "gerenciar_grupo")
         ids = [casa_id] + ([destino_id] if destino_id else [])

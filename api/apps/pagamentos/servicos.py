@@ -9,6 +9,7 @@ from apps.espacos.models import Espaco, Membro, Papel, Subgrupo
 from apps.espacos.servicos import Conflito, _admins_travados
 from apps.lancamentos.models import Acao, Status, Visibilidade
 from apps.lancamentos.servicos import _historico
+from apps.solicitacoes.coordenacao import barreira
 
 from .models import DocumentoComprovante, EventoPagamento, Pagamento
 
@@ -27,10 +28,13 @@ def pode_desfazer(usuario, conta, pagamento):
 
 
 def pode_anexar(usuario, conta, pagamento):
+    from apps.solicitacoes.models import ParPagamento
+
     return bool(
         pagamento
         and pode_pagar(usuario, conta)
         and pode_desfazer(usuario, conta, pagamento)
+        and not ParPagamento.objects.filter(derivada=pagamento).exists()
         and not DocumentoComprovante.objects.filter(pagamento=pagamento).exists()
     )
 
@@ -90,6 +94,7 @@ def vincular(doc, pagamento):
 
 def marcar(usuario, conta_id, dados):
     with transaction.atomic():
+        barreira()
         conta = conta_travada(usuario, conta_id)
         exigir_pagar(usuario, conta)
         if conta.status != Status.PENDENTE:
@@ -101,6 +106,9 @@ def marcar(usuario, conta_id, dados):
         doc = (
             draft(usuario, conta, dados["comprovante_id"]) if dados.get("comprovante_id") else None
         )
+        from apps.solicitacoes.servicos import antes_marcar, apos_marcar
+
+        reserva = antes_marcar(conta)
         pagamento = Pagamento.objects.create(
             lancamento=conta,
             pago_em=dados["pago_em"],
@@ -109,6 +117,7 @@ def marcar(usuario, conta_id, dados):
             pagador_id=conta.pagador_id,
         )
         EventoPagamento.objects.create(pagamento=pagamento, destinatario_id=conta.criador_id)
+        apos_marcar(reserva, pagamento, usuario)
         if doc:
             vincular(doc, pagamento)
         conta.status = Status.CONFIRMADA if doc else Status.PAGA
@@ -139,9 +148,14 @@ def pagamento_alvo(conta, pagamento_id):
 
 def anexar(usuario, conta_id, pagamento_id, documento_id):
     with transaction.atomic():
+        barreira()
         conta = conta_travada(usuario, conta_id)
         exigir_pagar(usuario, conta)
         pagamento = pagamento_alvo(conta, pagamento_id)
+        from apps.solicitacoes.models import ParPagamento
+
+        if ParPagamento.objects.filter(derivada=pagamento).exists():
+            raise Conflito("Comprovante deve ser registrado no grupo.")
         if not pode_desfazer(usuario, conta, pagamento):
             raise PermissionDenied()
         if (
@@ -160,12 +174,16 @@ def anexar(usuario, conta_id, pagamento_id, documento_id):
 
 def desfazer(usuario, conta_id, pagamento_id):
     with transaction.atomic():
+        barreira()
         conta = conta_travada(usuario, conta_id)
         pagamento = pagamento_alvo(conta, pagamento_id)
         if not pode_desfazer(usuario, conta, pagamento):
             raise PermissionDenied()
         if pagamento.desfeito_em or conta.status not in (Status.PAGA, Status.CONFIRMADA):
             raise Conflito("Pagamento já desfeito.")
+        from apps.solicitacoes.servicos import antes_desfazer
+
+        antes_desfazer(conta, pagamento, usuario)
         if conta.pagador_id and conta.pagador_id not in membros_ids(conta.espaco):
             antigo = conta.pagador_id
             conta.pagador = None

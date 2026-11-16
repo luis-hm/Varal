@@ -1526,6 +1526,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/espacos/{espaco_id}/lancamentos/simples/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["lancamentos_modo_simples"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/espacos/{espaco_id}/recorrencias/": {
         parameters: {
             query?: never;
@@ -1842,6 +1858,54 @@ export interface paths {
             cookie?: never;
         };
         get: operations["lancamentos_pdf_arquivo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lancamentos/{origem_id}/solicitacoes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["solicitacoes_criar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lancamentos/{origem_id}/solicitacoes/nonce/{nonce}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["solicitacoes_recuperar_nonce"];
+        put?: never;
+        post?: never;
+        delete: operations["solicitacoes_abandonar_nonce"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lancamentos/{origem_id}/solicitacoes/opcoes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["solicitacoes_opcoes"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2758,6 +2822,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             readonly instrumento: components["schemas"]["InstrumentoDetalhe"] | null;
+            readonly mensagem_solicitacao: string | null;
             readonly pagador: components["schemas"]["Pessoa"] | null;
             readonly pagamento_ativo: components["schemas"]["Pagamento"] | null;
             pagamentos: components["schemas"]["Pagamento"][];
@@ -2765,18 +2830,21 @@ export interface components {
             readonly pode_desfazer_pagamento: boolean;
             readonly pode_editar: boolean;
             readonly pode_pagar: boolean;
+            readonly pode_solicitar: boolean;
             readonly pode_ver_recorrencia: boolean;
             /** @description Acesso efetivo da restrita: criador, pagador e escolhidos; vazio nas demais. */
             readonly quem_ve: components["schemas"]["Ref"][];
             /** Format: uuid */
             readonly recorrencia_id: string | null;
             readonly recorrente: boolean;
+            readonly solicitacao_ativa: components["schemas"]["SolicitacaoResumo"] | null;
             status: components["schemas"]["StatusEnum"];
             status_exibido: components["schemas"]["StatusExibidoEnum"];
             subgrupo: components["schemas"]["Ref"] | null;
             valor_centavos: number | null;
             /** Format: date */
             vencimento: string;
+            readonly versao_compartilhamento: string | null;
             visibilidade: components["schemas"]["VisibilidadeEnum"];
         };
         ContaEntrada: {
@@ -2811,6 +2879,26 @@ export interface components {
             contas: components["schemas"]["ContaRef"][];
             detail: string;
             pessoas: components["schemas"]["PessoaRef"][];
+        };
+        ContaSimples: {
+            /** Format: date-time */
+            criado_em: string;
+            descricao: string;
+            readonly dias_para_vencer: number;
+            readonly documento_pdf: components["schemas"]["DocumentoPDF"] | null;
+            espaco: components["schemas"]["EspacoRef"];
+            /** Format: uuid */
+            id: string;
+            readonly instrumento: components["schemas"]["InstrumentoDetalhe"] | null;
+            readonly pagador: components["schemas"]["Pessoa"] | null;
+            readonly pode_pagar: boolean;
+            status: components["schemas"]["StatusEnum"];
+            status_exibido: components["schemas"]["StatusExibidoEnum"];
+            subgrupo: components["schemas"]["Ref"] | null;
+            valor_centavos: number | null;
+            /** Format: date */
+            vencimento: string;
+            visibilidade: components["schemas"]["VisibilidadeEnum"];
         };
         Contagens: {
             a_pagar: number;
@@ -2900,6 +2988,18 @@ export interface components {
             resultado: components["schemas"]["ResultadoPDF"];
             tamanho: number;
         };
+        Entrada: {
+            confirmar_compartilhamento: boolean;
+            /** Format: uuid */
+            grupo_id: string;
+            /** @default  */
+            mensagem: string;
+            /** Format: uuid */
+            nonce: string;
+            /** Format: uuid */
+            pagador_id: string;
+            versao_compartilhamento: string;
+        };
         Erro: {
             detail: string;
         };
@@ -2938,6 +3038,12 @@ export interface components {
             membros_qtd: number | null;
             nome: string;
             papel: components["schemas"]["PapelEnum"];
+        };
+        GrupoOpcao: {
+            /** Format: uuid */
+            id: string;
+            nome: string;
+            pagadores: components["schemas"]["PessoaOpcao"][];
         };
         GrupoResumo: {
             /** Format: uuid */
@@ -3035,6 +3141,11 @@ export interface components {
             proximo: string | null;
             resultados: components["schemas"]["Notificacao"][];
         };
+        ListaSimples: {
+            abertas_qtd: number;
+            itens: components["schemas"]["ContaSimples"][];
+            pagas_mes_qtd: number;
+        };
         Marcar: {
             /** Format: uuid */
             comprovante_id?: string | null;
@@ -3082,9 +3193,10 @@ export interface components {
          *     * `pagamento` - Pagamento registrado
          *     * `pagador_removido` - Pagador removido
          *     * `cancelada_rn32` - Conta cancelada automaticamente
+         *     * `solicitacao` - Pedido de pagamento
          * @enum {string}
          */
-        NotificacaoTipoEnum: "boleto_ausente" | "vence_3" | "vence_hoje" | "venceu_1" | "pagamento" | "pagador_removido" | "cancelada_rn32";
+        NotificacaoTipoEnum: "boleto_ausente" | "vence_3" | "vence_hoje" | "venceu_1" | "pagamento" | "pagador_removido" | "cancelada_rn32" | "solicitacao";
         OcorrenciaInicial: {
             beneficiario?: string | null;
             /** Format: date */
@@ -3107,6 +3219,7 @@ export interface components {
             readonly comprovante_id: string | null;
             /** Format: date-time */
             criado_em: string;
+            readonly derivado: boolean;
             /** Format: date-time */
             desfeito_em: string | null;
             /** Format: uuid */
@@ -3185,6 +3298,11 @@ export interface components {
             nome: string;
             sou_eu: boolean;
         };
+        PessoaOpcao: {
+            /** Format: uuid */
+            id: string;
+            nome: string;
+        };
         PessoaRef: {
             /** Format: uuid */
             id: string;
@@ -3257,6 +3375,25 @@ export interface components {
          * @enum {string}
          */
         ResolucaoAcaoEnum: "acesso" | "cancelar";
+        Resultado: {
+            /** Format: uuid */
+            readonly copia_id: string | null;
+            estado: components["schemas"]["ResultadoEstadoEnum"];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            nonce: string;
+            readonly pode_cancelar: boolean;
+        };
+        /**
+         * @description * `preparando` - Preparando
+         *     * `ativa` - Ativa
+         *     * `quitada` - Quitada
+         *     * `encerrada` - Encerrada
+         *     * `falhou` - Falhou
+         * @enum {string}
+         */
+        ResultadoEstadoEnum: "preparando" | "ativa" | "quitada" | "encerrada" | "falhou";
         ResultadoPDF: {
             beneficiario?: string | null;
             candidatos?: components["schemas"]["CandidatoPDF"][];
@@ -3291,6 +3428,25 @@ export interface components {
         Sair: {
             resolucoes?: components["schemas"]["Resolucao"][];
         };
+        SolicitacaoResumo: {
+            /** Format: uuid */
+            copia_id: string | null;
+            estado: components["schemas"]["SolicitacaoResumoEstadoEnum"];
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            nonce: string;
+            pode_cancelar: boolean;
+        };
+        /**
+         * @description * `preparando` - preparando
+         *     * `ativa` - ativa
+         *     * `quitada` - quitada
+         *     * `encerrada` - encerrada
+         *     * `falhou` - falhou
+         * @enum {string}
+         */
+        SolicitacaoResumoEstadoEnum: "preparando" | "ativa" | "quitada" | "encerrada" | "falhou";
         /**
          * @description * `aguardando` - Aguardando boleto
          *     * `pendente` - Pendente
@@ -4289,6 +4445,30 @@ export interface operations {
             };
         };
     };
+    lancamentos_modo_simples: {
+        parameters: {
+            query?: {
+                /** @description Pagas no mês civil atual */
+                pagas?: boolean;
+            };
+            header?: never;
+            path: {
+                espaco_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListaSimples"];
+                };
+            };
+        };
+    };
     recorrencias_listar: {
         parameters: {
             query?: never;
@@ -5193,6 +5373,97 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["URLPDF"];
+                };
+            };
+        };
+    };
+    solicitacoes_criar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                origem_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Entrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["Entrada"];
+                "multipart/form-data": components["schemas"]["Entrada"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Resultado"];
+                };
+            };
+        };
+    };
+    solicitacoes_recuperar_nonce: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                nonce: string;
+                origem_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Resultado"];
+                };
+            };
+        };
+    };
+    solicitacoes_abandonar_nonce: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                nonce: string;
+                origem_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    solicitacoes_opcoes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                origem_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrupoOpcao"][];
                 };
             };
         };

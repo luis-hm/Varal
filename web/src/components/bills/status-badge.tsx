@@ -15,12 +15,12 @@ const badges: Record<Status, [IconName, string]> = {
   cancelada: ["fechar", "Cancelada"],
 };
 
-export function StatusBadge({ status }: { status: Status }) {
+export function StatusBadge({ status, rotulo }: { status: Status; rotulo?: string }) {
   const [icon, text] = badges[status];
   return (
     <span className={styles.badge} data-status={status}>
       <Icon name={icon} size="sm" className={styles.ic} />
-      {text}
+      {rotulo ?? text}
     </span>
   );
 }

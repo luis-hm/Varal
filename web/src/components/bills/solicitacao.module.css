@@ -1,0 +1,14 @@
+/* Doop 12/M06; Q10-13/14 adds explicit consent and recoverable preparation. */
+.conteudo { display: flex; flex-direction: column; gap: var(--spacing-4); font-size: var(--text-base); line-height: var(--leading-body); overflow-wrap: anywhere; }
+.conteudo label { display: flex; flex-direction: column; gap: var(--spacing-2); font-weight: 600; }
+.conteudo select, .conteudo textarea { width: 100%; padding: var(--spacing-3); border: 1px solid var(--color-line); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-ink); font: inherit; }
+.conteudo textarea { min-height: 80px; resize: vertical; }
+.conteudo fieldset { min-width: 0; max-width: 100%; border: 0; padding: 0; }
+.conteudo legend { font-weight: 600; }
+.conteudo fieldset button { max-width: 100%; }
+.conteudo fieldset button > span { min-width: 0; max-width: 100%; }
+.conteudo fieldset button > span > span[title] { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.origem { display: flex; justify-content: space-between; gap: var(--spacing-3); padding: var(--spacing-4); border-radius: var(--radius-lg); background: var(--color-bg); }
+.resumo { display: flex; flex-direction: column; gap: var(--spacing-1); padding: var(--spacing-4); border: 1px solid var(--color-line); border-radius: var(--radius-lg); }
+.conteudo .check { flex-direction: row; align-items: flex-start; font-weight: 400; }
+.check input { width: 20px; height: 20px; flex: none; }

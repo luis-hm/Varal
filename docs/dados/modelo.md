@@ -1,7 +1,7 @@
 # Modelo de dados
 
 > **Contém:** entidades, campos, decisões de modelagem e diagrama ER.
-> **Origem:** `docs/especificacao-varal.md`, seção 8 (diagrama ER derivado das entidades), mais as seções de implementação das Etapas 02–07 e os ADRs 0005 (sem categoria) e 0011 (pagamento integral/evidência).
+> **Origem:** `docs/especificacao-varal.md`, seção 8 (diagrama ER derivado das entidades), mais seções de implementação02–10 e ADRs0005/0011–0014; etapa 10 concluída.
 
 ## 8. Modelo de dados
 
@@ -162,7 +162,10 @@ erDiagram
     usuario ||--o{ operacao_recorrencia : solicita
     recorrencia ||--|| operacao_recorrencia : identifica
     usuario }o--o{ recorrencia : "acesso escolhido"
-    lancamento |o--o| lancamento : "origem (solicitação)"
+    lancamento |o--o{ solicitacao : "origem pessoal privada"
+    lancamento |o--o| solicitacao : "copia no grupo"
+    solicitacao ||--o{ par_pagamento : "causa privada"
+    pagamento |o--o| par_pagamento : "marca copia ou derivada"
     lancamento ||--o{ lancamento_acesso : "restrita: quem vê"
     usuario ||--o{ lancamento_acesso : ve
     lancamento ||--o| instrumento : "paga-se com"
@@ -182,3 +185,16 @@ erDiagram
     usuario ||--o{ notificacao : recebe
     usuario ||--o{ lancamento : "criador / pagador"
 ```
+
+## Implementação da Etapa 10 — concluída
+
+[ADR0014](../arquitetura/adr/0014-solicitacao-e-sincronizacao-privada.md), [relatório](../etapas/10-solicitacao-modo-simples/relatorio.md). A ligação de origem ilustrada no diagrama acima é materializada por `Solicitacao`, **não FK origem no Lancamento**. Sem entrega de exportação/exclusãoLGPD11 por esta integração.
+
+- `Solicitacao`: UUID, origem e cópia SET_NULL (cópia OneToOne), solicitante/pagador inicial SET_NULL, grupo CASCADE, nonceUUID/corpo_hash64, snapshot privado confirmado, estado preparando/ativa/quitada/encerrada/falhou, tentativa/contagem/lease e datas. Uma viva por origem via constraint parcial, incluindo quitada; única solicitante/origem/nonce. Nenhum relacionamento é serializado como credencial de acesso à outra ponta.
+- `TombstoneNonce`: solicitante/origem CASCADE, nonce e criação; unicidade dos três impede POST tardio após abandono. É ledger de recuperação autorizado no pessoal, não dado exposto ao grupo.
+- `ParPagamento`: UUID que identifica causa canônica, solicitação PROTECT e marcas cópia/derivada OneToOne anuláveis SET_NULL. Preserva marcas exatas, sem criar pagamento independente da projeção. Boolean público `Pagamento.derivado` é calculado da relação; não coluna de autorização. Marca e undo projetados no pessoal têm autorNULL e marcador servidor automático/Sistema, sem UUID do ator do grupo no histórico pessoal.
+- `EventoSolicitacao`: UUID, solicitação OneToOne CASCADE, destinatário SET_NULL, processamento/resultado/criação. Nascido apenas na ativação, com invalidação terminal. EventosPagamento por marca permanecem;09 seleciona evento canônico por causa/destinatário independentemente da ordem de consumo.
+- `PinPDF` e `TentativaCopiaPDF`: identidades operacionais independentes de CASCADE pessoal, retenção de fonte, capacidade/token, destinoUUID por tentativa, integridade e incerteza. Não guardam snapshot financeiro deUI ou URL assinada. Fonte pinada sobrevive exclusão da linhaDocumento/usuário até publicação ou abandono seguro.
+- `LimpezaPDF` e `LimpezaComprovante`: acrescentam geração/flag incerta. Intenção renovável antesPUT, cleanup com CAS da geração observada, sem rowlock de intenção/domínio duranteS3. Referência viva, pin ou writer legítimo impede remoção; resultado ambíguo conserva tombstone/reconciliação.
+
+Migrações integradas/aplicadas no desenvolvimento segundo responsáveis: solicitacoes.0001, contas_usuario.0003, notificacoes.0006, boletos.0004 e pagamentos.0002. Prova isoladaORM/S3/Celery demonstrou CASCADE/preservação do compartilhamento aceito, não o fluxoLGPD11, identidade recente, exportação ou telaPerfil. Rodadas dirigidas/prova e limites estão no relatório; integral atual aprovada: 506 pytest, 127 Vitest, lint, tipos determinísticos e 143 E2E/três skips previstos.

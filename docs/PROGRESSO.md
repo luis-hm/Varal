@@ -16,8 +16,8 @@
 | 06 | PDF do boleto | concluída e integrada localmente à main (`b21bd83`) | `etapa/06-pdf-boleto` | 16/11/2026 | [relatorio](etapas/06-pdf-boleto/relatorio.md) |
 | 07 | Pagamento | concluída e integrada localmente à main (`2599655`) | `etapa/07-pagamento` | 16/11/2026 | [relatorio](etapas/07-pagamento/relatorio.md) |
 | 08 | Recorrência e agendador | concluída e integrada localmente à main (`59e0cc5`) | `etapa/08-recorrencia-agendador` | 16/11/2026 | [relatorio](etapas/08-recorrencia-agendador/relatorio.md) |
-| 09 | Notificações | concluída; pronta para commit/merge local | `etapa/09-notificacoes` | 16/11/2026 | [relatorio](etapas/09-notificacoes/relatorio.md) |
-| 10 | Solicitação e modo simples | pendente | — | — | — |
+| 09 | Notificações | concluída e integrada localmente à main (`56337ed`) | `etapa/09-notificacoes` | 16/11/2026 | [relatorio](etapas/09-notificacoes/relatorio.md) |
+| 10 | Solicitação e modo simples | concluída; aguardando commit/merge local | `etapa/10-solicitacao-modo-simples` | 16/11/2026 | [relatório](etapas/10-solicitacao-modo-simples/relatorio.md) |
 | 11 | Acabamento e deploy | pendente | — | — | — |
 
 ## Decisões
@@ -61,6 +61,21 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 
 Ordem cronológica inversa.
 
+
+### 16/11/2026 — Etapa 10 concluída, pronta para commit/merge local
+
+- `make types` passou duas vezes com hashes idênticos; `make test` passou com **506 pytest e 127 Vitest em 33 arquivos**; `make lint` passou. Runner único da orquestração: `/tmp/varal-qa10-integral.json`. `make e2e` passou integralmente: **143 aprovados e três skips previstos, 146 casos, em 11,0 min**. Runner 82968 `passed`, todas as etapas com exit 0; wrapper e build aprovados nesta etapa. Os 483 pytest/111 Vitest são da etapa 09; 122 Vitest era uma fotografia intermediária da etapa 10.
+- Solicitações, cópia privada de PDF, sincronização das marcas e modo simples integrados e congelados. Nonce/hash, recuperação/abandono por origem própria e projeções autorizadas documentados no [relatório 10](etapas/10-solicitacao-modo-simples/relatorio.md). Marca e undo derivados no pessoal usam Sistema/autor NULL; comprovante permanece no grupo.
+- Prova real isolada em Silo/Postgres/Redis/Celery confirmou pin após CASCADE, cópia por fila, bytes/tamanho/SHA, acesso anônimo negado e limpeza dos recursos próprios. Não prova PUT físico tardio ou entrega LGPD da etapa 11. Cleanup de PDF/comprovante usa geração/CAS e tombstone incerto, sem trava de domínio durante S3; SDK sem retry oculto.
+- QA comparou pedido topo/fundo e modo simples em 390×844 e 1440×900 aos frames 12/M06 e 13/D05. Correções de keys React, alvo de 44 px, chips longos e ações Pix verificadas; retorno ao recorte de pagas aprovado em focos desktop/mobile separados. Processos próprios encerrados e matriz atualizada pelo QA. Focos anteriores reprovados permanecem no relatório e não são somados à integral.
+- Saída reutiliza RF06/CU03/RN04/RN21/RN32; detalhe e retorno seguem RF13/CU06/RF25, sem conceder RF07 ou RF12. Q04-23/Q10-15 restringe nome/e-mail a candidatos atuais elegíveis; Q04-29/Q10-17 mantém linha única, reticências e texto integral acessível. Segurança integrada/delta e auditoria Q10-15–18/D10-1–2 sem bloqueantes por leitura; os 14 CAs foram consolidados com testes e limites no relatório.
+- Ajustes sem pendentes atestados no chat, sem conector ou marcação remota. P10 resolvida por delegação para Perfil na etapa 11; P6 externa, P11/destino, P3/P4 produção e P9 próximo push preservados. Etapa concluída, aguardando commit/merge local sem hashes antecipados. Sem push ou deploy.
+
+### 16/11/2026 — Merge local da Etapa09 e abertura da Etapa10
+
+- Etapa09 no commit `4e04ddf`, merge local `--no-ff` na main em `56337ed`; aberta `etapa/10-solicitacao-modo-simples`. Resultado final09 preservado: 483 pytest, 111 Vitest, tipos duas vezes determinísticos e lint verdes; Playwright integral via `npm run e2e` sobre runtime local validado: 131 aprovados/3 skips previstos. O wrapper `make e2e` permaneceu failed por GHCR/MIME antes do navegador, conforme relatório09; nenhum resultado operacional foi convertido em aprovação do wrapper.
+- [Spec/plano/tarefas/decisões10](etapas/10-solicitacao-modo-simples/spec.md) e [ADR0014](arquitetura/adr/0014-solicitacao-e-sincronizacao-privada.md) integrados. Q10-1–14 triadas por delegação e T10-A–E ratificados: coordenação de domínio única/curta, pin antes202, cópia/cleanup fora de locks de domínio, causa canônica09 e recuperação por nonce/tombstone. Backend possui coordenador/demaisAPI; especialistaPDF somente boletos/helpers/migrações/testesPDF; execução em paralelo, frontend aguarda tipos reais. Nenhum CA ou teste10 declarado concluído.
+- Dono atestou Ajustes sem pendentes no chat, sem conector, marcação remota ou reexportação. Delegação existente autoriza continuidade sem novo ok genérico. P10 resolvida para composiçãoPerfil11 com componentes existentes, sem frame inventado; P6 externa, P11/destino, P3/P4 produção11 e P9 próximo push preservados. Sem push/deploy.
 
 ### 16/11/2026 — Etapa 09 concluída, pronta para commit/merge local
 
@@ -193,12 +208,12 @@ Ordem cronológica inversa.
 - `make test` 204 pytest + 65 Vitest; lint verde; tipos sincronizados; E2E 74 passaram e 2 ignorados de propósito. P5 e P8 resolvidas; E2E final a frio sem 429.
 - Ajustes rev 24 relidos ao vivo: 18 itens marcados, nenhum novo. 30 decisões a confirmar no [relatório](etapas/04-contas/relatorio.md#decisões-para-o-dono-confirmar). Sem push.
 
-### 15/11/2026 — Respostas do dono às Q17–Q23 da Etapa 04
+### 15/11/2026 — Respostas do dono às Q17–Q04-23/Q10-15 da Etapa 04
 
 - **Q17 / ADR 0006 (RN32) revisto:** sair e excluir a própria conta seguem com 409; remoção pelo admin nunca bloqueia, cancela a restrita órfã ("cancelada automaticamente: ficou sem ninguém que pudesse vê-la") e não dá sinal nenhum ao admin. Aviso ao removido na 09 (P7). Nunca escalar a visibilidade para o admin.
 - **ADR 0007 (Q18):** exceção à RN05 só dentro da saída barrada pela RN32 (acrescentar em "Quem vê" ou cancelar), com histórico.
 - **ADR 0008 (Q19a):** acesso explícito (RN06) prevalece sobre a RN07; trocar alguém para pagador preserva o acesso à restrita que só ele vê. **Q19b:** editar deixando a conta sem ninguém → 400.
-- Q20 (CU04 alternativo fora da 04), Q21 (admin só avisado/desfaz no que vê; anotado em 07 e 09) e Q23 (sem conta "pagas" no varal até a 07) como propostos. Q22: origem rev 50 sem categoria; reexportar na abertura da 05 (P6).
+- Q20 (CU04 alternativo fora da 04), Q21 (admin só avisado/desfaz no que vê; anotado em 07 e 09) e Q04-23/Q10-15 (sem conta "pagas" no varal até a 07) como propostos. Q22: origem rev 50 sem categoria; reexportar na abertura da 05 (P6).
 - Spec (CA01–CA34, sete CAs novos ou reescritos), plano, tarefas, regras, matriz e etapas atualizados. Sem código nem commit.
 
 ### 15/11/2026 — Ok do dono à Etapa 04, com correções
@@ -208,7 +223,7 @@ Ordem cronológica inversa.
 - **ADR 0006 / RN32** (nova regra): sair, ser removido ou excluir a conta é bloqueado (409) se deixaria uma conta restrita aberta sem ninguém que a veja; calculado já com a RN21. Guarda em `_desligar` e no `pre_delete` de `Usuario`.
 - Decisões na [spec](etapas/04-contas/spec.md#decisões-resolvidas-ok-do-dono-15112026): RN06 ao pé da letra (admin não entra; sem vazamento indireto; 404, não 403; pagador vê pela RN06); aviso "Quem paga também vê esta conta"; rótulo do mês nos totais; "Configurações" volta no D04 só para admin (nota datada no relatório da 03); sem barra de pagas até a 07. CAs renumerados (CA01–CA29).
 - Guia `varal-ui` relido: igual ao registrado na Etapa 03. Canvas não alterado.
-- Sete perguntas novas (Q17–Q23): resposta ao admin no 409 da RN32, último que vê sem poder editar, RN32 em alterar papel e editar, CU04 alternativo adiado pela 03, admin × restrita nas RN16/RN19/RN21, categoria ainda na origem (CU05 e seção 8), conta "pagas" do varal. Sem código nem commit.
+- Sete perguntas novas (Q17–Q04-23/Q10-15): resposta ao admin no 409 da RN32, último que vê sem poder editar, RN32 em alterar papel e editar, CU04 alternativo adiado pela 03, admin × restrita nas RN16/RN19/RN21, categoria ainda na origem (CU05 e seção 8), conta "pagas" do varal. Sem código nem commit.
 
 ### 15/11/2026 — Merge da Etapa 03 e preparação da Etapa 04 (Contas, núcleo)
 
