@@ -1,7 +1,7 @@
 # API e OpenAPI
 
 > **Contém:** endpoints, sessão/CSRF e geração do contrato composto e dos tipos do frontend.
-> **Origem:** RNF12, seção 9 de `docs/especificacao-varal.md` e implementação das Etapas 00 e 02–08 (08 concluída).
+> **Origem:** RNF12, seção 9 de `docs/especificacao-varal.md` e implementação das Etapas00 e02–09; contrato10 integrado, ainda em validação.
 
 ## Fluxo
 
@@ -212,3 +212,21 @@ Aviso contém `id`, `tipo`, `titulo`, `texto`, `criado_em`, `lido_em` e `destino
 UUID de instalação fica ligado à origem por fingerprint; aliases equivalentes de endpoint compartilham identidade normalizada (host/porta padrão/percent-encoding), sem reescrever caminho/query opacos no envio, cuja origem é canonicalizada em HTTPS/host minúsculo/443 implícita. Tombstone ou sessão revogada não reativa por retry; novo ciclo exige novo UUID. Fingerprint da sessão é HMAC, não a chave de sessão gravada. Logout nativo allauth também revoga sessão/instalações/inscrições no servidor; cliente cancela epoch, revoga antes de destruir sessão e tenta desinscrever navegador, mostrando falha parcial. Troca de usuário não transfere origem conhecida automaticamente.
 
 Não há endpoint cliente para disparar avisos. Rotina/dispatcher consomem outbox e revalidam acesso; transporte genérico abre central autenticada. Prova local não constitui aprovação E2E, provedor público ou recebimento físico.
+
+<a id="solicitação-e-modo-simples--etapa10-em-validação"></a>
+
+## Solicitação e modo simples — Etapa 10 concluída
+
+[ADR0014](../arquitetura/adr/0014-solicitacao-e-sincronizacao-privada.md), Q10-1–14/T10-A–E; [relatório](../etapas/10-solicitacao-modo-simples/relatorio.md). Sessão/CSRF e autorização atual no backend; nenhuma rota confere acesso ao pessoal pelo vínculo com a cópia.
+
+| Método e rota | Entrada/resultado real |
+| --- | --- |
+| GET `/api/lancamentos/{origem}/solicitacoes/opcoes/` | Dono de pessoal pendente; grupos atuais admin/membro com `{id,nome,pagadores:[{id,nome}]}` elegíveis |
+| POST `/api/lancamentos/{origem}/solicitacoes/` | `{nonce:UUID,grupo_id,pagador_id,mensagem?:string≤500,confirmar_compartilhamento:true,versao_compartilhamento:string64}`; desconhecidos recusados.202 mesmo semPDF: `{id,nonce,estado,pode_cancelar,copia_id}`; sem promessa de ativação/aviso entregue |
+| GET `/api/lancamentos/{origem}/solicitacoes/nonce/{nonce}/` |200 mesma reserva no contexto pessoal autorizado.404 não prova ausência de POST atrasado nem autoriza nonce novo |
+| DELETE mesma rota de nonce |204 tombstone, inclusive antes da criação, ou encerra preparação;409 se já processada. Cancelamento de cópia ativa segue ação local autorizada |
+| GET `/api/espacos/{id}/lancamentos/simples/` | `{abertas_qtd,pagas_mes_qtd,itens}`; abertas de todos meses, ordenadas vencimento,id, com instrumento/PDF/pode_pagar por item. `?pagas=true` seleciona paga+confirmada pelo vencimento no mês civilFortaleza; contagens sempre completas do visível. Projeção atual sem paginação própria |
+
+`nonce` é nome público, substituindo a proposta `chave_idempotencia`. Retry com nonce/corpo iguais devolve reserva; corpo divergente ou hash da cobrança desatualizado409. Hash `versao_compartilhamento` cobre campos efetivamente compartilhados e identidade/metadadosPDF; frontend captura resumo/hash juntos. Estado `preparando|ativa|quitada|encerrada|falhou` é da solicitação, não status financeiro novo. `copia_id` só retorna se atualmente visível. Detalhe pessoal inclui `solicitacao_ativa,pode_solicitar,versao_compartilhamento`; grupo recebe `mensagem_solicitacao`, nunca origem/marca pessoal/causa/pin.
+
+Pagamento acrescenta boolean `derivado`; autoria da projeção é Sistema, sem ator do grupo no histórico pessoal. Mesmas rotas07 de pagar/anexar/undo, com par privado e marca exata; derivada pessoal não aceita comprovante. Projeção simples inclui recursos necessários e flags da mesma ACL, sem conceder pagamento por mera leitura. Opções de pagador usam nome ou e-mail atual somente entre candidatos elegíveis do grupo (Q04-23/Q10-15), sem ampliar ACL ou fallback histórico de ex-membro. Contrato presente e tipos gerados não equivalem a QA final; integral e visual da etapa 10 aprovados, com limites no relatório.

@@ -18,10 +18,12 @@ type Props = {
   size?: "auto" | "convite";
   /** A pending write must settle before the dialog can close or be submitted again. */
   busy?: boolean;
+  /** Full-screen mobile page when its Doop frame specifies one. */
+  mobileFull?: boolean;
   children: ReactNode;
 };
 
-export function Folha({ open, onClose, title, subtitle, actions, size = "auto", busy = false, children }: Props) {
+export function Folha({ open, onClose, title, subtitle, actions, size = "auto", busy = false, mobileFull = false, children }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const opener = useRef<Element | null>(null);
   const titleId = useId();
@@ -50,6 +52,7 @@ export function Folha({ open, onClose, title, subtitle, actions, size = "auto", 
       ref={ref}
       className={styles.folha}
       data-size={size}
+      data-mobile-full={mobileFull || undefined}
       aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();
@@ -64,6 +67,7 @@ export function Folha({ open, onClose, title, subtitle, actions, size = "auto", 
             <span />
           </button>
           <header className={styles.head}>
+            {mobileFull && <button type="button" className={styles.back} aria-label="Voltar" onClick={handleClose} disabled={busy}><Icon name="voltar" size="md" /></button>}
             <div>
               <h2 id={titleId} className={styles.title}>{title}</h2>
               {subtitle && <p className={styles.sub}>{subtitle}</p>}

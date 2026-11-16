@@ -7,6 +7,7 @@ from celery import shared_task
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 
 from apps.boletos.tasks import _travar_objeto, agendar
@@ -38,7 +39,9 @@ def validar_isolado(data):
 
 def intencao_limpeza(pk):
     with transaction.atomic():
-        LimpezaComprovante.objects.select_for_update().get_or_create(pk=pk)
+        item, criado = LimpezaComprovante.objects.select_for_update().get_or_create(pk=pk)
+        if not criado:
+            LimpezaComprovante.objects.filter(pk=item.pk).update(geracao=F("geracao") + 1)
         transaction.on_commit(lambda: agendar(recuperar_limpeza))
 
 
@@ -60,15 +63,30 @@ def processar_comprovante(self, documento_id):
         data = path.read_bytes()
         mime = validar_isolado(data)
         if mime:
+            tinha_intencao = LimpezaComprovante.objects.filter(pk=doc.pk).exists()
+            intencao_limpeza(doc.pk)
+            previa = LimpezaComprovante.objects.get(pk=doc.pk)
+            ja_incerta = previa.incerta
+            LimpezaComprovante.objects.filter(pk=doc.pk).update(incerta=True)
             with transaction.atomic():
                 _travar_objeto(doc.pk)
                 if not DocumentoComprovante.objects.filter(
                     pk=doc.pk, estado="lendo", tentativa=tentativa
                 ).exists():
+                    if not tinha_intencao and not ja_incerta:
+                        LimpezaComprovante.objects.filter(
+                            pk=doc.pk, geracao=previa.geracao
+                        ).delete()
                     return
                 content = ContentFile(data)
                 content.content_type = mime
                 armazenamento().save(chave(doc.pk), content)
+            if not ja_incerta:
+                LimpezaComprovante.objects.filter(pk=doc.pk, geracao=previa.geracao).update(
+                    incerta=False
+                )
+                if not tinha_intencao:
+                    LimpezaComprovante.objects.filter(pk=doc.pk, geracao=previa.geracao).delete()
     except Exception:
         if DocumentoComprovante.objects.filter(
             pk=doc.pk, estado="lendo", tentativa=tentativa
@@ -102,12 +120,14 @@ def recuperar_limpeza():
     for pk in LimpezaComprovante.objects.values_list("pk", flat=True).iterator():
         try:
             with transaction.atomic():
-                item = LimpezaComprovante.objects.select_for_update().filter(pk=pk).first()
-                if item:
-                    _travar_objeto(pk)
-                    armazenamento().delete(chave(pk))
-                    spool(pk).unlink(missing_ok=True)
-                    item.delete()
+                _travar_objeto(pk)
+                item = LimpezaComprovante.objects.filter(pk=pk).first()
+                if not item or DocumentoComprovante.objects.filter(pk=pk).exists():
+                    continue
+                armazenamento().delete(chave(pk))
+                spool(pk).unlink(missing_ok=True)
+                if not item.incerta:
+                    LimpezaComprovante.objects.filter(pk=pk, geracao=item.geracao).delete()
         except Exception:
             continue
 

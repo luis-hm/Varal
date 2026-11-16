@@ -58,3 +58,5 @@ export const verRecorrencia = (id: string) => call<Recorrencia>(`recorrencias/${
 export const criarRecorrencia = (espaco: string, body: CriarRecorrencia) => call<S["CriacaoResultado"]>(e(espaco, "recorrencias/"), "POST", body);
 export const editarRecorrencia = (id: string, body: EditarRecorrencia) => call<Recorrencia>(`recorrencias/${encodeURIComponent(id)}/`, "PATCH", body);
 export const acaoRecorrencia = (id: string, acao: "pausar" | "retomar" | "encerrar") => call<Recorrencia>(`recorrencias/${encodeURIComponent(id)}/${acao}/`, "POST");
+
+export const listarModoSimples = (espaco: string, pagas: boolean) => call<S["ListaSimples"]>(`${e(espaco, "lancamentos/simples/")}${pagas ? "?pagas=true" : ""}`);

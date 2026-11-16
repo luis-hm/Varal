@@ -35,6 +35,7 @@ from apps.espacos.acesso import (
 from apps.espacos.models import Espaco
 from apps.espacos.views import ErroSerializer
 from apps.recorrencias.models import Recorrencia
+from apps.solicitacoes.coordenacao import coordenado
 
 from . import servicos
 from .models import ABERTOS, STATUS_EXIBIDOS, Historico, Lancamento, Status
@@ -131,9 +132,17 @@ class PagamentoSerializer(serializers.Serializer):
     desfeito_em = serializers.DateTimeField(allow_null=True)
     marcado_por = serializers.SerializerMethodField()
     comprovante_id = serializers.SerializerMethodField()
+    derivado = serializers.SerializerMethodField()
 
     def get_marcado_por(self, obj) -> str:
+        if self.get_derivado(obj):
+            return "Sistema"
         return servicos.rotulo(obj.marcado_por, self.context["membros"], historico=True)
+
+    def get_derivado(self, obj) -> bool:
+        from apps.solicitacoes.models import ParPagamento
+
+        return ParPagamento.objects.filter(derivada=obj).exists()
 
     @extend_schema_field(serializers.UUIDField(allow_null=True))
     def get_comprovante_id(self, obj):
@@ -144,7 +153,19 @@ class PagamentoSerializer(serializers.Serializer):
         )
 
 
+class SolicitacaoResumoSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    nonce = serializers.UUIDField()
+    estado = serializers.ChoiceField(["preparando", "ativa", "quitada", "encerrada", "falhou"])
+    pode_cancelar = serializers.BooleanField()
+    copia_id = serializers.UUIDField(allow_null=True)
+
+
 class ContaDetalheSerializer(ContaSerializer):
+    versao_compartilhamento = serializers.SerializerMethodField()
+    mensagem_solicitacao = serializers.SerializerMethodField()
+    solicitacao_ativa = serializers.SerializerMethodField()
+    pode_solicitar = serializers.SerializerMethodField()
     documento_pdf = DocumentoPDFSerializer(allow_null=True, read_only=True)
     instrumento = InstrumentoDetalheSerializer(allow_null=True, read_only=True)
     criador = serializers.SerializerMethodField()
@@ -163,6 +184,46 @@ class ContaDetalheSerializer(ContaSerializer):
     pode_pagar = serializers.SerializerMethodField()
     pode_desfazer_pagamento = serializers.SerializerMethodField()
     pode_anexar_comprovante = serializers.SerializerMethodField()
+
+    @extend_schema_field(SolicitacaoResumoSerializer(allow_null=True))
+    def get_solicitacao_ativa(self, obj):
+        if (
+            obj.espaco.tipo != Espaco.Tipo.PESSOAL
+            or obj.espaco.dono_id != self.context["request"].user.pk
+        ):
+            return None
+        from apps.solicitacoes.models import Solicitacao
+        from apps.solicitacoes.views import ResultadoSerializer
+
+        reserva = Solicitacao.objects.filter(
+            origem=obj, estado__in=["preparando", "ativa", "quitada"]
+        ).first()
+        return ResultadoSerializer(reserva, context=self.context).data if reserva else None
+
+    def get_pode_solicitar(self, obj) -> bool:
+        return bool(
+            obj.status == Status.PENDENTE
+            and obj.espaco.tipo == Espaco.Tipo.PESSOAL
+            and obj.espaco.dono_id == self.context["request"].user.pk
+            and not self.get_solicitacao_ativa(obj)
+        )
+
+    def get_versao_compartilhamento(self, obj) -> str | None:
+        if (
+            obj.espaco.tipo != Espaco.Tipo.PESSOAL
+            or obj.espaco.dono_id != self.context["request"].user.pk
+            or obj.status != Status.PENDENTE
+        ):
+            return None
+        from apps.solicitacoes.views import versao_compartilhamento
+
+        return versao_compartilhamento(obj)
+
+    def get_mensagem_solicitacao(self, obj) -> str | None:
+        from apps.solicitacoes.models import Solicitacao
+
+        reserva = Solicitacao.objects.filter(copia=obj).only("snapshot").first()
+        return reserva.snapshot.get("mensagem") if reserva else None
 
     def get_recorrente(self, obj) -> bool:
         return obj.recorrencia_id is not None
@@ -196,8 +257,22 @@ class ContaDetalheSerializer(ContaSerializer):
 
     def get_pode_desfazer_pagamento(self, obj) -> bool:
         from apps.pagamentos.servicos import pode_desfazer
+        from apps.solicitacoes.models import ParPagamento
 
-        return pode_desfazer(self.context["request"].user, obj, self._ativo(obj))
+        usuario = self.context["request"].user
+        pagamento = self._ativo(obj)
+        if not pode_desfazer(usuario, obj, pagamento):
+            return False
+        par = ParPagamento.objects.filter(derivada=pagamento).select_related("copia").first()
+        if not par:
+            return True
+        if not par.copia_id:
+            return False
+        try:
+            copia = lancamento_ou_404(usuario, par.copia.lancamento_id)
+        except NotFound:
+            return False
+        return pode_desfazer(usuario, copia, par.copia)
 
     def get_pode_anexar_comprovante(self, obj) -> bool:
         from apps.pagamentos.servicos import pode_anexar
@@ -227,6 +302,59 @@ class ContaDetalheSerializer(ContaSerializer):
 
     def get_pode_editar(self, obj) -> bool:
         return obj.status != Status.CANCELADA and pode(self.context["papel"], "editar_conta")
+
+
+class ContaSimplesSerializer(ContaSerializer):
+    instrumento = InstrumentoDetalheSerializer(allow_null=True, read_only=True)
+    documento_pdf = DocumentoPDFSerializer(allow_null=True, read_only=True)
+    pode_pagar = serializers.SerializerMethodField()
+
+    def get_pode_pagar(self, obj) -> bool:
+        from apps.pagamentos.servicos import pode_pagar
+
+        return obj.status == Status.PENDENTE and pode_pagar(self.context["request"].user, obj)
+
+
+class ListaSimplesSerializer(serializers.Serializer):
+    abertas_qtd = serializers.IntegerField()
+    pagas_mes_qtd = serializers.IntegerField()
+    itens = ContaSimplesSerializer(many=True)
+
+
+class ListaSimplesView(APIView):
+    @extend_schema(
+        operation_id="lancamentos_modo_simples",
+        parameters=[OpenApiParameter("pagas", bool, description="Pagas no mês civil atual")],
+        responses={200: ListaSimplesSerializer},
+    )
+    @transaction.atomic
+    @coordenado
+    def get(self, request, espaco_id):
+        from apps.recorrencias.servicos import travar_espaco
+
+        espaco = espaco_ou_404(request.user, espaco_id)
+        travar_espaco(request.user, espaco)
+        espaco = espaco_ou_404(request.user, espaco_id)
+        hoje = timezone.localdate()
+        inicio = hoje.replace(day=1)
+        fim = hoje.replace(day=calendar.monthrange(hoje.year, hoje.month)[1])
+        contas = lancamentos_visiveis(request.user, espaco)
+        abertas = contas.filter(status__in=ABERTOS)
+        pagas = contas.filter(
+            status__in=(Status.PAGA, Status.CONFIRMADA), vencimento__range=(inicio, fim)
+        )
+        itens = pagas if request.query_params.get("pagas") == "true" else abertas
+        itens = itens.select_related(*COM_DADOS, "instrumento", "documento_pdf").order_by(
+            "vencimento", "id"
+        )
+        for conta in itens:
+            conta.espaco.meu_papel = espaco.meu_papel
+        dados = {"abertas_qtd": abertas.count(), "pagas_mes_qtd": pagas.count(), "itens": itens}
+        return Response(
+            ListaSimplesSerializer(
+                dados, context={"request": request, "membros": membros_ids(espaco)}
+            ).data
+        )
 
 
 class CentavosField(serializers.IntegerField):
@@ -415,6 +543,7 @@ def _uuid(request, nome):
 
 
 @transaction.atomic
+@coordenado
 def _detalhe(request, conta_id, espaco, codigo=status.HTTP_200_OK, apos_escrita=False):
     """Authorize the actual read and hold the bill through prefetch and serialization.
 
@@ -541,6 +670,7 @@ class LancamentosView(APIView):
         examples=[ENTRADA_EXEMPLO, DETALHE],
     )
     @transaction.atomic
+    @coordenado
     def post(self, request, espaco_id):
         espaco = espaco_ou_404(request.user, espaco_id, "criar_conta")
         entrada = ContaEntradaSerializer(data=request.data)
@@ -632,6 +762,7 @@ class LancamentoView(APIView):
         examples=[DETALHE],
     )
     @transaction.atomic
+    @coordenado
     def get(self, request, lancamento_id):
         from apps.pagamentos.servicos import conta_travada
 
@@ -649,6 +780,7 @@ class LancamentoView(APIView):
         ],
     )
     @transaction.atomic
+    @coordenado
     def patch(self, request, lancamento_id):
         lancamento_ou_404(request.user, lancamento_id, "editar_conta")  # 404/403 before 400
         entrada = ContaEntradaSerializer(data=request.data, partial=True)
@@ -670,6 +802,7 @@ class CancelarView(APIView):
         examples=[DETALHE],
     )
     @transaction.atomic
+    @coordenado
     def post(self, request, lancamento_id):
         entrada = CancelarEntradaSerializer(data=request.data)
         entrada.is_valid(raise_exception=True)

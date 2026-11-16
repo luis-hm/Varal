@@ -26,7 +26,7 @@ const contaBanco = (): ContaDetalhe => ({
   espaco: pessoal, subgrupo: null, visibilidade: "grupo", acesso: [], quem_ve: [], pagador: null, criador: { nome: "Dev", sou_eu: true }, criado_em: "2000-07-01T12:00:00Z", historico: [], pode_editar: true,
   instrumento: { ...banco.instrumento, data_emissao: null }, documento_pdf: null,
   pagamento_ativo: null, pagamentos: [], pode_pagar: true, pode_desfazer_pagamento: false, pode_anexar_comprovante: false,
-  recorrente: false, recorrencia_id: null, competencia: null, pode_ver_recorrencia: false,
+  recorrente: false, recorrencia_id: null, competencia: null, pode_ver_recorrencia: false, mensagem_solicitacao: null, pode_solicitar: false, solicitacao_ativa: null, versao_compartilhamento: null,
 });
 
 beforeEach(() => {

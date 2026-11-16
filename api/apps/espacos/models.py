@@ -1,7 +1,16 @@
 import uuid
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
+
+
+class EspacoQuerySet(models.QuerySet):
+    def delete(self):
+        from apps.solicitacoes.coordenacao import barreira
+
+        with transaction.atomic():
+            barreira()
+            return super().delete()
 
 
 class Espaco(models.Model):
@@ -17,6 +26,7 @@ class Espaco(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="espacos", null=True
     )
     janela_alerta_dias = models.PositiveSmallIntegerField(default=3)
+    objects = EspacoQuerySet.as_manager()
 
     class Meta:
         constraints = [
@@ -40,6 +50,13 @@ class Espaco(models.Model):
     def __str__(self):
         return self.nome
 
+    def delete(self, *args, **kwargs):
+        from apps.solicitacoes.coordenacao import barreira
+
+        with transaction.atomic():
+            barreira()
+            return super().delete(*args, **kwargs)
+
 
 class Papel(models.TextChoices):
     ADMIN = "admin", "Admin"
@@ -57,6 +74,8 @@ class Membro(models.Model):
     papel = models.CharField(max_length=10, choices=Papel.choices)
     criado_em = models.DateTimeField(auto_now_add=True)
 
+    objects = EspacoQuerySet.as_manager()
+
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["espaco", "usuario"], name="membro_unico_por_espaco")
@@ -64,6 +83,13 @@ class Membro(models.Model):
 
     def __str__(self):
         return f"{self.usuario} em {self.espaco} ({self.papel})"
+
+    def delete(self, *args, **kwargs):
+        from apps.solicitacoes.coordenacao import barreira
+
+        with transaction.atomic():
+            barreira()
+            return super().delete(*args, **kwargs)
 
 
 class Convite(models.Model):

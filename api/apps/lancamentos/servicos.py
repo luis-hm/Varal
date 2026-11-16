@@ -15,6 +15,7 @@ from apps.espacos.acesso import (
 )
 from apps.espacos.models import Espaco, Membro, Papel, Subgrupo
 from apps.espacos.servicos import Conflito, _admins_travados
+from apps.solicitacoes.coordenacao import barreira
 
 from .models import ABERTOS, Acao, Historico, Lancamento, Status, Visibilidade
 
@@ -142,6 +143,7 @@ def criar(usuario, espaco, dados):
     for campo in ("escopo", "confirmar_chegada", "valor_tipo"):
         dados.pop(campo, None)
     with transaction.atomic():
+        barreira()
         # The view's authorization may predate a departure, removal or role change. Freeze
         # membership mutations in the same admins -> member order, then re-read permission.
         # All candidate payers/chosen users are validated while this group's admins are held.
@@ -198,6 +200,7 @@ def editar(usuario, conta_id, dados):
     confirmar = dados.pop("confirmar_chegada", False)
     dados.pop("valor_tipo", None)
     with transaction.atomic():
+        barreira()
         conta = conta_travada(usuario, conta_id, casas_extra=(dados.get("subgrupo"),))
         if not pode(conta.espaco.meu_papel, "editar_conta"):
             raise PermissionDenied()
@@ -214,6 +217,9 @@ def editar(usuario, conta_id, dados):
         pdf = pdf_servicos.preparar_pdf(usuario, conta.espaco, dados, conta)
         instrumento = instrumentos.preparar(dados, conta)
         dados = validar(conta.espaco, dados, conta)
+        from apps.solicitacoes.servicos import impedir_alteracao_financeira
+
+        impedir_alteracao_financeira(conta, dados, pdf, instrumento)
         mudancas = instrumento.historico
         if pdf[2]:
             mudancas["pdf_alterado"] = True
@@ -259,6 +265,9 @@ def editar(usuario, conta_id, dados):
 
 
 def _cancelar(conta, usuario, acao=Acao.CANCELADA, dados=None):
+    from apps.solicitacoes.servicos import cancelar_relacao
+
+    cancelar_relacao(conta)
     conta.status = Status.CANCELADA
     conta.save(update_fields=["status", "atualizado_em"])
     _historico(conta, usuario, acao, dados)
@@ -272,6 +281,7 @@ def cancelar(usuario, conta_id, escopo="mes"):
     from apps.pagamentos.servicos import conta_travada
 
     with transaction.atomic():
+        barreira()
         conta = conta_travada(usuario, conta_id)
         if not pode(conta.espaco.meu_papel, "editar_conta"):
             raise PermissionDenied()

@@ -20,7 +20,7 @@ def cliente(publico=False):
             s3={"addressing_style": "path"},
             connect_timeout=3,
             read_timeout=15,
-            retries={"max_attempts": 1},
+            retries={"total_max_attempts": 1},
         ),
     )
 

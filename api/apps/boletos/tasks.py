@@ -11,9 +11,10 @@ from celery import shared_task
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import connection, transaction
+from django.db.models import F
 from django.utils import timezone
 
-from .models import DocumentoBoleto, LimpezaPDF
+from .models import DocumentoBoleto, LimpezaPDF, PinPDF, TentativaCopiaPDF
 from .storage import armazenamento, chave, spool
 
 MANUAL = {
@@ -161,9 +162,11 @@ def _travar_objeto(pk):
 
 
 def intencao_limpeza(pk):
-    # Serialize a late PUT against cleanup completion on the same immutable key.
+    # Renewal must never wait for the object mutex or for S3 I/O.
     with transaction.atomic():
-        LimpezaPDF.objects.select_for_update().get_or_create(pk=pk)
+        item, created = LimpezaPDF.objects.get_or_create(pk=pk)
+        if not created:
+            LimpezaPDF.objects.filter(pk=item.pk).update(geracao=F("geracao") + 1)
         transaction.on_commit(lambda: agendar(recuperar_limpeza))
 
 
@@ -189,6 +192,12 @@ def processar_pdf(self, documento_id):
     try:
         path = spool(doc.pk)
         data = path.read_bytes()
+        # Persist uncertainty before PUT, including worker death or an ambiguous timeout.
+        tinha_intencao = LimpezaPDF.objects.filter(pk=doc.pk).exists()
+        intencao_limpeza(doc.pk)
+        previa = LimpezaPDF.objects.get(pk=doc.pk)
+        ja_incerta = previa.incerta
+        LimpezaPDF.objects.filter(pk=doc.pk).update(incerta=True)
         with transaction.atomic():
             _travar_objeto(doc.pk)
             if not DocumentoBoleto.objects.filter(
@@ -196,6 +205,10 @@ def processar_pdf(self, documento_id):
             ).exists():
                 return
             armazenamento().save(chave(doc.pk), ContentFile(data))
+        if not ja_incerta:
+            LimpezaPDF.objects.filter(pk=doc.pk, geracao=previa.geracao).update(incerta=False)
+            if not tinha_intencao:
+                LimpezaPDF.objects.filter(pk=doc.pk, geracao=previa.geracao).delete()
         result = extrair_isolado(data)
     except Exception:
         changed = DocumentoBoleto.objects.filter(
@@ -229,13 +242,26 @@ def recuperar_limpeza():
     for pk in LimpezaPDF.objects.values_list("pk", flat=True).iterator():
         try:
             with transaction.atomic():
-                item = LimpezaPDF.objects.select_for_update().filter(pk=pk).first()
+                _travar_objeto(pk)
+                item = LimpezaPDF.objects.filter(pk=pk).first()
                 if not item:
                     continue
-                _travar_objeto(pk)
+                if (
+                    DocumentoBoleto.objects.filter(pk=pk).exists()
+                    or PinPDF.objects.filter(documento_id=pk).exists()
+                    or TentativaCopiaPDF.objects.filter(
+                        destino_id=pk, estado__in=("ativa", "copiando", "verificada")
+                    ).exists()
+                ):
+                    continue
                 armazenamento().delete(chave(pk))
                 spool(pk).unlink(missing_ok=True)
-                item.delete()
+                # Keep uncertain remote PUTs as tombstones for later reconciliation.
+                if (
+                    not item.incerta
+                    and not TentativaCopiaPDF.objects.filter(destino_id=pk, incerta=True).exists()
+                ):
+                    LimpezaPDF.objects.filter(pk=pk, geracao=item.geracao).delete()
         except Exception:
             continue
 
@@ -249,6 +275,5 @@ def limpar_pdfs_expirados():
             criado_em__lt=timezone.now() - timedelta(hours=24),
         )
         for doc in docs:
-            LimpezaPDF.objects.get_or_create(pk=doc.pk)
             doc.delete()
         transaction.on_commit(lambda: agendar(recuperar_limpeza))

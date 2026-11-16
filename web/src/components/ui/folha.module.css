@@ -32,6 +32,11 @@
   animation: sheet-up 0.5s cubic-bezier(0.2, 0.9, 0.25, 1) both;
 }
 
+.folha[data-mobile-full] { height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; padding-top: var(--spacing-4); }
+.folha[data-mobile-full] .handle { display: none; }
+.back { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: none; border: 1px solid var(--color-line); border-radius: var(--radius-full); background: var(--color-surface); color: var(--color-ink); cursor: pointer; }
+.back:focus-visible { outline: 3px solid var(--color-amber); outline-offset: 2px; }
+
 .folha::backdrop {
   background: var(--scrim-sheet);
 }
@@ -129,6 +134,9 @@
     border-radius: var(--radius-2xl);
     box-shadow: var(--shadow-modal);
   }
+
+  .folha[data-mobile-full] { height: auto; max-height: calc(100dvh - 2 * var(--spacing-8)); margin: auto; border-radius: var(--radius-2xl); padding: var(--spacing-6) 28px; }
+  .back { display: none; }
 
   .folha[data-size="convite"] .inner {
     min-height: calc(var(--modal-height-invite) - 2 * var(--spacing-6));

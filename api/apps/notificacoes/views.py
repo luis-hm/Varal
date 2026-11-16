@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 from apps.boletos.tasks import _travar_objeto
 from apps.contas_usuario.models import Usuario
 from apps.espacos.servicos import Conflito
+from apps.solicitacoes.coordenacao import coordenado
 
 from . import push
 from .acesso import autorizadas, travar_contexto
@@ -150,6 +151,7 @@ class NotificacoesView(APIView):
         responses={200: ListaNotificacoesSerializer},
     )
     @transaction.atomic
+    @coordenado
     def get(self, request):
         ids = travar_contexto(request.user)
         contas = _base(request.user, ids)
@@ -187,6 +189,7 @@ class ResumoView(APIView):
         operation_id="notificacoes_resumo", responses={200: ResumoNotificacoesSerializer}
     )
     @transaction.atomic
+    @coordenado
     def get(self, request):
         ids = travar_contexto(request.user)
         contas = _base(request.user, ids)
@@ -201,6 +204,7 @@ class ResumoView(APIView):
 class LerView(APIView):
     @extend_schema(operation_id="notificacoes_ler", request=None, responses={200: LerSerializer})
     @transaction.atomic
+    @coordenado
     def post(self, request, notificacao_id):
         ids = travar_contexto(request.user)
         notificacao = (
@@ -222,6 +226,7 @@ class LerTodasView(APIView):
         operation_id="notificacoes_ler_todas", request=None, responses={200: LerTodasSerializer}
     )
     @transaction.atomic
+    @coordenado
     def post(self, request):
         ids = travar_contexto(request.user)
         autorizadas(request.user).filter(pk__in=ids, lido_em__isnull=True).update(
@@ -249,6 +254,7 @@ class PreferenciasView(APIView):
         responses={200: PreferenciasSerializer},
     )
     @transaction.atomic
+    @coordenado
     def patch(self, request):
         entrada = PreferenciasEntradaSerializer(data=request.data, partial=True)
         entrada.is_valid(raise_exception=True)
@@ -303,6 +309,7 @@ class InscricoesView(APIView):
         responses={200: InscricaoResultadoSerializer, 201: InscricaoResultadoSerializer},
     )
     @transaction.atomic
+    @coordenado
     def post(self, request):
         from django.conf import settings
 
@@ -381,6 +388,7 @@ class InscricoesView(APIView):
 class InstalacaoView(APIView):
     @extend_schema(operation_id="notificacoes_push_revogar_instalacao", responses={204: None})
     @transaction.atomic
+    @coordenado
     def delete(self, request, instalacao_id):
         travar_sessao(request)
         instalacao = travar_instalacao(request.user, instalacao_id)
