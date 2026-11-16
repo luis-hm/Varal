@@ -30,6 +30,10 @@ class InstrumentoSerializer(serializers.Serializer):
     beneficiario = serializers.CharField(allow_null=True)
 
 
+class InstrumentoDetalheSerializer(InstrumentoSerializer):
+    data_emissao = serializers.DateField(allow_null=True)
+
+
 class LeituraSerializer(serializers.Serializer):
     instrumento = InstrumentoSerializer()
     valor_centavos = serializers.IntegerField(allow_null=True)
@@ -51,3 +55,41 @@ def dados_instrumento(resultado):
         for k, v in asdict(resultado).items()
         if k in ("tipo", "codigo", "chave_pix", "beneficiario")
     }
+
+
+class CandidatoPDFSerializer(serializers.Serializer):
+    tipo = serializers.CharField()
+    codigo = serializers.CharField()
+    valor_centavos = serializers.IntegerField(allow_null=True)
+    vencimento = serializers.DateField(allow_null=True)
+    vencimentos_possiveis = serializers.ListField(child=serializers.DateField())
+    avisos = serializers.ListField(child=serializers.CharField())
+
+
+class ResultadoPDFSerializer(serializers.Serializer):
+    candidatos = CandidatoPDFSerializer(many=True, required=False)
+    valor_centavos = serializers.IntegerField(allow_null=True, required=False)
+    vencimento = serializers.DateField(allow_null=True, required=False)
+    data_emissao = serializers.DateField(allow_null=True, required=False)
+    beneficiario = serializers.CharField(allow_null=True, required=False)
+    valor_textual_centavos = serializers.IntegerField(allow_null=True, required=False)
+    vencimento_textual = serializers.DateField(allow_null=True, required=False)
+
+
+class DocumentoPDFSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    estado = serializers.CharField()
+    nome = serializers.CharField()
+    tamanho = serializers.IntegerField()
+    resultado = ResultadoPDFSerializer()
+    avisos = serializers.ListField(child=serializers.CharField())
+
+
+class UploadPDFSerializer(serializers.Serializer):
+    arquivo = serializers.FileField()
+    lancamento_id = serializers.UUIDField(required=False)
+
+
+class URLPDFSerializer(serializers.Serializer):
+    url = serializers.URLField()
+    expira_em = serializers.DateTimeField()

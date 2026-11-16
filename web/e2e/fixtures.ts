@@ -126,7 +126,18 @@ export async function semRolagemEAlvos44(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   const pequenos = await page.locator("a, button, input:not([type=hidden])").evaluateAll((els) =>
     els
-      .filter((el) => el.checkVisibility())
+      .filter((el) => {
+        if (!el.checkVisibility()) return false;
+        // A clipped native file input delegates pointer interaction to its associated label.
+        // Count it as hidden only when that visible label itself meets the touch target size.
+        if (el instanceof HTMLInputElement && el.type === "file" && getComputedStyle(el).clipPath === "inset(50%)") {
+          return !Array.from(el.labels ?? []).some((label) => {
+            const r = label.getBoundingClientRect();
+            return label.checkVisibility() && r.width >= 44 && r.height >= 44;
+          });
+        }
+        return true;
+      })
       .map((el) => ({ el: el.outerHTML.slice(0, 80), r: el.getBoundingClientRect() }))
       .filter(({ r }) => r.width < 44 || r.height < 44)
       .map(({ el, r }) => `${Math.round(r.width)}×${Math.round(r.height)} ${el}`),

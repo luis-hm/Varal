@@ -2,9 +2,9 @@ name: api
 
 on:
   push:
-    paths: ["api/**", "web/src/types/**", ".github/workflows/api.yml"]
+    paths: ["api/**", "web/src/types/**", "infra/**", "Makefile", ".github/workflows/api.yml"]
   pull_request:
-    paths: ["api/**", "web/src/types/**", ".github/workflows/api.yml"]
+    paths: ["api/**", "web/src/types/**", "infra/**", "Makefile", ".github/workflows/api.yml"]
   # Manual run: `gh workflow run api.yml --ref <branch>` (path filters do not apply).
   workflow_dispatch:
 
@@ -16,6 +16,12 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      S3_ENDPOINT_URL: http://localhost:9000
+      S3_PUBLIC_ENDPOINT_URL: http://localhost:9000
+      S3_BUCKET_NAME: varal-pdfs
+      AWS_ACCESS_KEY_ID: varal-ci
+      AWS_SECRET_ACCESS_KEY: varal-ci-password
     services:
       postgres:
         image: postgres:17-alpine
@@ -25,6 +31,10 @@ jobs:
           POSTGRES_PASSWORD: varal
         ports: ["5432:5432"]
         options: --health-cmd pg_isready --health-interval 2s --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: --health-cmd "redis-cli ping" --health-interval 2s --health-retries 30
     defaults:
       run:
         working-directory: api
@@ -32,6 +42,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --frozen
+      - name: Start private S3 for integration tests
+        working-directory: .
+        run: sh infra/scripts/ci-storage.sh
+      - run: uv run python manage.py preparar_storage
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pytest -q

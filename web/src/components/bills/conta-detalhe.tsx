@@ -9,7 +9,9 @@ import { TopBar } from "@/components/layout/top-bar";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { Nome } from "@/components/ui/nome";
 import type { ContaDetalhe as Detalhe } from "@/lib/contas/client";
-import { dia, diaSemana, partesReais, prazo, quando } from "@/lib/contas/formato";
+import { dataCivil, dia, diaSemana, partesReais, prazo, quando } from "@/lib/contas/formato";
+import { useLinkPdfConta } from "@/lib/contas/hooks";
+import { Button } from "@/components/ui/button";
 import { linhaHistorico, type Trecho } from "@/lib/contas/historico";
 import { ContaFolha } from "./conta-folha";
 import { CopiarCodigo } from "./copiar-codigo";
@@ -29,6 +31,7 @@ type Props = {
 export function ContaDetalhe({ conta, voltar }: Props) {
   const [editando, setEditando] = useState(false);
   const [edicao, setEdicao] = useState(0); // fresh form state on every opening, kept mounted to return focus
+  const pdf = useLinkPdfConta();
   const [inteiro, centavos] = partesReais(conta.valor_centavos);
   const st = conta.status_exibido;
   const aberta = conta.status !== "cancelada" && conta.status !== "paga" && conta.status !== "confirmada";
@@ -71,6 +74,7 @@ export function ContaDetalhe({ conta, voltar }: Props) {
         <Nome>{conta.criador.sou_eu ? "Você" : conta.criador.nome}</Nome>, {dia(conta.criado_em)}
       </span>,
     ],
+    ...(instrumento?.data_emissao ? [["calendario", "Emissão", dataCivil(instrumento.data_emissao)] as [IconName, string, ReactNode]] : []),
   ];
 
   return (
@@ -117,6 +121,23 @@ export function ContaDetalhe({ conta, voltar }: Props) {
             <p className={instrumentoStyles.texto}>{codigo}</p>
             {instrumento.beneficiario && <p className={instrumentoStyles.nota}>Beneficiário informado: <Nome>{instrumento.beneficiario}</Nome></p>}
             <CopiarCodigo key={codigo} codigo={codigo} chave={!!instrumento.chave_pix} />
+          </section>
+        )}
+
+        {conta.documento_pdf && (
+          <section className={instrumentoStyles.codigo} aria-label="PDF do boleto">
+            <h2 className={instrumentoStyles.titulo}><Icon name="pdf" size="md" /> PDF do boleto</h2>
+            <p className={instrumentoStyles.texto}>{conta.documento_pdf.nome}</p>
+            <Button tone="secondary" icon="baixar" label={pdf.isPending ? "Preparando…" : "Baixar PDF"} disabled={pdf.isPending} onClick={() => {
+              pdf.mutate(conta.id, { onSuccess: ({ url }) => {
+                const link = document.createElement("a");
+                link.href = url;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                link.click();
+              } });
+            }} />
+            {pdf.error && <p role="alert">Não foi possível abrir o PDF. Tente novamente.</p>}
           </section>
         )}
 

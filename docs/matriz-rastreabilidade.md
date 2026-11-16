@@ -121,6 +121,19 @@ Casos de uso: CU05 = RF10 e RF11 (só o manual); CU06 = RF13; CU07 = RF12 (teste
 | CA36 · grupo → restrita × desligamento | `test_rn32_concorrencia_grupo_para_restrita_e_saida` (saída e remoção) |
 | CA37 · detalhe e resposta de edição consistentes | `test_rn06_detalhe_revalida_acesso_na_consulta_que_carrega_dados`, `test_rn06_detalhe_mantem_snapshot_ate_prefetch_e_historico`, `test_rn06_detalhe_espera_edicao_e_rele_acesso_em_snapshot_novo`, `test_rn06_resposta_propria_edicao_nao_le_edicao_alheia_posterior` |
 
+## Rastreabilidade da Etapa 06
+
+| Critérios / regras | Testes |
+| --- | --- |
+| CA01–03, RN25/RNF06 · recepção, spool e processo | `test_rnf06_upload_spool_sem_s3`, `test_rn25_upload_limite_e_formato`, `test_rnf06_processo_isolado_timeout` (`api/tests/test_pdf_api.py`); `test_rn25_limites_e_pdf_falso`, `test_rn25_catalogo_sem_arvore_de_paginas_e_invalido` (`api/tests/test_pdf_extrator.py`) |
+| CA04–07, RN26–RN28 · extração, precedência e conferência | `test_rn26_rn27_pdf_extrai_linha_metadados_e_repeticao`, `test_rn27_rn28_codigo_prevalece`, `test_rn26_multiplos_codigos_exigem_escolha_sem_metadados_desvinculados`, `test_rn28_pdf_sem_texto_ou_codigo_invalido`, `test_rn26_texto_excessivo_ou_inseguro`, `test_rn26_pdf_logs_sanitizados_e_configuracao_restaurada` (`api/tests/test_pdf_extrator.py`); `test_rn27_pdf_codigo_nao_pode_ser_ignorado`, `test_rn27_pdf_recusa_codigo_de_outra_cobranca` (`api/tests/test_pdf_api.py`); E2E `rf23/rn26/rn27/rn29…`, `rn28/rn29…`, `rn06/rn27…` (`web/e2e/pdf.spec.ts`) |
+| CA08–12, RN01/RN02/RN06/RN22/RN29 · acesso e vínculo | `test_rn01_rn06_draft_privado_e_vinculo`, `test_rnf01_upload_exige_csrf`, `test_rnf07_tentativa_antiga_nao_apaga_documento_vivo` (`api/tests/test_pdf_api.py`); E2E `rf23/rn26/rn27/rn29…` (download Silo assinado e sem assinatura), `rn28/rn29…` (manual), `rn06/rn27…` (acesso após remoção) |
+| CA13 · conferência responsiva | E2E `web/e2e/pdf.spec.ts` nos projetos mobile e desktop, capturas de arquivo, conferência, detalhe e múltiplos; inspeção com Chromium headed comprovou renderização nativa e alternativa em nova aba nas duas larguras, enquanto imagens headless não comprovam renderização |
+| Segurança, expiração e recuperação | `test_rn01_rn06_rn29_rotas_negam_outro_usuario_e_draft_expirado`, `test_rn06_vinculo_sem_backdoor_apos_uploader_perder_acesso`, `test_rn29_rollback_preserva_arquivo_e_limpeza_e_recupera_falha`, `test_rnf06_limites_reais_subprocesso`, `test_rn01_upload_revalida_permissao_apos_desligamento_concorrente` (`api/tests/test_pdf_api.py`) |
+| RN22 · histórico de metadados | `test_rn22_pdf_patch_identico_e_valor_normalizado_nao_gera_historico`, `test_rn22_metadados_pdf_alterados_geram_um_historico_sem_texto`, `test_rn22_metadado_ignorado_por_beneficiario_pix_nao_gera_historico` (`api/tests/test_pdf_api.py`) |
+
+Validação em 16/11/2026: `make types` duas vezes sem diferenças, `make test` com 390 pytest e 89 Vitest, e `make lint` passaram. Após correção de foco e tamanho do alvo de arquivo, foco pertinente passou (3 testes, 1 skip por projeto) e `make e2e` integral passou (97 testes, 3 skips por projeto). A prova Silo real de assinatura/expiração e a inspeção headed estão detalhadas no relatório da etapa.
+
 ## Rastreabilidade da Etapa 05
 
 | Critérios / regras | Testes |

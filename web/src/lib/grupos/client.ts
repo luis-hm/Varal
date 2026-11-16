@@ -48,13 +48,13 @@ export async function call<T>(path: string, method = "GET", body?: unknown): Pro
     if (!csrfToken()) await getAuthConfig();
     headers["X-CSRFToken"] = csrfToken();
   }
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (body !== undefined && !(body instanceof FormData)) headers["Content-Type"] = "application/json";
   const response = await fetch(`/api/${path}`, {
     method,
     headers,
     credentials: "same-origin",
     cache: "no-store",
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...(body !== undefined ? { body: body instanceof FormData ? body : JSON.stringify(body) } : {}),
   });
   const data: unknown = response.status === 204 ? null : await response.json().catch(() => null);
   if (!response.ok) {

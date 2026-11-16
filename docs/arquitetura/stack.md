@@ -26,8 +26,8 @@ varal/
 ├── docs/             # este documento, ADRs
 ├── Makefile          # make dev, make types, make test
 └── .github/workflows/
-    ├── api.yml       # roda só se api/** mudar
-    └── web.yml       # web/**; api/** também dispara E2E integrado
+    ├── api.yml       # api, tipos, infra e Makefile
+    └── web.yml       # web, api, infra e Makefile; E2E integrado
 ```
 
 - `make types` gera os tipos do front a partir do OpenAPI; o CI falha se o tipo gerado diferir do commitado.
@@ -47,7 +47,7 @@ varal/
 | Playwright (`@playwright/test`, Chromium) | 1.65.0 | `web/package.json`, `web/playwright.config.ts`, `make e2e` |
 | Lint | ruff (api), ESLint + `tsc` (web) | `make lint` |
 
-Entram nas suas etapas: pdfplumber e `django-storages` com endpoint, bucket e chaves do `.env` (06), Web Push (09). Allauth headless já integrado na Etapa 02.
+PDF textual usa pdfplumber e `django-storages`/S3; Web Push entra na 09. Allauth headless já integrado na Etapa 02.
 
 ## Serviços e portas (dev)
 
@@ -57,13 +57,15 @@ Entram nas suas etapas: pdfplumber e `django-storages` com endpoint, bucket e ch
 | api | 8000 | `/api/health/`, `/api/me/`, `/api/auth/browser/v1/…`, `/api/schema/`, `/api/docs/`, `/admin/` e callback OAuth; roda `migrate` ao subir |
 | worker / beat | — | `celery -A config worker` / `beat` |
 | postgres / redis | internas | |
-| minio | 9000 / 9001 | `pgsty/silo` com tag fixa, só local ([ADR 0002](adr/0002-armazenamento-s3-local.md)); profile `storage` até ser executado e verificado |
+| minio | 9000 / 9001 | `pgsty/silo` com tag fixa, só local ([ADR 0002](adr/0002-armazenamento-s3-local.md)); iniciado por `make dev` e pronto antes de preparar bucket privado |
 
 ## Variáveis de ambiente
 
 Todas em `infra/.env` (não versionado), criado a partir de `infra/.env.example` pelo `make dev`.
 `DJANGO_DEBUG`, `DJANGO_SECRET_KEY` (obrigatória com debug desligado), `DJANGO_ALLOWED_HOSTS`, `POSTGRES_*`,
 `REDIS_URL`, `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`, `SEED_PASSWORD`. No web: `API_INTERNAL_URL`.
+
+PDF/S3: `S3_ENDPOINT_URL` (interno, `http://minio:9000` no Compose), `S3_PUBLIC_ENDPOINT_URL` (navegador, `http://localhost:9000`), `S3_BUCKET_NAME`, `S3_REGION_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` e `PDF_SPOOL_DIR`. Em desenvolvimento, credenciais AWS vazias usam `MINIO_ROOT_*`; fora de DEBUG use credenciais próprias. `storage-init` prepara o bucket privado idempotentemente após o healthcheck. API e worker compartilham o volume `pdfspool` em `/varal/staging`, não servido por HTTP; o arquivo é enviado ao S3 e analisado no worker. Links são assinados para o endpoint público, com validade de 60 segundos, sem reescrever o host. Estes valores são apenas de desenvolvimento, não uma configuração de produção.
 
 Autenticação: `FRONTEND_URL=http://localhost:3000`, `API_PUBLIC_URL=http://localhost:8000`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (vazios no exemplo). As duas credenciais são lidas em `SOCIALACCOUNT_PROVIDERS`, sem fonte no admin.
 

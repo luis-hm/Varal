@@ -14,6 +14,16 @@ export const useResumo = (espacoId: string | undefined) =>
 export const useConta = (id: string | undefined) =>
   useQuery({ queryKey: ["contas", "detalhe", id], queryFn: () => api.verConta(id!), enabled: !!id, retry });
 export const useLerInstrumento = () => useMutation({ mutationFn: api.lerInstrumento });
+export const useEnviarPdf = () => useMutation({ mutationFn: ({ espaco, arquivo, lancamentoId }: { espaco: string; arquivo: File; lancamentoId?: string }) => api.enviarPdf(espaco, arquivo, lancamentoId) });
+export const usePdf = (id: string | undefined) => useQuery({
+  queryKey: ["pdf", id],
+  queryFn: () => api.verPdf(id!),
+  enabled: !!id,
+  retry,
+  refetchInterval: (query) => ["pendente", "lendo"].includes(query.state.data?.estado ?? "") ? 1500 : false,
+});
+export const useLinkPdfConta = () => useMutation({ mutationFn: api.linkPdfConta });
+export const useLinkPdf = () => useMutation({ mutationFn: api.linkPdf });
 
 // Every bill query starts with ["contas"]: a write refreshes lists, totals and the open detail.
 export function useAcoesConta() {
