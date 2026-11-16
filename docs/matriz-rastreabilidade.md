@@ -121,6 +121,20 @@ Casos de uso: CU05 = RF10 e RF11 (só o manual); CU06 = RF13; CU07 = RF12 (teste
 | CA36 · grupo → restrita × desligamento | `test_rn32_concorrencia_grupo_para_restrita_e_saida` (saída e remoção) |
 | CA37 · detalhe e resposta de edição consistentes | `test_rn06_detalhe_revalida_acesso_na_consulta_que_carrega_dados`, `test_rn06_detalhe_mantem_snapshot_ate_prefetch_e_historico`, `test_rn06_detalhe_espera_edicao_e_rele_acesso_em_snapshot_novo`, `test_rn06_resposta_propria_edicao_nao_le_edicao_alheia_posterior` |
 
+## Rastreabilidade da Etapa 05
+
+| Critérios / regras | Testes |
+| --- | --- |
+| CA01–03, RN08–RN10 · boleto, arrecadação e ciclos | `test_rn08_bancario_formatado_e_mutacoes`, `test_rn10_arrecadacao_referencias`, `test_febraban_official_modulo_examples`, `test_rn09_fator_ciclos`, `test_rn09_fator_ausente_e_legado` (`api/tests/test_boletos_parser.py`); `test_rn09_salvar_fator_ambiguo_somente_datas_codificadas` (`api/tests/test_boletos_api.py`); E2E `rf08/rn09/rf14…` (`web/e2e/boletos.spec.ts`) |
+| CA04–07, RF09 · rejeição, Pix, rede e chave | `test_rn08_codigo_invalido`, `test_rf09_bcb_vetores_oficiais`, `test_rf09_valor_utf8_e_tlv_adversario`, `test_rf09_dinamico_ignora_valor_sem_acesso_rede`, `test_rf09_chave_pix`, `test_rf09_chave_invalida`, testes de TLV, chave canônica, valor e URL (`api/tests/test_boletos_parser.py`); `test_rf09_pix_estatico_valor_codificado_e_dinamico_ignorado`, `test_rf09_rn10_preview_campos_ausentes_permanecem_ausentes` (`api/tests/test_boletos_api.py`); Vitest `rn08…`, `rf09…` (`instrumento.test.tsx`); E2E `rf09/rf14/rn22…` |
+| CA08–10, RN01/RN02/RN05/RN06/RN09/RN11/RN22 · revalidação, permissão e histórico | `test_rn09_rn11_save_revalida_400_sem_gravacao_parcial`, `test_rn09_patch_instrumento_ausente_ainda_valida_valor_data`, `test_rn01_rn02_rn06_instrumento_herda_404_conta`, `test_rn05_instrumento_so_edita_quem_pode_editar_conta`, `test_rn22_editar_trocar_remover_preservar_e_noop_sem_payload_historico`, `test_rn06_detalhe_nao_entrega_instrumento_novo_apos_revogar_acesso` (`api/tests/test_boletos_api.py`) |
+| CA11 · manual legado | `test_rf10_manual_legada_sem_instrumento_e_null_noop` (`api/tests/test_boletos_api.py`), regressões de contas da Etapa 04 |
+| CA12–13, RF14 · cópia e interface responsiva | Vitest `rf14: copying preserves…`, `rf14: denied clipboard…` (`copiar-codigo.test.tsx`); E2E `rf08/rn09/rf14…`, `rf09/rf14/rn22…` (`web/e2e/boletos.spec.ts`): cópia, alternativa, dados, teclado, entrada longa e dimensões nas duas resoluções |
+| CA14, RNF01/RNF11/RNF12 · verificações e privacidade | `test_rnf01_preview_exige_csrf_da_sessao`, `test_rnf01_m5_instrumento_sem_admin_ou_exposicao_em_cascata`, `test_rf09_campos_textuais_rejeitam_nul_no_preview_e_save` (`api/tests/test_boletos_api.py`); suítes e determinismo registrados no relatório |
+| Integridade durante edição e gravação | Vitest `rn22: pending %s cannot reset or send twice…` (criação e edição) e `rf08/rn22: a remote instrument refetch cannot replace the preview of a dirty local entry` (`instrumento.test.tsx`) |
+
+Validação final em 16/11/2026: `make test` passou (354 pytest e 83 Vitest), `make lint` passou, duas execuções de `make types` preservaram os hashes e `make e2e` passou (91 Playwright, 3 ignorados por projeto). O teste de fator inclui aviso de data em formato brasileiro; capturas foram comparadas com os frames da etapa.
+
 ## Validação da Etapa 04
 
 Revisão final em 16/11/2026: `make test` passou (235 pytest e 73 Vitest), `make lint` passou, `make types` preservou os hashes do schema e dos tipos, e `make e2e` passou (87 Playwright, 3 ignorados por projeto). Uma execução anterior teve dois timeouts de 45 s no cenário ca07; o limite específico foi ampliado para 75 s pela duração do fluxo de quatro usuários e três contextos, preservando as asserções. As capturas e a comparação visual foram registradas no relatório da etapa.

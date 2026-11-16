@@ -17,6 +17,7 @@ const campos: Record<string, string> = {
   pagador: "quem paga",
   visibilidade: "quem vê",
   acesso: "quem mais vê",
+  instrumento: "forma de pagamento",
 };
 
 function valor(campo: string, v: unknown): Trecho[] {
@@ -26,13 +27,14 @@ function valor(campo: string, v: unknown): Trecho[] {
   if (campo === "valor_centavos") return [reais(Number(v))];
   if (campo === "vencimento") return [String(v).split("-").reverse().join("/")];
   if (campo === "visibilidade") return [v === "restrita" ? "só algumas pessoas" : "todo o grupo"];
+  if (campo === "instrumento") return [{ manual: "sem código", boleto_bancario: "boleto bancário", boleto_arrecadacao: "boleto de arrecadação", pix: "Pix" }[String(v)] ?? "código"];
   // People: "quem paga" and "quem mais vê" hold names.
   const pessoas = campo === "pagador" || campo === "acesso";
   return (Array.isArray(v) ? v : [v]).flatMap((x, i) => [...(i ? [", "] : []), pessoas ? nome(String(x)) : String(x)]);
 }
 
 function mudancas(dados: Historico["dados"]): Trecho[] {
-  return Object.entries(dados)
+  const camposAlterados = Object.entries(dados)
     .filter(([campo, par]) => campo in campos && Array.isArray(par) && par.length === 2)
     .flatMap(([campo, par], i) => [
       ...(i ? [" · "] : []),
@@ -41,6 +43,7 @@ function mudancas(dados: Historico["dados"]): Trecho[] {
       " → ",
       ...valor(campo, (par as unknown[])[1]),
     ]);
+  return [...camposAlterados, ...(dados.codigo_alterado ? [...(camposAlterados.length ? [" · "] : []), "código de pagamento atualizado"] : [])];
 }
 
 /** [bold part, detail] of one history line. */

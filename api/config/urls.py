@@ -13,6 +13,7 @@ urlpatterns = [
     path("api/me/", me, name="me"),
     path("api/", include("apps.espacos.urls")),
     path("api/", include("apps.lancamentos.urls")),
+    path("api/", include("apps.boletos.urls")),
     path("api/auth/", include("allauth.headless.urls")),
     path("accounts/google/login/callback/", callback, name="google_callback"),
     path("accounts/", include("allauth.urls")),

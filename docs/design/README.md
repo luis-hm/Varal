@@ -1,7 +1,7 @@
 # Design — canvas do Doop
 
 > **Contém:** onde está cada tela e componente no Doop, como lê-los, a regra responsiva e as telas e ícones da especificação.
-> **Origem:** canvas Doop `k0kB5dc-Vo` (autenticação relida em 13/11/2026), guia `varal-ui`, especificação seções 11–12, código das Etapas 01–04, decisões 27–30 e revisão delegada Q04-35–39 ([decisoes](../etapas/04-contas/decisoes.md)).
+> **Origem:** canvas Doop `k0kB5dc-Vo` (autenticação relida em 13/11/2026), guia `varal-ui`, especificação seções 11–12, código das Etapas 01–05 e decisões/revisões delegadas das etapas.
 
 ## Regras
 
@@ -120,6 +120,14 @@ Mesmas rotas nas duas larguras: `/` (02 ↔ D02), `/contas` (03 ↔ D03), `/cont
 - **Grupo:** HouseCard com total e "N contas"; "Configurações" (janela 1–7) só para admin; folha de saída barrada pela RN32 em `sair-do-grupo.tsx`; lista do pagador `contas-pagador.tsx` em `/grupos/[id]/simples`.
 - **Espaço atual:** cookie `espaco` (`web/src/lib/espaco.ts`); seletor no SideNav e no cabeçalho do Início mobile.
 - Diferenças em relação aos frames: [relatório da Etapa 04](../etapas/04-contas/relatorio.md#comparação-com-o-doop-ca29). Canvas não alterado.
+
+### Boleto e Pix implementados (Etapa 05)
+
+`conta-folha.tsx` estende o formulário existente, referenciado em 05/M01 e 06/M02, sem criar outra rota. "Como cadastrar" oferece Digitar conta, Colar código e Chave Pix; o espaço atual continua primeiro. Código inválido permanece no campo; preview preenche dados e mostra avisos. Valor codificado é somente leitura; fator bancário ambíguo oferece as duas datas em escolha explícita. Pix sem valor/data exige preenchimento, sem reaproveitar valor de entrada anterior. Resposta atrasada do preview não sobrescreve uma mudança posterior para manual; refetch remoto não substitui entrada/conferência da sessão local (CA16). Durante gravação, campos, modo, leitura, fechamento e reenvio ficam protegidos, inclusive antes do próximo render (CA15).
+
+`conta-detalhe.tsx` acrescenta bloco de linha digitável/Pix/chave, beneficiário quando disponível e `copiar-codigo.tsx` (07/D03). Copia dígitos normalizados do boleto, BR Code integral ou chave normalizada, anuncia sucesso e oferece textarea selecionada/focada se o clipboard falhar. Manual não exibe cópia fictícia. A ação copia dados: não inicia pagamento nem consulta URL Pix/DICT. O grupo de pagador recebe somente detalhes já autorizados; o modo simples completo continua na 10.
+
+Estilos em `instrumento.module.css`, com tokens existentes, textarea para código longo e rótulos acessíveis. PDF/prévia, emissão e pagamento permanecem ausentes até suas etapas. Leitura atual do Doop e comparação final em 390×844/1440×900 registradas no [relatório da 05](../etapas/05-boleto-pix/relatorio.md), com fixtures sintéticas e inspeção visual sem pixel a pixel. Avisos exibem datas em dd/mm/aaaa; datas estruturadas da API continuam ISO. O canvas permanece preservado.
 
 ### Conta cancelada (D2)
 

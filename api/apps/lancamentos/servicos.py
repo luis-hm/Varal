@@ -5,6 +5,7 @@ from django.db import transaction
 from django.db.models import Exists, OuterRef
 from rest_framework.exceptions import ValidationError
 
+from apps.boletos import servicos as instrumentos
 from apps.espacos.acesso import espaco_ou_404, lancamento_ou_404, lancamentos_visiveis, quem_ve
 from apps.espacos.models import Espaco, Membro, Papel, Subgrupo
 from apps.espacos.servicos import Conflito, _admins_travados
@@ -127,11 +128,14 @@ def criar(usuario, espaco, dados):
         else:
             list(Espaco.objects.select_for_update().filter(pk=espaco.pk).values("pk"))
         espaco = espaco_ou_404(usuario, espaco.pk, "criar_conta")
+        dados = dict(dados)
+        instrumento = instrumentos.preparar(dados)
         dados = validar(espaco, dados)
         acesso = dados.pop("acesso", set())
         conta = Lancamento.objects.create(espaco=espaco, criador=usuario, **dados)
         conta.acesso.set(acesso)
-        _historico(conta, usuario, Acao.CRIADA)
+        instrumentos.aplicar(conta, instrumento)
+        _historico(conta, usuario, Acao.CRIADA, instrumento.historico)
     return conta
 
 
@@ -152,8 +156,10 @@ def editar(usuario, conta_id, dados):
         conta = lancamento_ou_404(usuario, conta_id, "editar_conta", travar=True)
         if conta.status == Status.CANCELADA:
             raise Conflito("Conta cancelada não pode ser editada.")
+        dados = dict(dados)
+        instrumento = instrumentos.preparar(dados, conta)
         dados = validar(conta.espaco, dados, conta)
-        mudancas = {}
+        mudancas = instrumento.historico
         for campo in CAMPOS:
             if campo in dados and getattr(conta, campo) != dados[campo]:
                 chave = campo.removesuffix("_id")
@@ -167,6 +173,9 @@ def editar(usuario, conta_id, dados):
             if antes != dados["acesso"]:
                 mudancas["acesso"] = [_ids(antes), _ids(dados["acesso"])]
                 conta.acesso.set(dados["acesso"])
+        if conta.status == Status.AGUARDANDO and instrumento.dados is not None:
+            mudancas["status"] = [Status.AGUARDANDO, Status.PENDENTE]
+            conta.status = Status.PENDENTE
         if not mudancas:
             return conta
         conta.save()
@@ -174,6 +183,7 @@ def editar(usuario, conta_id, dados):
         abertas_restrita = conta.status in ABERTOS and conta.visibilidade == Visibilidade.RESTRITA
         if abertas_restrita and not quem_ve(conta):
             raise ValidationError({"acesso": [SO_VOCE_VE]})
+        instrumentos.aplicar(conta, instrumento)
         _historico(conta, usuario, Acao.EDITADA, mudancas)
     return conta
 
