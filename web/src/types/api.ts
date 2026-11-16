@@ -1377,6 +1377,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/boletos/ler/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Conferir boleto/Pix sem gravar; não consulta URL nem titularidade (RF08/RF09) */
+        post: operations["boletos_ler"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/convites/{token}/": {
         parameters: {
             query?: never;
@@ -2328,6 +2345,7 @@ export interface components {
             historico: components["schemas"]["Historico"][];
             /** Format: uuid */
             id: string;
+            readonly instrumento: components["schemas"]["Instrumento"] | null;
             readonly pagador: components["schemas"]["Pessoa"] | null;
             readonly pode_editar: boolean;
             /** @description Acesso efetivo da restrita: criador, pagador e escolhidos; vazio nas demais. */
@@ -2344,6 +2362,7 @@ export interface components {
             /** @description Quem vê (restrita) */
             acesso?: string[];
             descricao: string;
+            instrumento?: components["schemas"]["InstrumentoEntrada"] | null;
             /** Format: uuid */
             pagador?: string | null;
             /** Format: uuid */
@@ -2412,13 +2431,13 @@ export interface components {
             /** Format: uuid */
             readonly id: string;
             nome: string;
-            tipo: components["schemas"]["TipoEnum"];
+            tipo: components["schemas"]["TipoEspacoEnum"];
         };
         EspacoRef: {
             /** Format: uuid */
             id: string;
             nome: string;
-            tipo: components["schemas"]["TipoEnum"];
+            tipo: components["schemas"]["TipoEspacoEnum"];
         };
         GrupoDetalhe: {
             readonly casas: components["schemas"]["Casa"][];
@@ -2471,6 +2490,24 @@ export interface components {
          * @enum {string}
          */
         HistoricoAcaoEnum: "criada" | "editada" | "cancelada" | "pagador_removido" | "acesso_removido" | "cancelada_automaticamente" | "acesso_preservado";
+        Instrumento: {
+            beneficiario: string | null;
+            chave_pix: string | null;
+            codigo: string | null;
+            tipo: components["schemas"]["TipoInstrumentoEnum"];
+        };
+        InstrumentoEntrada: {
+            chave_pix?: string;
+            codigo?: string;
+        };
+        Leitura: {
+            avisos: string[];
+            instrumento: components["schemas"]["Instrumento"];
+            valor_centavos: number | null;
+            /** Format: date */
+            vencimento: string | null;
+            vencimentos_possiveis: string[];
+        };
         Lista: {
             contagens: components["schemas"]["Contagens"];
             itens: components["schemas"]["Conta"][];
@@ -2529,6 +2566,7 @@ export interface components {
             /** @description Quem vê (restrita) */
             acesso?: string[];
             descricao?: string;
+            instrumento?: components["schemas"]["InstrumentoEntrada"] | null;
             /** Format: uuid */
             pagador?: string | null;
             /** Format: uuid */
@@ -2617,7 +2655,14 @@ export interface components {
          *     * `grupo` - Grupo
          * @enum {string}
          */
-        TipoEnum: "pessoal" | "grupo";
+        TipoEspacoEnum: "pessoal" | "grupo";
+        /**
+         * @description * `boleto_bancario` - Boleto bancário
+         *     * `boleto_arrecadacao` - Boleto de arrecadação
+         *     * `pix` - Pix
+         * @enum {string}
+         */
+        TipoInstrumentoEnum: "boleto_bancario" | "boleto_arrecadacao" | "pix";
         /**
          * @description * `grupo` - Todo o grupo
          *     * `restrita` - Só algumas pessoas
@@ -3221,6 +3266,47 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    boletos_ler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["InstrumentoEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["InstrumentoEntrada"];
+                "multipart/form-data": components["schemas"]["InstrumentoEntrada"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Leitura"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
     convites_ver: {
         parameters: {
             query?: never;

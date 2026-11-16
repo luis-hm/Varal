@@ -11,8 +11,8 @@
 | 01 | Design system no código | concluída | `etapa/01-design-system` | 12/11/2026 | [relatorio](etapas/01-design-system/relatorio.md) |
 | 02 | Autenticação | concluída | `etapa/02-autenticacao` | 13/11/2026 | [relatorio](etapas/02-autenticacao/relatorio.md) |
 | 03 | Espaços e grupos | concluída | `etapa/03-espacos-grupos` | 15/11/2026 | [relatorio](etapas/03-espacos-grupos/relatorio.md) |
-| 04 | Contas (núcleo) | concluída; revisão delegada validada, pronta para merge local | `etapa/04-contas` | 15/11/2026 (inicial); revisão 16/11/2026 | [relatorio](etapas/04-contas/relatorio.md) |
-| 05 | Boleto e Pix | pendente | — | — | — |
+| 04 | Contas (núcleo) | concluída e integrada localmente à main (`fe48cbe`) | `etapa/04-contas` | 15/11/2026 (inicial); revisão 16/11/2026 | [relatorio](etapas/04-contas/relatorio.md) |
+| 05 | Boleto e Pix | concluída e validada, pronta para commit/merge local | `etapa/05-boleto-pix` | 16/11/2026 | [relatorio](etapas/05-boleto-pix/relatorio.md) |
 | 06 | PDF do boleto | pendente | — | — | — |
 | 07 | Pagamento | pendente | — | — | — |
 | 08 | Recorrência e agendador | pendente | — | — | — |
@@ -58,6 +58,23 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 ## Log
 
 Ordem cronológica inversa.
+
+### 16/11/2026 — Etapa 05 concluída
+
+- Parser bancário/arrecadação e Pix integrado a Instrumento (`boletos.0001_initial`), preview autenticado e criar/editar/detalhe da conta. Save revalida valor/data e conteúdo mesmo quando PATCH preserva instrumento; histórico registra só tipo e ocorrência de troca. Manual legado permanece sem relação.
+- Política de fator bancário explícita: sugestão do ciclo atual e alternativa legada, sem heurística por data atual; usuário escolhe uma data codificada. Pix preserva payload, não busca URL dinâmica/DICT nem executa pagamento. Valor estático zero é inválido; valor de QR dinâmico é ignorado e preenchido manualmente.
+- Interface entregue: entrada/conferência, campos codificados protegidos, data ambígua explícita e cópia com confirmação/fallback acessível. Backend direcionado: **143 verdes (54 API + 89 contas)**; parser puro atual: **65 verdes**, incluindo aviso RNF11; frontend pertinente: **27 verdes**. Essas contagens não são somadas à suíte integral.
+- **Validação integral final: 354 pytest, 83 Vitest e 91 E2E passaram; 3 skips previstos; lint verde e duas gerações de tipos sem diferenças.** Todos os comandos terminaram com exit 0 e estado final comprovado `passed`. Resultados parciais de tentativas anteriores sem resumo final, com causa indeterminada, não foram contabilizados como rodada verde.
+- Dois achados funcionais (controles/reset durante gravação e refetch substituindo conferência local) encerrados com três regressões e CA15/CA16; reauditoria de segurança sem bloqueantes. Aviso RNF11 corrigido para dd/mm/aaaa sem mudar datas do DTO; quatro novos E2E e capturas finais conferidos em mobile/desktop, com fixtures sintéticas e comparação visual sem pixel a pixel. Next da suíte encerrou sem processo próprio remanescente. [Relatório](etapas/05-boleto-pix/relatorio.md).
+- Conferência vigente de Ajustes: dono declarou no chat que não há pendentes; sem leitura/marcação pelo conector. P6 continua administrativa externa. Na 06, validar NUL/Unicode inválido no worker, pois a biblioteca pura poderá receber texto fora da proteção atual do DRF; saúde/autenticação S3 já verificadas, objeto e URL assinada ainda não.
+- Próximo passo autorizado: commit/merge local da 05 e abertura da 06; planejamento preparatório em `/tmp/varal-06/` não é implementação entregue. Sem push.
+
+### 16/11/2026 — Merge local da Etapa 04 e início da Etapa 05
+
+- Revisão 04 em `8a0ca04`; merge local `--no-ff` na `main` em `fe48cbe`, após 235 pytest, 73 Vitest e 87 E2E verdes (3 skips previstos), lint, tipos determinísticos, comparação visual e segurança sem bloqueantes. Sem push.
+- Criada `etapa/05-boleto-pix`. Spec, plano, tarefas, decisões e fontes em `docs/etapas/05-boleto-pix/`; execução autorizada pela delegação do dono para todas as etapas restantes. Conferência atual de Ajustes: declaração do dono de que não há pendentes, sem alegar leitura pelo conector.
+- Parser preparado isoladamente por `varal-boletos` (GPT-6.1 Terra), com 59 testes puros verdes e revisão `varal-seguranca` (GPT-6 Astra) sem bloqueantes no parser; persistência, permissões e interface ainda precisam de integração e validação na 05.
+- Política explícita de vencimentos antigo/atual e de Pix dinâmico em `decisoes.md`/`fontes.md`. P6 continua externa, sem categoria pelo ADR 0005. Próximo passo: integrar parser, instrumento e API, gerar tipos, integrar a interface e validar a fatia completa.
 
 ### 16/11/2026 — Revisão delegada da Etapa 04 concluída
 

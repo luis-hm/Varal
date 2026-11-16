@@ -1,7 +1,7 @@
 # API e OpenAPI
 
 > **Contém:** endpoints, sessão/CSRF e geração do contrato composto e dos tipos do frontend.
-> **Origem:** RNF12, seção 9 de `docs/especificacao-varal.md` e implementação das Etapas 00, 02, 03 e 04.
+> **Origem:** RNF12, seção 9 de `docs/especificacao-varal.md` e implementação das Etapas 00 e 02–05.
 
 ## Fluxo
 
@@ -87,6 +87,23 @@ Toda consulta passa pelo filtro central de `acesso.py`: `lancamentos_visiveis` d
 - `DELETE` e `PATCH /api/grupos/{id}/membros/{mid}/`: contrato e respostas **sem mudança**. A remoção cancela as órfãs (`cancelada_automaticamente`) e a troca para pagador preserva o acesso (`acesso_preservado`) sem sinal nenhum ao admin.
 
 **Admin do Django:** lançamentos e históricos continuam somente leitura e obedecem ao filtro central, inclusive para superusuário. A confirmação de exclusão de usuário omite a árvore/contagens de contas e históricos; o bloqueio RN32 usa mensagem genérica. Isso limita a aplicação administrativa, não o acesso direto do operador da infraestrutura ao banco.
+
+## Boleto e Pix (Etapa 05)
+
+| Método e rota | Permissão | Entrada / resultado |
+| --- | --- | --- |
+| `POST /api/boletos/ler/` | sessão autenticada e CSRF; nenhum acesso a contas | Exatamente um de `{codigo: string}` (até 4096 caracteres) ou `{chave_pix: string}` (até 77). Retorna `{instrumento: {tipo, codigo, chave_pix, beneficiario}, valor_centavos: int\|null, vencimento: date\|null, vencimentos_possiveis: date[], avisos: string[]}`. Preview sem gravação; inválido → 400; sem sessão/CSRF → 403 |
+| `POST /api/espacos/{id}/lancamentos/` | `criar_conta`, com as guardas da 04 | Além dos campos já obrigatórios da conta, aceita `instrumento: {codigo}` ou `{chave_pix}`, opcional/nulo. Revalida no backend e grava conta/instrumento/histórico atomicamente; ausente ou nulo = manual |
+| `PATCH /api/lancamentos/{id}/` | `editar_conta` | `instrumento` omitido preserva a relação; `{codigo}`/`{chave_pix}` troca e `null` remove explicitamente para manual. Mesmo omitido, instrumento persistido é revalidado contra valor/data finais. Conflito → 400 sem gravação parcial; troca/remoção em paga ou confirmada → 409 |
+| `GET /api/lancamentos/{id}/` e respostas de mutação | acesso autorizado à conta | `ContaDetalhe` acrescenta `instrumento: {tipo, codigo, chave_pix, beneficiario}\|null`. Tipo é `boleto_bancario\|boleto_arrecadacao\|pix`. Manual não tem relação e retorna `null` |
+
+O tipo é inferido pela leitura, não confiado à entrada. Não há rota de instrumento por id nem acesso próprio no Django admin; o acesso vem exclusivamente da conta e mantém as guardas de concorrência da 04. Código/chave não são enviados em listas/resumos nem registrados no histórico; a alteração registra apenas tipos antes/depois e `codigo_alterado: true`. Reenvio idêntico não duplica histórico. Conta aguardando com instrumento válido e dados completos passa a pendente na mesma transação; esta etapa não cria aguardando avulsa nem aceita PATCH livre de status.
+
+**Vencimento bancário (Q05-4):** fator 0000 não sugere data; 0001–0999 usa a base legada; 1000–9999 sugere o ciclo reiniciado em 22/02/2025 e também retorna a alternativa legada em `vencimentos_possiveis`. O usuário escolhe explicitamente uma data codificada; ao adicionar/trocar instrumento ambíguo, omitir a data dá 400. Não há escolha por proximidade com o relógio. Arrecadação/Pix/fator zero requerem data informada pelo usuário. Valor aplicável no código prevalece e conflito explícito é rejeitado; zero monetário do boleto significa ausência a preencher, não conta de valor zero. Avisos legíveis usam dd/mm/aaaa, enquanto campos de data do DTO mantêm ISO 8601.
+
+**Pix:** valida TLV/CRC por bytes UTF-8, preserva BR Code completo e não consulta URL dinâmica, DICT ou titularidade. Em QR estático, ID54 ausente pede valor; presente com zero é inválido. No dinâmico, ID54 e txid são ignorados e o valor é informado pelo usuário. Chave avulsa normaliza apresentação; a chave já embutida deve ser canônica para não reescrever o payload. Beneficiário extraído é dado declarado no código, não identidade verificada. [Fontes e limites](../etapas/05-boleto-pix/fontes.md).
+
+**Fronteira textual:** serializers HTTP rejeitam NUL antes da leitura/gravação. A biblioteca pura tem limite conhecido de NUL em campos textuais com CRC recalculado; a Etapa 06 deve validar NUL e Unicode inválido também no worker, que extrai dados fora do DRF. Não registrar o texto integral do PDF ou códigos em erros/logs.
 
 ## Autenticação (Etapa 02)
 

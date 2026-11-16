@@ -17,6 +17,7 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.boletos.serializers import InstrumentoEntradaSerializer, InstrumentoSerializer
 from apps.contas_usuario.models import Usuario
 from apps.espacos.acesso import (
     espaco_ou_404,
@@ -118,6 +119,7 @@ class HistoricoSerializer(serializers.Serializer):
 
 
 class ContaDetalheSerializer(ContaSerializer):
+    instrumento = InstrumentoSerializer(allow_null=True, read_only=True)
     criador = serializers.SerializerMethodField()
     acesso = serializers.SerializerMethodField()
     quem_ve = serializers.SerializerMethodField(
@@ -161,6 +163,7 @@ class CentavosField(serializers.IntegerField):
 
 
 class ContaEntradaSerializer(serializers.Serializer):
+    instrumento = InstrumentoEntradaSerializer(allow_null=True, required=False)
     descricao = serializers.CharField(max_length=150)
     valor_centavos = CentavosField(min_value=1, max_value=2_147_483_647)
     vencimento = serializers.DateField()
@@ -231,6 +234,7 @@ CONTA_EXEMPLO = {
 DETALHE_EXEMPLO = {
     **CONTA_EXEMPLO,
     "criador": {"nome": "Ana", "sou_eu": True},
+    "instrumento": None,
     "acesso": [{"id": OUTRA_ID, "nome": "Bia"}],
     "quem_ve": [{"id": PESSOA_ID, "nome": "Ana"}, {"id": OUTRA_ID, "nome": "Bia"}],
     "historico": [
@@ -335,6 +339,7 @@ def _detalhe(request, conta_id, espaco, codigo=status.HTTP_200_OK, apos_escrita=
         conta = (
             consulta.com_status(espaco.janela_alerta_dias)
             .select_related(*COM_DADOS, "criador")
+            .select_related("instrumento")
             .prefetch_related("acesso", "historico__usuario")
             .get(pk=conta_id)
         )

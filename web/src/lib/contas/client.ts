@@ -11,6 +11,8 @@ export type Resumo = S["Resumo"];
 export type StatusExibido = S["StatusExibidoEnum"];
 export type Filtros = NonNullable<operations["lancamentos_listar"]["parameters"]["query"]>;
 export type FiltroStatus = NonNullable<Filtros["status"]>;
+export type InstrumentoEntrada = S["InstrumentoEntrada"];
+export type Leitura = S["Leitura"];
 
 const e = (id: string, rest: string) => `espacos/${encodeURIComponent(id)}/${rest}`;
 const l = (id: string, rest = "") => `lancamentos/${encodeURIComponent(id)}/${rest}`;
@@ -24,3 +26,4 @@ export const criarConta = (espacoId: string, body: ContaEntrada) => call<ContaDe
 export const verConta = (id: string) => call<ContaDetalhe>(l(id));
 export const editarConta = (id: string, body: S["PatchedContaEntrada"]) => call<ContaDetalhe>(l(id), "PATCH", body);
 export const cancelarConta = (id: string) => call<ContaDetalhe>(l(id, "cancelar/"), "POST");
+export const lerInstrumento = (body: InstrumentoEntrada) => call<Leitura>("boletos/ler/", "POST", body);

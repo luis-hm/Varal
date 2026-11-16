@@ -16,10 +16,12 @@ type Props = {
   actions?: ReactNode;
   /** M05 is a fixed 560×480 window. */
   size?: "auto" | "convite";
+  /** A pending write must settle before the dialog can close or be submitted again. */
+  busy?: boolean;
   children: ReactNode;
 };
 
-export function Folha({ open, onClose, title, subtitle, actions, size = "auto", children }: Props) {
+export function Folha({ open, onClose, title, subtitle, actions, size = "auto", busy = false, children }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const opener = useRef<Element | null>(null);
   const titleId = useId();
@@ -41,7 +43,7 @@ export function Folha({ open, onClose, title, subtitle, actions, size = "auto", 
   }, [open]);
 
   // Every way out (Esc, backdrop, buttons) asks the parent; the effect above closes the dialog.
-  const handleClose = onClose;
+  const handleClose = () => { if (!busy) onClose(); };
 
   return (
     <dialog
@@ -58,7 +60,7 @@ export function Folha({ open, onClose, title, subtitle, actions, size = "auto", 
     >
       {open && (
         <div className={styles.inner}>
-          <button type="button" className={styles.handle} aria-label="Fechar" onClick={handleClose}>
+          <button type="button" className={styles.handle} aria-label="Fechar" onClick={handleClose} disabled={busy}>
             <span />
           </button>
           <header className={styles.head}>
@@ -66,14 +68,14 @@ export function Folha({ open, onClose, title, subtitle, actions, size = "auto", 
               <h2 id={titleId} className={styles.title}>{title}</h2>
               {subtitle && <p className={styles.sub}>{subtitle}</p>}
             </div>
-            <button type="button" className={styles.close} aria-label="Fechar" onClick={handleClose}>
+            <button type="button" className={styles.close} aria-label="Fechar" onClick={handleClose} disabled={busy}>
               <Icon name="fechar" size="md" />
             </button>
           </header>
           {children}
           {actions && (
             <div className={styles.actions}>
-              <Button tone="ghost" label="Cancelar" className={styles.cancel} onClick={handleClose} />
+              <Button tone="ghost" label="Cancelar" className={styles.cancel} onClick={handleClose} disabled={busy} />
               {actions}
             </div>
           )}
