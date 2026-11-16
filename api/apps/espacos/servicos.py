@@ -80,8 +80,10 @@ def _admins_travados(espaco_ids):
 
 def grupos_sem_outro_admin(usuario, travar=True):
     """RN04: groups where `usuario` is the only admin. `travar` needs a transaction."""
-    seus = Membro.objects.filter(usuario=usuario, papel=Papel.ADMIN).values("espaco_id")
+    seus = Membro.objects.filter(usuario=usuario).values("espaco_id")
     if travar:
+        # Account deletion must serialize with bill creation in every group, including
+        # groups where this person is a member/payer/chosen user rather than an admin.
         admins = _admins_travados(seus)
     else:
         admins = Membro.objects.filter(espaco_id__in=seus, papel=Papel.ADMIN).values_list(

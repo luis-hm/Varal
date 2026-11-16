@@ -420,6 +420,20 @@
   white-space: nowrap;
 }
 
+/* Q04-38: truncate a person's name, never the audience as a whole. */
+.pessoas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  column-gap: var(--spacing-1);
+}
+
+.pessoa {
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+}
+
 .historico {
   padding: var(--spacing-4);
 }

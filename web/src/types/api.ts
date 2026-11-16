@@ -2330,6 +2330,8 @@ export interface components {
             id: string;
             readonly pagador: components["schemas"]["Pessoa"] | null;
             readonly pode_editar: boolean;
+            /** @description Acesso efetivo da restrita: criador, pagador e escolhidos; vazio nas demais. */
+            readonly quem_ve: components["schemas"]["Ref"][];
             status: components["schemas"]["StatusEnum"];
             status_exibido: components["schemas"]["StatusExibidoEnum"];
             subgrupo: components["schemas"]["Ref"] | null;
@@ -2367,6 +2369,7 @@ export interface components {
             canceladas: number;
             pagas: number;
             todas: number;
+            /** @description Abertas vencidas pela data, inclusive aguardando */
             vencidas: number;
         };
         ConviteCriado: {
@@ -3303,7 +3306,7 @@ export interface operations {
                 mes?: string;
                 /** @description id de usuário ou `nenhum` */
                 pagador?: string;
-                /** @description padrão: todas */
+                /** @description Padrão: todas; vencidas inclui abertas aguardando pela data. */
                 status?: "a_pagar" | "canceladas" | "pagas" | "todas" | "vencidas";
                 /** @description casa */
                 subgrupo?: string;

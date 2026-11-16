@@ -44,6 +44,7 @@ test("ajuste 29: detail Quem paga, Quem vê, Criada por and history keep a long 
     ...conta,
     visibilidade: "restrita",
     acesso: [pessoa("u3")],
+    quem_ve: [pessoa("u2"), pessoa("u3"), pessoa("u4")],
     criador: pessoa("u4"),
     criado_em: "2026-11-01T12:00:00Z",
     pode_editar: false,
@@ -52,8 +53,11 @@ test("ajuste 29: detail Quem paga, Quem vê, Criada por and history keep a long 
   render(<ContaDetalhe conta={detalhe} voltar="/contas" />);
   const info = screen.getByRole("region", { name: "Informações" });
   cortado(within(info).getAllByTitle(EMAIL)[0], EMAIL); // Quem paga
-  cortado(within(info).getByTitle(`Só ${EMAIL}`), `Só ${EMAIL}`); // Quem vê
-  expect(within(info).getAllByTitle(EMAIL)).toHaveLength(2); // + Criada por (the date stays outside the cut)
+  const quemVe = within(info).getByText("Quem vê").parentElement!;
+  const nomes = within(quemVe).getAllByTitle(EMAIL);
+  expect(nomes).toHaveLength(3); // Q04-38: effective audience, including creator and payer, not only `acesso`.
+  for (const nome of nomes) cortado(nome, EMAIL);
+  expect(within(info).getAllByTitle(EMAIL)).toHaveLength(5); // payer + 3 viewers + creator; date stays outside the cut
   const historico = screen.getByRole("region", { name: "Histórico" });
   cortado(within(historico).getByTitle(EMAIL), EMAIL);
   expect(within(historico).getByRole("listitem").textContent).toContain(`${EMAIL} criou a conta`);

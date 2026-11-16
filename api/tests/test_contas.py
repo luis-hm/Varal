@@ -14,11 +14,11 @@ from django.db import IntegrityError, connection, transaction
 from django.db.migrations.executor import MigrationExecutor
 from django.test import RequestFactory
 from django.test.utils import CaptureQueriesContext
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
 from apps.contas_usuario.models import Usuario
 from apps.espacos import servicos as grupos
-from apps.espacos.acesso import quem_ve
+from apps.espacos.acesso import espaco_ou_404, lancamento_ou_404, quem_ve
 from apps.espacos.models import Espaco, Membro, Subgrupo
 from apps.lancamentos import servicos as contas
 from apps.lancamentos.models import Historico, Lancamento
@@ -746,9 +746,10 @@ def test_rn32_exclusao_usuario_admin_django(f):
     client = cliente(root)
     pagina = f"/admin/contas_usuario/usuario/{m.pk}/delete/"
     response = client.get(pagina)
-    assert (
-        response.status_code == 200 and "única pessoa que vê a conta" in response.content.decode()
-    )
+    assert response.status_code == 200
+    assert "O titular precisa resolver pendências" in response.content.decode()
+    assert orfa.descricao not in response.content.decode()
+    assert str(orfa.pk) not in response.content.decode()
     assert client.post(pagina, {"post": "yes"}).status_code == 200
     assert Usuario.objects.filter(pk=m.pk).exists()
     request = RequestFactory().post("/")
@@ -758,7 +759,7 @@ def test_rn32_exclusao_usuario_admin_django(f):
     model_admin.delete_model(request, m)  # race after the confirmation page
     model_admin.delete_queryset(request, Usuario.objects.filter(pk=m.pk))
     assert Usuario.objects.filter(pk=m.pk).exists()
-    assert "só você vê" in str(list(request._messages)[0])
+    assert "O titular precisa resolver pendências" in str(list(request._messages)[0])
     contas.cancelar(m, orfa.pk)
     assert client.post(pagina, {"post": "yes"}).status_code == 302
     assert not Usuario.objects.filter(pk=m.pk).exists()
@@ -1157,3 +1158,489 @@ def test_rn30_nome_por_contexto_membro_sem_nome_ex_membro(f):
     propria = nova(anonimo, Espaco.objects.get(dono=anonimo))
     body = cliente(anonimo).get(url(propria)).json()
     assert body["criador"]["nome"] == body["pagador"]["nome"] == "anonimo@example.com"
+
+
+# ---- Q04-35 / Q04-36 / Q04-38 / M2 / M5 ----------------------------------------------------
+
+
+def test_rn12_rf13_vencidas_abertas_por_data_sem_mudar_selo(f, relogio):
+    a = f.u["admin"]
+    vencidas = [nova(a, f.grupo, vencimento=dias(-1)) for _ in range(2)]
+    Lancamento.objects.filter(pk=vencidas[1].pk).update(status="aguardando")
+    hoje = nova(a, f.grupo, vencimento=HOJE)
+    Lancamento.objects.filter(pk=hoje.pk).update(status="aguardando")
+    for status_ in ("paga", "confirmada", "cancelada"):
+        outra = nova(a, f.grupo, vencimento=dias(-1))
+        Lancamento.objects.filter(pk=outra.pk).update(status=status_)
+    restrita(f.u["membro"], f.grupo, vencimento=dias(-1))
+    client = cliente(a)
+    body = lista(client, f.grupo, status="vencidas")
+    assert body["contagens"]["vencidas"] == resumo(client, f.grupo)["vencidas_qtd"] == 2
+    assert ids(body["itens"]) == {str(c.pk) for c in vencidas}
+    assert {c["status_exibido"] for c in body["itens"]} == {"vencida", "aguardando"}
+    assert Lancamento.objects.get(pk=vencidas[1].pk).status == "aguardando"
+    relogio.base += timedelta(days=1)
+    body = lista(client, f.grupo, status="vencidas")
+    assert body["contagens"]["vencidas"] == resumo(client, f.grupo)["vencidas_qtd"] == 3
+    assert str(hoje.pk) in ids(body["itens"])
+
+
+@pytest.mark.parametrize("travar", [False, True])
+def test_rn06_rnf01_404_mesmas_consultas_inexistente_e_invisivel(f, travar):
+    escondida = restrita(f.u["membro"], f.grupo)
+    pessoal = nova(f.u["membro"], f.pessoal["membro"])
+    outro = grupos.criar_grupo(f.u["fora"], "Outro", [])
+    alheia = nova(f.u["fora"], outro)
+    consultas = []
+    for conta_id in (uuid.uuid4(), escondida.pk, pessoal.pk, alheia.pk):
+        with transaction.atomic(), CaptureQueriesContext(connection) as capturadas:
+            with pytest.raises(NotFound):
+                lancamento_ou_404(f.u["admin"], conta_id, travar=travar)
+        consultas.append(
+            [
+                q["sql"].replace(str(conta_id), "ID").replace(conta_id.hex, "ID")
+                for q in capturadas.captured_queries
+            ]
+        )
+    assert all(sql == consultas[0] for sql in consultas)
+    assert len(consultas[0]) == (2 if travar else 1)
+
+
+def test_rn06_quem_ve_inclui_criador_pagador_escolhidos_sem_duplicar(f):
+    m, p, o = (f.u[q] for q in ("membro", "pagador", "observador"))
+    conta = restrita(m, f.grupo, acesso=[m.pk, o.pk], pagador=p.pk)
+    body = cliente(p).get(url(conta)).json()
+    assert ids(body["quem_ve"]) == {str(u.pk) for u in (m, p, o)}
+    assert len(body["quem_ve"]) == 3
+    assert ids(body["acesso"]) == {str(m.pk), str(o.pk)}  # editable choices stay separate
+    grupos.sair(o, f.grupo)
+    body = cliente(p).get(url(conta)).json()
+    assert ids(body["quem_ve"]) == {str(m.pk), str(p.pk)}
+    publica = nova(m, f.grupo, pagador=p.pk)
+    assert cliente(p).get(url(publica)).json()["quem_ve"] == []
+    propria = nova(m, f.pessoal["membro"])
+    assert cliente(m).get(url(propria)).json()["quem_ve"] == []
+
+
+def test_rn06_rn30_pagador_nome_email_so_de_quem_ve_conta_e_candidatos_saida(f):
+    m, p = f.u["membro"], f.u["pagador"]
+    Usuario.objects.filter(pk=m.pk).update(nome="")
+    conta = restrita(m, f.grupo, pagador=p.pk)
+    body = cliente(p).get(url(conta)).json()
+    assert body["criador"]["nome"] == m.email
+    assert {u["nome"] for u in body["quem_ve"]} == {m.email, p.nome}
+    assert f.u["admin"].email not in str(body)
+    assert f.u["observador"].email not in str(body)
+    grupos.sair(m, f.grupo)
+    body = cliente(p).get(url(conta)).json()
+    assert body["criador"]["nome"] == "Ex-membro"
+    assert m.email not in str(body)
+    assert ids(body["quem_ve"]) == {str(p.pk)}
+    Usuario.objects.filter(pk=f.u["admin"].pk).update(nome="")
+    response = sair(p, f)
+    assert response.status_code == 409
+    assert {u["id"] for u in response.json()["pessoas"]} == {
+        str(f.u[q].pk) for q in ("admin", "observador")
+    }
+    assert f.u["admin"].email in str(response.json()["pessoas"])
+    assert m.email not in str(response.json())
+
+
+def test_rn02_rn06_admin_django_filtra_contas_historicos_e_links(f):
+    root = Usuario.objects.create_superuser("root", "root@example.com", None)
+    Membro.objects.create(espaco=f.grupo, usuario=root, papel="admin")
+    escondidas = [
+        restrita(f.u["membro"], f.grupo, descricao="Segredo restrito"),
+        nova(f.u["membro"], f.pessoal["membro"], descricao="Segredo pessoal"),
+    ]
+    visiveis = [
+        nova(f.u["membro"], f.grupo, descricao="Visível grupo"),
+        restrita(f.u["membro"], f.grupo, acesso=[root.pk], descricao="Escolhida"),
+        nova(root, Espaco.objects.get(dono=root), descricao="Pessoal do operador"),
+    ]
+    request = RequestFactory().get("/admin/")
+    request.user = root
+    conta_admin = admin.site._registry[Lancamento]
+    hist_admin = admin.site._registry[Historico]
+    assert set(conta_admin.get_queryset(request).values_list("pk", flat=True)) == {
+        c.pk for c in visiveis
+    }
+    assert set(hist_admin.get_queryset(request).values_list("lancamento_id", flat=True)) == {
+        c.pk for c in visiveis
+    }
+    client = cliente(root)
+    for modelo, ocultos in (
+        ("lancamento", escondidas),
+        ("historico", [c.historico.get() for c in escondidas]),
+    ):
+        base = f"/admin/lancamentos/{modelo}/"
+        pagina = client.get(base)
+        assert pagina.status_code == 200
+        texto = pagina.content.decode()
+        for conta in escondidas:
+            assert conta.descricao not in texto
+            assert str(conta.pk) not in texto
+        for obj in ocultos:
+            assert client.get(f"{base}{obj.pk}/change/").status_code == 404
+        assert client.get(f"{base}{uuid.uuid4()}/change/").status_code == 404
+        assert not conta_admin.has_delete_permission(request)
+        assert not hist_admin.has_delete_permission(request)
+
+
+def test_rn02_rn06_admin_django_exclusao_sem_previa_contas_pessoais(f):
+    m = f.u["membro"]
+    secreta = nova(m, f.pessoal["membro"], descricao="Segredo cascata")
+    root = Usuario.objects.create_superuser("root", "root@example.com", None)
+    request = RequestFactory().get("/admin/")
+    request.user = root
+    model_admin = admin.site._registry[Usuario]
+    arvore, contagens, _, protegidos = model_admin.get_deleted_objects([m], request)
+    assert arvore == [str(m)]
+    assert contagens == {Usuario._meta.verbose_name_plural: 1}
+    assert not protegidos
+    pagina = cliente(root).get(f"/admin/contas_usuario/usuario/{m.pk}/delete/")
+    assert pagina.status_code == 200
+    assert secreta.descricao not in pagina.content.decode()
+    assert str(secreta.pk) not in pagina.content.decode()
+    assert str(secreta.historico.get().pk) not in pagina.content.decode()
+
+
+@pytest.mark.parametrize("mudanca", ["sair", "remover", "rebaixar"])
+def test_rn01_rn05_criar_revalida_vinculo_apos_autorizacao(f, mudanca):
+    m = f.u["membro"]
+    autorizado = espaco_ou_404(m, f.grupo.pk, "criar_conta")
+    if mudanca == "sair":
+        grupos.sair(m, f.grupo)
+    elif mudanca == "remover":
+        grupos.remover_membro(f.grupo, f.m["membro"].pk)
+    else:
+        grupos.alterar_papel(f.grupo, f.m["membro"].pk, "observador")
+    with pytest.raises((NotFound, PermissionDenied)) as exc:
+        contas.criar(m, autorizado, {**DADOS, "vencimento": HOJE})
+    assert getattr(exc.value, "status_code", None) == (403 if mudanca == "rebaixar" else 404)
+    assert not Lancamento.objects.exists()
+    assert not Historico.objects.exists()
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("modo", ["sair", "remover"])
+def test_rn32_concorrencia_grupo_para_restrita_e_saida(f, modo):
+    y, x = f.u["membro"], f.u["observador"]
+    criador = entrar(f, "criador")
+    conta = nova(criador, f.grupo)
+    grupos.sair(criador, f.grupo)
+    checado, segue, res = threading.Event(), threading.Event(), {}
+
+    def checar_segurando(c, sem=None):
+        resultado = quem_ve(c, sem)
+        if threading.current_thread().name == "editar_publica":
+            checado.set()
+            assert segue.wait(10)
+        return resultado
+
+    def rodar(nome, funcao):
+        try:
+            res[nome] = funcao()
+        except Exception as exc:  # noqa: BLE001 - collected for assertions
+            res[nome] = exc
+        finally:
+            connection.close()
+
+    editar = lambda: contas.editar(  # noqa: E731
+        y, conta.pk, {"visibilidade": "restrita", "acesso": [x.pk]}
+    )
+    if modo == "sair":
+        saida = lambda: grupos.sair(x, f.grupo)  # noqa: E731
+    else:
+        saida = lambda: grupos.remover_membro(f.grupo, f.m["observador"].pk)  # noqa: E731
+    with patch("apps.lancamentos.servicos.quem_ve", checar_segurando):
+        editor = threading.Thread(target=rodar, args=("editar", editar), name="editar_publica")
+        editor.start()
+        assert checado.wait(10)
+        saindo = threading.Thread(target=rodar, args=("saida", saida))
+        saindo.start()
+        saindo.join(1)
+        segue.set()
+        editor.join(10)
+        saindo.join(10)
+    assert not editor.is_alive() and not saindo.is_alive(), res
+    assert isinstance(res["editar"], Lancamento), res
+    if modo == "sair":
+        assert isinstance(res["saida"], grupos.ContaRestritaSemQuemVeja), res
+    else:
+        assert res["saida"] is None, res
+    conta.refresh_from_db()
+    assert conta.status == "cancelada" or quem_ve(conta), res
+
+
+def test_rn06_detalhe_revalida_acesso_na_consulta_que_carrega_dados(f):
+    from apps.lancamentos.views import _detalhe
+
+    leitor, autor = f.u["observador"], f.u["membro"]
+    conta = nova(autor, f.grupo)
+    autorizado = lancamento_ou_404(leitor, conta.pk)
+    contas.editar(
+        autor,
+        conta.pk,
+        {"visibilidade": "restrita", "descricao": "Dado sensível posterior", "acesso": []},
+    )
+    request = RequestFactory().get(url(conta))
+    request.user = leitor
+    with pytest.raises(NotFound):
+        _detalhe(request, conta.pk, autorizado.espaco)
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("alvo", ["criador", "pagador", "escolhido"])
+@pytest.mark.parametrize("modo", ["sair", "remover", "excluir"])
+def test_rn01_rn21_rn32_criacao_serializa_vinculos_com_desligamento(f, alvo, modo):
+    m = f.u["membro"]
+    pessoa = {"criador": m, "pagador": f.u["pagador"], "escolhido": f.u["observador"]}[alvo]
+    pessoa_id = pessoa.pk
+    dados = {**DADOS, "vencimento": HOJE, "visibilidade": "restrita"}
+    if alvo == "pagador":
+        dados["pagador"] = pessoa_id
+    if alvo == "escolhido":
+        dados["acesso"] = [pessoa_id]
+    validou, segue, res = threading.Event(), threading.Event(), {}
+    real = contas.validar
+
+    def validar_segurando(*args, **kwargs):
+        resultado = real(*args, **kwargs)
+        if threading.current_thread().name == "criacao":
+            validou.set()
+            assert segue.wait(10)
+        return resultado
+
+    def rodar(nome, funcao):
+        try:
+            res[nome] = funcao()
+        except Exception as exc:  # noqa: BLE001 - collected for assertions
+            res[nome] = exc
+        finally:
+            connection.close()
+
+    if modo == "sair":
+        desligar = lambda: grupos.sair(pessoa, f.grupo)  # noqa: E731
+    elif modo == "remover":
+        membro = Membro.objects.get(espaco=f.grupo, usuario=pessoa)
+        desligar = lambda: grupos.remover_membro(f.grupo, membro.pk)  # noqa: E731
+    else:
+        desligar = lambda: Usuario.objects.filter(pk=pessoa_id).delete()  # noqa: E731
+    with patch("apps.lancamentos.servicos.validar", validar_segurando):
+        criando = threading.Thread(
+            target=rodar,
+            args=("criar", lambda: contas.criar(m, f.grupo, dados)),
+            name="criacao",
+        )
+        criando.start()
+        assert validou.wait(10)
+        saindo = threading.Thread(target=rodar, args=("desligar", desligar))
+        saindo.start()
+        saindo.join(1)
+        segue.set()
+        criando.join(10)
+        saindo.join(10)
+    assert not criando.is_alive() and not saindo.is_alive(), res
+    assert isinstance(res["criar"], Lancamento), res
+    conta = Lancamento.objects.get(pk=res["criar"].pk)
+    if alvo == "criador":
+        if modo == "remover":
+            assert res["desligar"] is None and conta.status == "cancelada", res
+        else:
+            assert isinstance(res["desligar"], grupos.ContaRestritaSemQuemVeja), res
+            assert Membro.objects.filter(espaco=f.grupo, usuario_id=pessoa_id).exists()
+    else:
+        assert res["desligar"] is None or isinstance(res["desligar"], tuple), res
+        assert not Membro.objects.filter(espaco=f.grupo, usuario_id=pessoa_id).exists()
+        assert conta.pagador_id is None
+        assert not conta.acesso.filter(pk=pessoa_id).exists()
+    assert conta.status == "cancelada" or quem_ve(conta), res
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("status_", ["pendente", "paga", "confirmada"])
+def test_rn06_detalhe_mantem_snapshot_ate_prefetch_e_historico(f, status_):
+    from django.db.models.query import prefetch_related_objects
+
+    leitor, autor = f.u["observador"], f.u["membro"]
+    conta = nova(autor, f.grupo, descricao="Conteúdo autorizado")
+    Lancamento.objects.filter(pk=conta.pk).update(status=status_)
+    carregou, segue, res = threading.Event(), threading.Event(), {}
+
+    def prefetch_segurando(instancias, *lookups):
+        if threading.current_thread().name == "ler_detalhe" and any(
+            isinstance(obj, Lancamento) for obj in instancias
+        ):
+            carregou.set()
+            assert segue.wait(10)
+        return prefetch_related_objects(instancias, *lookups)
+
+    def rodar(nome, funcao):
+        try:
+            res[nome] = funcao()
+        except Exception as exc:  # noqa: BLE001 - collected for assertions
+            res[nome] = exc
+        finally:
+            connection.close()
+
+    client = cliente(leitor)
+    with patch("django.db.models.query.prefetch_related_objects", prefetch_segurando):
+        lendo = threading.Thread(
+            target=rodar, args=("ler", lambda: client.get(url(conta))), name="ler_detalhe"
+        )
+        lendo.start()
+        assert carregou.wait(10)
+        editando = threading.Thread(
+            target=rodar,
+            args=(
+                "editar",
+                lambda: contas.editar(
+                    autor,
+                    conta.pk,
+                    {"visibilidade": "restrita", "descricao": "Segredo posterior", "acesso": []},
+                ),
+            ),
+        )
+        editando.start()
+        editando.join(1)
+        segue.set()
+        lendo.join(10)
+        editando.join(10)
+    assert not lendo.is_alive() and not editando.is_alive(), res
+    assert isinstance(res["editar"], Lancamento), res
+    response = res["ler"]
+    assert response.status_code == 200
+    assert response.json()["descricao"] == "Conteúdo autorizado"
+    assert "Segredo posterior" not in response.content.decode()
+    assert client.get(url(conta)).status_code == 404
+
+
+@pytest.mark.django_db(transaction=True)
+def test_rn06_resposta_propria_edicao_nao_le_edicao_alheia_posterior(f):
+    from apps.lancamentos.views import _detalhe
+
+    criador = entrar(f, "criador")
+    outro = entrar(f, "outro")
+    conta = nova(criador, f.grupo)
+    grupos.sair(criador, f.grupo)
+    editou, segue, res = threading.Event(), threading.Event(), {}
+
+    def detalhe_segurando(*args, **kwargs):
+        if threading.current_thread().name == "editar_sair":
+            editou.set()
+            assert segue.wait(10)
+        return _detalhe(*args, **kwargs)
+
+    def rodar(nome, funcao):
+        try:
+            res[nome] = funcao()
+        except Exception as exc:  # noqa: BLE001 - collected for assertions
+            res[nome] = exc
+        finally:
+            connection.close()
+
+    client = cliente(f.u["membro"])
+    with patch("apps.lancamentos.views._detalhe", detalhe_segurando):
+        propria = threading.Thread(
+            target=rodar,
+            args=(
+                "propria",
+                lambda: client.patch(
+                    url(conta),
+                    {"visibilidade": "restrita", "acesso": [str(outro.pk)]},
+                    content_type=JSON,
+                ),
+            ),
+            name="editar_sair",
+        )
+        propria.start()
+        assert editou.wait(10)
+        alheia = threading.Thread(
+            target=rodar,
+            args=(
+                "alheia",
+                lambda: contas.editar(outro, conta.pk, {"descricao": "Segredo posterior"}),
+            ),
+        )
+        alheia.start()
+        alheia.join(1)
+        segue.set()
+        propria.join(10)
+        alheia.join(10)
+    assert not propria.is_alive() and not alheia.is_alive(), res
+    assert isinstance(res["alheia"], Lancamento), res
+    assert res["propria"].status_code == 200
+    assert res["propria"].json()["descricao"] == conta.descricao
+    assert "Segredo posterior" not in res["propria"].content.decode()
+    assert client.get(url(conta)).status_code == 404
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("status_", ["pendente", "paga"])
+def test_rn06_detalhe_espera_edicao_e_rele_acesso_em_snapshot_novo(f, status_):
+    autor, leitor = f.u["membro"], f.u["observador"]
+    conta = restrita(autor, f.grupo, acesso=[leitor.pk], descricao="Antes")
+    Lancamento.objects.filter(pk=conta.pk).update(status=status_)
+    editou, segue, pronto, res = threading.Event(), threading.Event(), threading.Event(), {}
+    real_historico = contas._historico
+
+    def historico_segurando(*args, **kwargs):
+        real_historico(*args, **kwargs)
+        if threading.current_thread().name == "editar_antes":
+            editou.set()
+            assert segue.wait(10)
+
+    def editar():
+        try:
+            res["editar"] = contas.editar(
+                autor, conta.pk, {"acesso": [], "descricao": "Segredo após revogar acesso"}
+            )
+        except Exception as exc:  # noqa: BLE001 - collected for assertions
+            res["editar"] = exc
+        finally:
+            connection.close()
+
+    client = cliente(leitor)
+
+    def ler():
+        try:
+            connection.ensure_connection()
+            res["pid"] = connection.connection.info.backend_pid
+            pronto.set()
+            res["ler"] = client.get(url(conta))
+        except Exception as exc:  # noqa: BLE001 - collected for assertions
+            res["ler"] = exc
+        finally:
+            connection.close()
+
+    with patch("apps.lancamentos.servicos._historico", historico_segurando):
+        editor = threading.Thread(target=editar, name="editar_antes")
+        editor.start()
+        assert editou.wait(10)
+        lendo = threading.Thread(target=ler)
+        lendo.start()
+        assert pronto.wait(10)
+        espera_trava = False
+        try:
+            # Observe the database wait rather than hoping the reader started its snapshot.
+            limite = time.monotonic() + 5
+            while time.monotonic() < limite:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT wait_event_type FROM pg_stat_activity WHERE pid = %s",
+                        [res["pid"]],
+                    )
+                    linha = cursor.fetchone()
+                if linha and linha[0] == "Lock":
+                    espera_trava = True
+                    break
+                time.sleep(0.01)
+        finally:
+            segue.set()
+            editor.join(10)
+            lendo.join(10)
+    assert espera_trava and not editor.is_alive() and not lendo.is_alive(), res
+    assert isinstance(res["editar"], Lancamento), res
+    assert res["ler"].status_code == 404
+    assert "Segredo após revogar acesso" not in res["ler"].content.decode()

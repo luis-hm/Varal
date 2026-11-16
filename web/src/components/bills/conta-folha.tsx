@@ -146,7 +146,7 @@ export function ContaFolha({ open, onClose, conta }: Props) {
             </span>
             <div className={styles.row}>
               {espacos.map((e) => (
-                <Chip key={e.id} label={e.nome} state={e.id === espaco.id ? "on" : "off"} onClick={() => trocarEspaco(e.id)} />
+                <Chip key={e.id} label={e.nome} wrap state={e.id === espaco.id ? "on" : "off"} onClick={() => trocarEspaco(e.id)} />
               ))}
             </div>
           </div>
@@ -166,7 +166,7 @@ export function ContaFolha({ open, onClose, conta }: Props) {
                 <Escolha titulo="Casa" erro={erros.casa}>
                   <Chip label="Sem casa" state={casa === null ? "on" : "off"} onClick={() => setCasa(null)} />
                   {casas.map((c) => (
-                    <Chip key={c.id} label={c.nome} state={casa === c.id ? "on" : "off"} onClick={() => setCasa(c.id)} />
+                    <Chip key={c.id} label={c.nome} wrap state={casa === c.id ? "on" : "off"} onClick={() => setCasa(c.id)} />
                   ))}
                 </Escolha>
               )}

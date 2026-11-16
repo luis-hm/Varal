@@ -58,7 +58,9 @@ O token de convite não aparece em log do Django nem do `next dev`; o access log
 
 ## Contas (Etapa 04)
 
-Toda consulta passa por `lancamentos_visiveis` (`acesso.py`): **404** para conta que o usuário não vê (inexistente, de outro espaço ou restrita sem acesso; nunca 403); **403** só se ele vê e o papel não tem `editar_conta`/`criar_conta` (RN05). Totais, contagens, `atencao`, `por_casa` e `opcoes` saem só do visível. Totais, `atencao` e `por_casa` nunca somam canceladas (D2); elas só entram em `contagens.canceladas` e em `status=canceladas`.
+Toda consulta passa pelo filtro central de `acesso.py`: `lancamentos_visiveis` dentro de um espaço e `lancamentos_do_usuario` no detalhe e no admin. Ambos usam as mesmas regras de papel e visibilidade. **404** para conta que o usuário não vê (inexistente, de outro espaço ou restrita sem acesso; nunca 403); **403** só se ele vê e o papel não tem `editar_conta`/`criar_conta` (RN05). Inexistente e invisível percorrem o mesmo caminho estrutural de consultas, sem garantia de tempo constante. Totais, contagens, `atencao`, `por_casa` e `opcoes` saem só do visível. Totais, `atencao` e `por_casa` nunca somam canceladas (D2); elas só entram em `contagens.canceladas` e em `status=canceladas`.
+
+**Prazo e selo ([ADR 0009](../arquitetura/adr/0009-filtro-temporal-contas-abertas.md)):** `status=vencidas` e `contagens.vencidas` incluem abertas `pendente` ou `aguardando` com vencimento anterior a hoje em Fortaleza, dentro do mês/filtros da lista. O resumo usa esse mesmo critério temporal em `atencao`, que pode reunir vários meses. Aguardando mantém `status_exibido=aguardando`; só pendente recebe o selo calculado `vence`/`vencida`. A data é resolvida a cada requisição, inclusive após a virada do dia.
 
 | Método e rota | Permissão | Entrada / resultado |
 | --- | --- | --- |
@@ -70,17 +72,21 @@ Toda consulta passa por `lancamentos_visiveis` (`acesso.py`): **404** para conta
 | `POST /api/lancamentos/{id}/cancelar/` | `editar_conta` | → `ContaDetalhe`; 409 se não `aguardando`/`pendente` |
 
 - **Conta:** `id, espaco {id, nome, tipo}, descricao, valor_centavos, vencimento, status, status_exibido (+ vence, vencida), dias_para_vencer, subgrupo {id, nome}|null, pagador {id, nome, sou_eu}|null, visibilidade, criado_em`.
-- **ContaDetalhe:** Conta + `criador {nome, sou_eu}` ("Ex-membro" se excluído), `acesso [{id, nome}]`, `historico [{acao, automatica, autor, sou_eu, dados, criado_em}]`, `pode_editar`.
-- **Nomes:** em `pagador`, `criador`, `acesso` e `opcoes`, o nome ou, se vazio, o e-mail (regra do MembroSerializer). No `historico`, `autor` e as pessoas de `dados` vêm resolvidos dos ids gravados: nome, "Pessoa sem nome" ou "Ex-membro", **nunca e-mail**; ação automática tem `autor: null`. Ações em [modelo](../dados/modelo.md#implementação-da-etapa-04).
+- **ContaDetalhe:** Conta + `criador {nome, sou_eu}`, `acesso [{id, nome}]` (seleção editável), **`quem_ve [{id, nome}]`** (somente leitura: audiência efetiva da restrita pelo filtro RN06/RN07, considerando criador, pagador, escolhidos e papéis atuais, sem duplicatas; vazio nas demais contas), `historico [{acao, automatica, autor, sou_eu, dados, criado_em}]`, `pode_editar`.
+- **Nomes:** em `pagador`, `criador`, `acesso`, `quem_ve` e `opcoes`, membro atual aparece pelo nome ou, se vazio, pelo e-mail; quem saiu ou excluiu a conta aparece como "Ex-membro", nunca pelo e-mail. Vale também para o pagador que já pode ver a conta, sem criar uma listagem geral de membros para ele. No `historico`, `autor` e as pessoas de `dados` vêm resolvidos dos ids gravados: nome, "Pessoa sem nome" ou "Ex-membro", **nunca e-mail**; ação automática tem `autor: null`. Ações em [modelo](../dados/modelo.md#implementação-da-etapa-04).
+
+**Concorrência:** criar revalida vínculo e permissão sob travas compatíveis com saída, remoção, troca de papel e exclusão de usuário. Essas operações travam todas as contas abertas do grupo, inclusive as ainda públicas, antes de avaliar a RN32; uma conversão concorrente para restrita não pode deixá-la órfã. O detalhe trava a conta, consulta a autorização em novo comando e mantém a trava até carregar relações e serializar. POST/PATCH/cancelar mantêm a própria transação até construir a resposta; a exceção de responder a quem acabou de retirar seu próprio acesso reconhece somente a própria operação, sem reler edição posterior de outra pessoa.
 
 ### Saída e RN32 (Etapa 04)
 
 `POST /api/grupos/{id}/sair/` aceita corpo opcional `{resolucoes: [...]}` (no máximo 50; ADR 0007), cada item `{lancamento, acao: "acesso", usuarios: [id] (≤ 50)}` ou `{lancamento, acao: "cancelar"}`.
 
-- **409 `conta_restrita_orfa`:** a saída deixaria restrita aberta sem ninguém que a veja. Corpo `{detail, code, contas: [{id, descricao}], pessoas: [{id, nome}]}`; `pessoas` são quem pode passar a ver (admin, membro, observador), só com nome. Nada muda, nem as resoluções enviadas.
+- **409 `conta_restrita_orfa`:** a saída deixaria restrita aberta sem ninguém que a veja. Corpo `{detail, code, contas: [{id, descricao}], pessoas: [{id, nome}]}`; `pessoas` contém somente candidatos atuais elegíveis (admin, membro, observador), excluindo quem sai. `nome` segue a regra de nome/e-mail de membro atual, inclusive para saída do pagador; não é acesso permanente à lista do grupo. Nada muda, nem as resoluções enviadas.
 - **400:** resolução de conta que não bloqueia a saída, ou `usuarios` fora de admin/membro/observador do grupo.
 - Resoluções e saída na mesma transação; histórico com `motivo: "saida_rn32"`. Nenhum outro endpoint aceita `resolucoes`.
 - `DELETE` e `PATCH /api/grupos/{id}/membros/{mid}/`: contrato e respostas **sem mudança**. A remoção cancela as órfãs (`cancelada_automaticamente`) e a troca para pagador preserva o acesso (`acesso_preservado`) sem sinal nenhum ao admin.
+
+**Admin do Django:** lançamentos e históricos continuam somente leitura e obedecem ao filtro central, inclusive para superusuário. A confirmação de exclusão de usuário omite a árvore/contagens de contas e históricos; o bloqueio RN32 usa mensagem genérica. Isso limita a aplicação administrativa, não o acesso direto do operador da infraestrutura ao banco.
 
 ## Autenticação (Etapa 02)
 

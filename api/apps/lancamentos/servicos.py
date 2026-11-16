@@ -5,9 +5,9 @@ from django.db import transaction
 from django.db.models import Exists, OuterRef
 from rest_framework.exceptions import ValidationError
 
-from apps.espacos.acesso import lancamento_ou_404, lancamentos_visiveis, quem_ve
+from apps.espacos.acesso import espaco_ou_404, lancamento_ou_404, lancamentos_visiveis, quem_ve
 from apps.espacos.models import Espaco, Membro, Papel, Subgrupo
-from apps.espacos.servicos import Conflito
+from apps.espacos.servicos import Conflito, _admins_travados
 
 from .models import ABERTOS, Acao, Historico, Lancamento, Status, Visibilidade
 
@@ -114,6 +114,19 @@ def _historico(conta, usuario, acao, dados=None):
 
 def criar(usuario, espaco, dados):
     with transaction.atomic():
+        # The view's authorization may predate a departure, removal or role change. Freeze
+        # membership mutations in the same admins -> member order, then re-read permission.
+        # All candidate payers/chosen users are validated while this group's admins are held.
+        if espaco.tipo == Espaco.Tipo.GRUPO:
+            _admins_travados([espaco.pk])
+            list(
+                Membro.objects.select_for_update(of=("self",))
+                .filter(espaco=espaco, usuario=usuario)
+                .values_list("pk", flat=True)
+            )
+        else:
+            list(Espaco.objects.select_for_update().filter(pk=espaco.pk).values("pk"))
+        espaco = espaco_ou_404(usuario, espaco.pk, "criar_conta")
         dados = validar(espaco, dados)
         acesso = dados.pop("acesso", set())
         conta = Lancamento.objects.create(espaco=espaco, criador=usuario, **dados)
@@ -189,13 +202,13 @@ def _escolhido(usuario):
     )
 
 
-def travar_restritas(grupo):
-    """RN32: lock every open restricted bill of the group by pk, not only those the person sees
-    in this snapshot: an edit adding them to a bill holds its lock, so it commits first and the
-    next query sees it. Callers lock admins -> member before this; `editar` locks only the bill."""
+def travar_abertas(grupo):
+    """RN32: lock every open bill by pk, including those still public in this snapshot: an edit
+    may be making one restricted. The fresh orphan query sees that edit after acquiring its
+    lock. Callers lock admins -> member before this; `editar` locks only the bill."""
     list(
         Lancamento.objects.select_for_update()
-        .filter(espaco=grupo, visibilidade=Visibilidade.RESTRITA, status__in=ABERTOS)
+        .filter(espaco=grupo, status__in=ABERTOS)
         .order_by("pk")
         .values_list("pk", flat=True)
     )
@@ -205,7 +218,7 @@ def restritas_sem_quem_veja(grupo, usuario, travar=True):
     """RN32: open restricted bills `usuario` sees now that nobody would see without them (RN21
     applied). Locked by pk (fixed order) when `travar`; needs a transaction then."""
     if travar:
-        travar_restritas(grupo)
+        travar_abertas(grupo)
     contas = lancamentos_visiveis(usuario, grupo).filter(
         visibilidade=Visibilidade.RESTRITA, status__in=ABERTOS
     )
@@ -287,7 +300,7 @@ def desligar_das_contas(usuario, grupo):
 def preservar_acesso(grupo, usuario):
     """ADR 0008 (Q19a): before `usuario` becomes a payer, every open restricted bill only they
     see (and would stop seeing by RN07) gets their explicit access. Nothing tells the admin."""
-    travar_restritas(grupo)
+    travar_abertas(grupo)
     contas = (
         lancamentos_visiveis(usuario, grupo)
         .filter(visibilidade=Visibilidade.RESTRITA, status__in=ABERTOS)
