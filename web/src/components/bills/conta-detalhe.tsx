@@ -1,6 +1,6 @@
 // Doop: k0kB5dc-Vo / 07 · Detalhe da conta (efJzW9e5vx) + painel de D03 · Contas + Detalhe (cWdVUX2y8H);
-// CU06, CU07; RN06, RN22, RN30, D2. Not here until their stage: barcode, Copiar, PDF, Emissão, "Repete",
-// "Já paguei" and the reminder footer (05–09).
+// CU06, CU07, CU08; RF14, RN06, RN22, RN30, D2. PDF, Emissão, "Repete", "Já paguei" and reminders
+// stay in their stages (06–09).
 "use client";
 
 import Link from "next/link";
@@ -12,8 +12,10 @@ import type { ContaDetalhe as Detalhe } from "@/lib/contas/client";
 import { dia, diaSemana, partesReais, prazo, quando } from "@/lib/contas/formato";
 import { linhaHistorico, type Trecho } from "@/lib/contas/historico";
 import { ContaFolha } from "./conta-folha";
+import { CopiarCodigo } from "./copiar-codigo";
 import { StatusBadge } from "./status-badge";
 import styles from "./contas.module.css";
+import instrumentoStyles from "./instrumento.module.css";
 
 /** History text with each person's name on one line (ajuste 29); the rest of the line still wraps. */
 const trechos = (t: Trecho[]) => t.map((x, i) => (typeof x === "string" ? x : x.nome && <Nome key={i}>{x.nome}</Nome>));
@@ -31,6 +33,9 @@ export function ContaDetalhe({ conta, voltar }: Props) {
   const st = conta.status_exibido;
   const aberta = conta.status !== "cancelada" && conta.status !== "paga" && conta.status !== "confirmada";
   const podeEditar = conta.pode_editar && conta.status !== "cancelada";
+  const instrumento = conta.instrumento;
+  const codigo = instrumento?.codigo ?? instrumento?.chave_pix;
+  const rotuloCodigo = instrumento?.tipo === "pix" ? instrumento.chave_pix ? "Chave Pix" : "Pix copia e cola" : "Linha digitável";
   const editar = podeEditar ? (
     <button type="button" aria-label="Editar conta" onClick={() => {
         setEdicao((n) => n + 1);
@@ -89,7 +94,7 @@ export function ContaDetalhe({ conta, voltar }: Props) {
             <span className={styles.placa} data-status={st}>
               <i />
               <b>
-                <Icon name={conta.subgrupo ? "casa" : "manual"} />
+                <Icon name={conta.subgrupo ? "casa" : instrumento?.tipo === "pix" ? "pix" : codigo ? "boleto" : "manual"} />
               </b>
             </span>
           </div>
@@ -105,6 +110,15 @@ export function ContaDetalhe({ conta, voltar }: Props) {
             {aberta && ` · ${prazo(conta.dias_para_vencer)}`}
           </p>
         </section>
+
+        {instrumento && codigo && (
+          <section className={`${instrumentoStyles.codigo} ${styles.in} ${styles.d1}`} aria-label={rotuloCodigo}>
+            <h2 className={instrumentoStyles.titulo}><Icon name={instrumento.tipo === "pix" ? "pix" : "boleto"} size="sm" />{rotuloCodigo}</h2>
+            <p className={instrumentoStyles.texto}>{codigo}</p>
+            {instrumento.beneficiario && <p className={instrumentoStyles.nota}>Beneficiário informado: <Nome>{instrumento.beneficiario}</Nome></p>}
+            <CopiarCodigo key={codigo} codigo={codigo} chave={!!instrumento.chave_pix} />
+          </section>
+        )}
 
         <section className={`${styles.info} ${styles.in} ${styles.d1}`} aria-label="Informações">
           {linhas.map(([icon, rotulo, texto]) => (

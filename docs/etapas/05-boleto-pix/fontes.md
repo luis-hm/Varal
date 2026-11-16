@@ -1,0 +1,32 @@
+# Fontes, limites e contrato — Etapa 05
+
+> **Contém:** padrões consultados, limites do parser e política de ciclos do vencimento.
+> **Origem:** pesquisa dos agentes de boletos e orquestração na preparação da Etapa 05.
+
+## Fontes primárias consultadas
+
+- [FEBRABAN, Convenção da Cobrança, anexo V](https://cmsarquivos.febraban.org.br/Arquivos/documentos/PDF/Conven%C3%A7%C3%A3o%20da%20Cobran%C3%A7a%20-%2005_02_2021.pdf): composição da linha bancária, três DVs módulo 10, DV geral módulo 11, valor e fator.
+- [FEBRABAN, layout de arrecadação versão 8](https://cmsarquivos.febraban.org.br/Arquivos/documentos/PDF/Layout%20-%20C%C3%B3digo%20de%20Barras%20-%20Vers%C3%A3o%208%20-%2011_05_2026.pdf): referências 6/8 valor efetivo, 7/9 referência, módulos, quatro blocos e DV geral; exemplos de cálculo 01230067896 = DV3 módulo10 e DV0 módulo11 reproduzidos no teste.
+- [BCB, Manual de Padrões para Iniciação do Pix, v2.10](https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/II_ManualdePadroesparaIniciacaodoPix.pdf): seções 2.5–2.7, GUI, campos, exemplos estático CRC 1D3D e dinâmico CRC 64E4; 2.5.1 apresenta chave CNPJ alfanumérica `12ABC34501DE35`.
+- [BCB, documentação pública API DICT](https://github.com/bacen/pix-dict-api/blob/master/openapi/openapi.yaml): tabela descreve chave CNPJ numérica e e-mail com limite 77; diverge do manual BCB v2.10, mais recente em relação à extensão alfanumérica. Não é consulta DICT; exemplo do manual é aceito com verificação de DV. O BCB também menciona cadastro de chaves alfanuméricas em ambiente de testes no [Comunicado 44.396](https://www.bcb.gov.br/estabilidadefinanceira/exibenormativo?numero=44396&tipo=Comunicado).
+
+- [Itaú BBA, manual de cobrança CNAB 240](https://download.itau.com.br/bankline/ItauBBA/Cobranca_240_ItauBBA.pdf), seção de fator de vencimento, p. 61: documenta o reinício em 22/02/2025 com fator 1000 e os incrementos diários seguintes.
+- [Banrisul, leiaute FEBRABAN 240, versão 10.3](https://www.banrisul.com.br/BOB/data/LeiauteBanrisulFebraban_pdr240_v103_09102024.pdf?cache=10), seção 7.1.2: confirma o fator 9999 em 21/02/2025 e o retorno a 1000 em 22/02/2025.
+
+A convenção FEBRABAN de 2021 fundamenta a composição dos campos. A confirmação específica do reinício vem dos manuais bancários oficiais acima, localizados pelo orquestrador; não atribuir essa confirmação à convenção antiga.
+
+## Q05-4 — decisão delegada
+
+`0000`: sem vencimento, lista vazia. `0001`–`0999`: data legada (base 1997-10-07). `1000`–`9999`: retorno padrão do ciclo novo a partir de 22/02/2025 e, simultaneamente, alternativa legada baseada em 1997-10-07. Não há relógio ou aproximação pela data atual. Emissão/data não estão no código para distinguir os ciclos. Mostrar aviso; na gravação aceitar explicitamente somente uma data da lista, sem substituir silenciosamente escolha legada. Para fator zero, data é preenchida pelo usuário. Testes cobrem 0000, 0999, 1000, 1001, 9999.
+
+## API da biblioteca pura
+
+`ler(*, codigo: str | None = None, chave_pix: str | None = None) -> Resultado`. Exatamente um dos argumentos; erros `ErroValidacao(ValueError)` com mensagem legível. `Resultado` é dataclass imutável com `tipo` (`boleto_bancario`, `boleto_arrecadacao`, `pix`), `codigo`, `chave_pix`, `beneficiario` (`str | None`), `valor_centavos` (`int | None`), `vencimento` (`datetime.date | None`), `avisos` (`list[str]`), `vencimentos_possiveis` (`tuple[date, ...]`). Código boleto normalizado somente dígitos; Pix completo preservado; chave normalizada e exclusiva do código. No boleto, zero monetário equivale a ausência de valor. No Pix estático, ID54 presente com zero é inválido; ausente não impõe valor. No dinâmico, ID54 é ignorado, inclusive zero. Não extrai chave do BR Code para campo separado, pois instrumento deve preservar o payload completo. Não realiza acesso externo ou confirma titularidade; nome do payload não equivale a nome verificado.
+
+Entrada de código limitada a 4096 caracteres; boletos aceitam dígitos ASCII, ponto e espaços ASCII; caracteres diversos são rejeitados. Chaves usam CPF/CNPJ com DV, E.164, e-mail no formato suportado DICT, UUID textual. O endereço de e-mail normaliza minúsculas. Pix usa TLV por bytes, rejeita IDs duplicados, tamanhos inválidos, campos mínimos ausentes, país/moeda incorretos e CRC errado. GUI é comparado sem distinção de caixa; múltiplos destinatários Pix são rejeitados. Chave estática passa pela mesma validação da chave avulsa e precisa já estar na representação canônica exigida, sem normalizar o payload; txid estático admite `***` ou até 25 caracteres ASCII alfanuméricos. Location dinâmica exige host e caminho sintaticamente válidos, sem esquema, sem qualquer consulta de rede; esse filtro sintático conservador não prova que o endereço pertence a um PSP. Conforme seção 2.7 do manual BCB, valor e txid de BR Code dinâmico são ignorados: o resultado retorna valor ausente, para preenchimento manual. PDF e consulta de URL ou DICT estão fora deste módulo.
+
+Parser integrado em `api/apps/boletos/parser.py`, testes em `api/tests/test_boletos_parser.py`. Os vetores bancários/arrecadação são sintéticos gerados por implementação independente no teste; vetores Pix e cálculos FEBRABAN são da fonte primária. Na preparação, 59 testes passaram e a revisão adversarial do parser ficou sem bloqueantes. Depois da integração e das regressões de valor zero, o especialista executou `PYTHONPATH=api api/.venv/bin/python -m pytest -q -c /dev/null --noconftest api/tests/test_boletos_parser.py`: **64 passaram**, sem Django nem banco; Ruff check e format verdes. A API, persistência, permissões e interface ainda exigem validação própria nesta etapa.
+
+**Limite a tratar na 06:** a biblioteca pura ainda pode aceitar NUL em campos textuais de um BR Code com CRC recalculado. A entrada HTTP atual é protegida pelo `ProhibitNullCharactersValidator` do `CharField` do DRF; não foi demonstrado 500 acessível nessa integração. Ao extrair conteúdo de PDF fora dessa fronteira, validar texto antes de persistir, inclusive em JSONB, e converter falhas de leitura em estado de conferência sem códigos inválidos.
+
+**RNF11:** o aviso humano sobre a data legada usa `dd/mm/aaaa`; objetos `date`, opções de vencimento e campos da API mantêm seus formatos próprios. A correção acrescentou uma regressão de apresentação: **65 testes puros passaram**, com Ruff verde. O QA integral posterior registra a contagem real da suíte completa no relatório da etapa.

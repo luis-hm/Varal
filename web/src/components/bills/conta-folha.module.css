@@ -5,6 +5,17 @@
   gap: var(--spacing-4);
 }
 
+/* Freeze every control while a write is in flight without changing the form's layout. */
+.campos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 .lb {
   display: block;
   margin-bottom: var(--spacing-2);
