@@ -49,6 +49,17 @@ export function AuthForm({ mode, resetKey }: { mode: Mode; resetKey?: string }) 
     : "";
 
   useEffect(() => {
+    if (mode !== "login") return;
+    const timer = window.setTimeout(() => { try {
+      if (sessionStorage.getItem("varal.push.logout-aviso")) {
+        sessionStorage.removeItem("varal.push.logout-aviso");
+        setNotice("Não foi possível confirmar a desativação das notificações neste dispositivo.");
+      }
+    } catch { /* storage unavailable */ } }, 0);
+    return () => window.clearTimeout(timer);
+  }, [mode]);
+
+  useEffect(() => {
     if (formError || notice || done) messageRef.current?.focus();
   }, [formError, notice, done]);
 

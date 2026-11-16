@@ -130,6 +130,20 @@ Métricas são projeções, não entidades novas: `pagas_qtd` em resumo/PorCasa 
 - **Autoria e saída:** criador segue UUID/papel/vínculo atuais (Q08-10); reingresso elegível pode recuperar gestão mas exige retomada explícita. Saída retira pagador/escolhidos; reingresso/revisão antiga não os restaura. A FK experimental à participação foi removida por `recorrencias.0003`, preservando migrações já aplicadas.
 - **Casa e evidência:** arquivamento move só abertas/modelos autorizados; finais/invisíveis guardam referência histórica. Geração de modelo com casa arquivada cria Sem casa. Código/PDF inicial pertence só à primeira cobrança confirmada, sem cópia para futuros meses. Modelo sem audiência válida pausa e mantém obrigação bloqueada privada.
 
+## Implementação da Etapa 09
+
+App `notificacoes`, migrações `0001–0005`; [ADR 0013](../arquitetura/adr/0013-notificacoes-privadas-e-entrega.md). Contrato público usa UUID para eventos/avisos/entregas/inscrições; controles operacionais usam chaves próprias.
+
+- **EventoNotificacao:** UUID, chave única de origem, tipo, FKs opcionais SET_NULL para lançamento/pagamento/histórico, data-alvo, `snapshot_p7`, `canais_permitidos`, materialização/resultado e criação. Snapshot novo é mínimo (descrição/data/referência); legado sem descrição não é enriquecido. Todos os EventosPagamento da 07 são consumidos sem corte; legados RN21/P7 usam corte persistido e central somente.
+- **Notificacao:** UUID, evento/destinatário CASCADE, lido/revogado/criação; única por evento/destinatário, índice de paginação por destinatário/criação/id. Revogação terminal. Excluir destinatário elimina seus avisos; conta invisível não concede privilégio por autoria/admin.
+- **EntregaNotificacao:** UUID, aviso CASCADE, canal email/push, estado pendente/reservada/iniciada/aceita/descartada/falhou/incerta, tentativas, próxima execução, lease/token e resultado seguro. Única por aviso/canal; constraint de até três tentativas. Aceitação ambígua não volta automaticamente à fila.
+- **SessaoPush:** chave fingerprint HMAC, usuário CASCADE, revogada/criação. **InstalacaoPush:** UUID interno, usuário/identificador UUID de cliente únicos, fingerprint da origem e tombstone revogada. DELETE só por identificador da instalação; pode anteceder POST em voo. Logout nativo revoga a sessão e ativa tombstones das instalações vinculadas.
+- **InscricaoPush:** UUID, usuário CASCADE, fingerprint HMAC único da origem, sessão SET_NULL, segredo Fernet com endpoint/chaves, instalação UUID, geração, ativa e timestamps. Aliases de endpoint normalizados só para identidade; segredo conserva endpoint recebido; envio canonicaliza origem HTTPS/host minúsculo/443 implícita e preserva caminho/query opacos. Não há transferência automática entre usuários ou reativação por UUID tombstonado.
+- **EntregaPushDispositivo:** UUID, entrega/inscrição CASCADE, geração, estado/tentativas/próxima/lease/token/resultado; única por entrega/inscrição/geração e até três tentativas. Inscrições elegíveis são congeladas na materialização; nova geração não recebe filhos antigos.
+- **ControleNotificacoes:** chave/ativação persistida; migração `0002` fixa corte, não recalcula a cada deploy. **RodadaDiaria:** data-chave, geração/avisos concluídos, lease/token/timestamp; serializa geração 08 antes de avisos 09 com recuperação.
+
+Projeção e autorizações permanecem no servidor até serializar. Preferências usam JSON versionado de Usuario; central não tem opt-out. Não se grava payload financeiro em push/e-mail ou logs. Segurança/auditoria sem bloqueantes, 483 pytest e 111 Vitest verdes; Playwright completo final verde (131 aprovados/3 skips), conforme [relatório](../etapas/09-notificacoes/relatorio.md).
+
 ## Diagrama ER
 
 ```mermaid

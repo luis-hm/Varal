@@ -191,3 +191,24 @@ Contrato implementado no OpenAPI e nos tipos gerados, conforme [ADR 0012](../arq
 `ContaDetalhe` acrescenta `recorrente`, `competencia`, `recorrencia_id` e `pode_ver_recorrencia`; o id é null quando o modelo não é visível, mesmo vendo a ocorrência. Competência é imutável e independente do vencimento editado. `valor_centavos` é nullable, inclusive em cancelada; positivo legado em aguardando é preservado (D08-1). Lista, resumo e `por_casa` acrescentam `valores_indefinidos_qtd` no mesmo universo da soma conhecida; canceladas continuam fora dos totais padrão. Nunca substituir NULL por zero. Progresso permanece por quantidade.
 
 Reingresso usa UUID do criador e papel/vínculo atuais (Q08-10); não restaura pagador ou escolhidos removidos, inclusive via revisão antiga. Ver uma ocorrência não concede gestão do modelo. Rotina/comando revalidam audiência atual, mantêm competência bloqueada em pausa sem audiência e não dão acesso ao admin invisível. Não há envio de push/e-mail nesta etapa.
+
+## Notificações (Etapa 09)
+
+Sessão autenticada e CSRF nas escritas; [ADR 0013](../arquitetura/adr/0013-notificacoes-privadas-e-entrega.md). O mesmo filtro atual serve central, recentes, contador e leitura; revogação de aviso comum é terminal, não retorna por reingresso/undo. P7 é exceção privada sem acesso à conta/PDF. Ver [relatório](../etapas/09-notificacoes/relatorio.md) para provas parciais e limites.
+
+| Método e rota | Entrada / resultado |
+| --- | --- |
+| `GET /api/notificacoes/` | `cursor?`, `limite?` (1–50, padrão 20); `{resultados, proximo, nao_lidas}`, ordem `criado_em,id` decrescente; cursor assinado |
+| `GET /api/notificacoes/resumo/` | `{nao_lidas, recentes}` até três avisos autorizados |
+| `POST /api/notificacoes/{id}/ler/` | Sem corpo; `{lido_em}` estável; 404 alheio/revogado/invisível |
+| `POST /api/notificacoes/ler-todas/` | Sem corpo; `{nao_lidas}`; todos próprios autorizados inclusive fora da página, sem regravar lidos |
+| `GET/PATCH /api/notificacoes/preferencias/` | `{versao:1, email, push}`; PATCH só aceita booleanos conhecidos email/push. Desligar descarta canais pendentes/reservados, sem remover central |
+| `GET /api/notificacoes/push/configuracao/` | `{habilitado, chave_publica}`; nenhuma chave privada |
+| `POST /api/notificacoes/push/inscricoes/` | `{endpoint, keys:{p256dh,auth}, instalacao:UUID}`; 201 criação/200 retry válido, `{id, ativo}`. Configuração indisponível 503, conflito causal/proprietário 409 |
+| `DELETE /api/notificacoes/push/instalacoes/{instalacao}/` | 204; UUID gerado pelo cliente, revogação terminal com tombstone mesmo sem POST prévio. Não existe DELETE por id de inscrição |
+
+Aviso contém `id`, `tipo`, `titulo`, `texto`, `criado_em`, `lido_em` e `destino` opcional. Tipos: `boleto_ausente`, `vence_3`, `vence_hoje`, `venceu_1`, `pagamento`, `pagador_removido`, `cancelada_rn32`. Destino comum é `/contas/{uuid}` autorizado; P7 retorna null e texto mínimo de data/referência/descrição capturada quando existente, motivo fixo, sem enriquecimento pela conta atual. Endpoint/chaves de inscrição são write-only, cifrados no banco e ausentes das respostas.
+
+UUID de instalação fica ligado à origem por fingerprint; aliases equivalentes de endpoint compartilham identidade normalizada (host/porta padrão/percent-encoding), sem reescrever caminho/query opacos no envio, cuja origem é canonicalizada em HTTPS/host minúsculo/443 implícita. Tombstone ou sessão revogada não reativa por retry; novo ciclo exige novo UUID. Fingerprint da sessão é HMAC, não a chave de sessão gravada. Logout nativo allauth também revoga sessão/instalações/inscrições no servidor; cliente cancela epoch, revoga antes de destruir sessão e tenta desinscrever navegador, mostrando falha parcial. Troca de usuário não transfere origem conhecida automaticamente.
+
+Não há endpoint cliente para disparar avisos. Rotina/dispatcher consomem outbox e revalidam acesso; transporte genérico abre central autenticada. Prova local não constitui aprovação E2E, provedor público ou recebimento físico.

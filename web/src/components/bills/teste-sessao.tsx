@@ -21,7 +21,7 @@ export function renderComSessao(ui: ReactNode, espaco: EspacoAtual = { id: "g1",
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <Sessao.Provider value={{ user, espaco, novaConta: () => {}, escolherEspaco: () => {} }}>{ui}</Sessao.Provider>
+      <Sessao.Provider value={{ user, espaco, novaConta: () => {}, escolherEspaco: () => {}, abrirAvisos: () => {} }}>{ui}</Sessao.Provider>
     </QueryClientProvider>,
   );
 }
