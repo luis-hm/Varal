@@ -47,6 +47,9 @@ Monorepo: `api/` (Django + DRF + Celery), `web/` (Next.js), `infra/` (Docker Com
 | `varal-qa` | Testes e critérios de aceite, ao fim de cada etapa e quando algo quebra |
 | `varal-seguranca` | Revisão (somente leitura) antes de fechar etapa que toca dados, permissões, arquivos ou auth |
 
+Codex (GPT) usa as mesmas fontes via `AGENTS.md`: `.codex/agents/` e `.agents/skills/` são gerados destes arquivos
+por `make codex-sync`. Mudou um agente ou comando aqui, rode `make codex-sync`.
+
 Fluxo do `/etapa`: ler ajustes → merge local (`--no-ff`) da etapa anterior concluída → branch nova → docs (spec/plano/tarefas)
 → resumo e **parar até o ok** → boletos → backend → `make types` → frontend → devops → qa → segurança → revisão de ajustes
 → docs → commits locais → relatório e **parar**. `/status` mostra o estado sem alterar nada.
