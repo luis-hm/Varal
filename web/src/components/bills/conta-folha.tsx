@@ -15,18 +15,19 @@ import { Folha } from "@/components/ui/folha";
 import { Icon } from "@/components/ui/icon";
 import type { ContaDetalhe, ContaEntrada, InstrumentoEntrada, Leitura } from "@/lib/contas/client";
 import { lerValor, valorEditavel } from "@/lib/contas/formato";
-import { useAcoesConta, useLerInstrumento } from "@/lib/contas/hooks";
+import { useAcoesConta, useEnviarPdf, useLerInstrumento, usePdf } from "@/lib/contas/hooks";
 import { espacosParaCriar } from "@/lib/espaco";
 import { ApiError, type Membro } from "@/lib/grupos/client";
 import { useGrupo } from "@/lib/grupos/hooks";
 import styles from "./conta-folha.module.css";
 import instrumentoStyles from "./instrumento.module.css";
+import { PdfArquivo } from "./pdf-arquivo";
 
 export const AVISO_VISIBILIDADE = "Quem paga também vê esta conta";
 
 type Pessoa = { id: string; nome: string };
 type Modo = "manual" | "codigo" | "chave";
-const tipos = { boleto_bancario: "Boleto bancário", boleto_arrecadacao: "Boleto de arrecadação", pix: "Pix" };
+const tipos = { boleto_bancario: "Boleto bancário", boleto_arrecadacao: "Boleto de arrecadação", pix: "Pix", manual: "Conta manual" };
 
 // `pagador` and `acesso` take user ids, not membership ids.
 function usuarioDe(m: Membro, meuId: string): string {
@@ -75,6 +76,18 @@ export function ContaFolha({ open, onClose, conta }: Props) {
   const [conteudo, setConteudo] = useState(inicial?.codigo ?? inicial?.chave_pix ?? "");
   const [conferencia, setConferencia] = useState<Leitura | null>(null);
   const [instrumentoAlterado, setInstrumentoAlterado] = useState(false);
+  const [pdfInicial] = useState(() => conta?.documento_pdf ?? null);
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [pdfId, setPdfId] = useState<string | null | undefined>(undefined);
+  const [emissao, setEmissao] = useState(inicial?.data_emissao ?? "");
+  const [beneficiario, setBeneficiario] = useState(inicial?.beneficiario ?? "");
+  const [metadadosAlterados, setMetadadosAlterados] = useState(false);
+  const [pdfErro, setPdfErro] = useState("");
+  const [candidato, setCandidato] = useState("");
+  const envio = useEnviarPdf();
+  const documento = usePdf(pdfId || undefined);
+  const processado = useRef("");
+  const enviando = useRef(false);
   const leitura = useLerInstrumento();
   const { mutate: ler } = leitura;
   const versaoLeitura = useRef(0);
@@ -82,6 +95,45 @@ export function ContaFolha({ open, onClose, conta }: Props) {
   const codigoId = useId();
   const dataId = useId();
   const podeTrocarInstrumento = !conta || conta.status === "pendente" || conta.status === "aguardando";
+
+  useEffect(() => {
+    const doc = documento.data;
+    if (!doc || processado.current === doc.id || !["lido", "conferencia_manual"].includes(doc.estado)) return;
+    processado.current = doc.id;
+    let ativo = true;
+    // Apply a settled query asynchronously; cleanup discards a superseded result.
+    queueMicrotask(() => {
+    if (!ativo) { processado.current = ""; return; }
+    const resultado = doc.resultado;
+    setEmissao(resultado?.data_emissao ?? "");
+    setBeneficiario(resultado?.beneficiario ?? "");
+    setMetadadosAlterados(true);
+    if (resultado?.valor_centavos != null) setValor(valorEditavel(resultado.valor_centavos));
+    if (resultado?.vencimento) setVencimento(resultado.vencimento);
+    const candidatos = resultado?.candidatos ?? [];
+    if (candidatos.length === 1) {
+      const codigo = candidatos[0].codigo;
+      setCandidato(codigo);
+      setModo("codigo");
+      setConteudo(codigo);
+      setInstrumentoAlterado(true);
+      const versao = ++versaoLeitura.current;
+      ler({ codigo }, { onSuccess(dados) {
+        if (versao !== versaoLeitura.current) return;
+        setConferencia(dados);
+        if (dados.valor_centavos != null) setValor(valorEditavel(dados.valor_centavos));
+        if (dados.vencimento) setVencimento(dados.vencimento);
+      } });
+    } else {
+      setCandidato("");
+      setConferencia(null);
+      setModo("manual");
+      setConteudo("");
+      setInstrumentoAlterado(true);
+    }
+    });
+    return () => { ativo = false; };
+  }, [documento.data, ler]);
 
   // Existing instruments are checked again to expose the actual encoded fields and date choices.
   // Keep the persisted values (including a legacy date); this read is not an edit.
@@ -119,16 +171,48 @@ export function ContaFolha({ open, onClose, conta }: Props) {
   };
   const geral = erro && !Object.values(erros).some(Boolean) ? erro.message : undefined;
   const gravando = criar.isPending || editar.isPending || cancelar.isPending;
-  const ocupado = gravando || leitura.isPending;
+  const lendoPdf = envio.isPending || (!!pdfId && (!documento.data || ["pendente", "lendo"].includes(documento.data.estado)) && !documento.error);
+  const ocupado = gravando || leitura.isPending || lendoPdf;
   const aviso = emGrupo && visibilidade === "restrita" && !!pagador && pagador !== user.id;
 
   function trocarEspaco(id: string) {
-    if (gravacao.current) return;
+    if (gravacao.current || enviando.current || lendoPdf) return;
+    setArquivo(null); setPdfId(undefined); setCandidato(""); setPdfErro("");
     setEspacoId(id);
     setCasa(null);
     setPagador(user.id);
     setVisibilidade("grupo");
     setAcesso([]);
+  }
+
+  function escolherPdf(novo: File) {
+    if (gravacao.current || enviando.current || lendoPdf) return;
+    if (novo.size > 5 * 1024 * 1024 || !novo.name.toLowerCase().endsWith(".pdf")) {
+      setPdfErro("Escolha um PDF de até 5 MB.");
+      return;
+    }
+    setPdfErro("");
+    setArquivo(novo);
+    setPdfId(undefined);
+    setCandidato("");
+    enviando.current = true;
+    envio.mutate({ espaco: espaco.id, arquivo: novo, lancamentoId: conta?.id }, {
+      onSuccess: (doc) => setPdfId(doc.id),
+      onError: () => { setArquivo(null); setPdfErro("Não foi possível enviar o PDF. Tente novamente."); },
+      onSettled: () => { enviando.current = false; },
+    });
+  }
+
+  function escolherCandidato(codigo: string) {
+    setCandidato(codigo);
+    mudarEntrada("codigo", codigo);
+    const versao = ++versaoLeitura.current;
+    ler({ codigo }, { onSuccess(dados) {
+      if (versao !== versaoLeitura.current) return;
+      setConferencia(dados);
+      if (dados.valor_centavos != null) setValor(valorEditavel(dados.valor_centavos));
+      if (dados.vencimento) setVencimento(dados.vencimento);
+    } });
   }
 
   function mudarEntrada(novoModo: Modo, texto: string) {
@@ -161,13 +245,15 @@ export function ContaFolha({ open, onClose, conta }: Props) {
 
   function salvar(event: FormEvent) {
     event.preventDefault();
-    if (gravacao.current || leitura.isPending) return;
+    if (gravacao.current || enviando.current || leitura.isPending || lendoPdf) return;
     const centavos = lerValor(valor);
     const faltas: Record<string, string> = {};
     if (centavos === null) faltas.valor = "Informe um valor maior que zero, como 287,43.";
     if (!vencimento) faltas.vencimento = "Informe o vencimento.";
     if (!descricao.trim()) faltas.descricao = "Dê um nome para a conta.";
     if (modo !== "manual" && !conferencia) faltas.instrumento = "Confira o código ou a chave antes de salvar.";
+    if (pdfId && !["lido", "conferencia_manual"].includes(documento.data?.estado ?? "")) faltas.instrumento = "Escolha um PDF válido antes de salvar.";
+    if ((documento.data?.resultado?.candidatos?.length ?? 0) > 0 && (!candidato || modo !== "codigo" || conteudo !== candidato)) faltas.instrumento = "Escolha uma das linhas encontradas no PDF.";
     setLocal(faltas);
     if (Object.keys(faltas).length) return;
     const body: ContaEntrada = {
@@ -176,6 +262,8 @@ export function ContaFolha({ open, onClose, conta }: Props) {
       vencimento,
       ...(emGrupo && { subgrupo: casa, pagador, visibilidade, acesso: visibilidade === "restrita" ? acesso : [] }),
       ...((!conta || instrumentoAlterado) && modo !== "manual" ? { instrumento: modo === "chave" ? { chave_pix: conteudo } : { codigo: conteudo } } : instrumentoAlterado ? { instrumento: null } : {}),
+      ...(pdfId !== undefined ? { documento_pdf: pdfId } : {}),
+      ...((pdfId || (pdfId === undefined && pdfInicial)) && metadadosAlterados ? { data_emissao: emissao || null, beneficiario: beneficiario.trim() || null } : {}),
     };
     // The synchronous latch also covers repeated submits before React paints the pending state.
     gravacao.current = true;
@@ -198,13 +286,13 @@ export function ContaFolha({ open, onClose, conta }: Props) {
   return (
     <Folha
       open={open}
-      onClose={() => { if (!gravacao.current) onClose(); }}
-      busy={gravando}
+      onClose={() => { if (!gravacao.current && !enviando.current && !lendoPdf) onClose(); }}
+      busy={ocupado}
       title={conta ? "Editar conta" : "Nova conta"}
       actions={<Button type="submit" form="conta-form" label={ocupado ? "Salvando…" : conta ? "Salvar" : "Salvar conta"} disabled={ocupado} />}
     >
       <form id="conta-form" className={styles.form} onSubmit={salvar} noValidate>
-        <fieldset className={styles.campos} disabled={gravando}>
+        <fieldset className={styles.campos} disabled={ocupado}>
         {!conta && (
           <div className={styles.onde} role="group" aria-labelledby="onde-t">
             <span id="onde-t" className={styles.lb}>
@@ -218,6 +306,16 @@ export function ContaFolha({ open, onClose, conta }: Props) {
             </div>
           </div>
         )}
+
+        {podeTrocarInstrumento && <PdfArquivo key={pdfId ?? (pdfId === null ? "removido" : pdfInicial?.id ?? "novo")} arquivo={arquivo} nome={pdfId === undefined ? pdfInicial?.nome : undefined} tamanho={pdfId === undefined ? pdfInicial?.tamanho : undefined} ocupado={ocupado} documentoId={pdfId === undefined ? pdfInicial?.id : pdfId && ["lido", "conferencia_manual"].includes(documento.data?.estado ?? "") ? pdfId : undefined} onEscolher={escolherPdf} onRemover={() => { setArquivo(null); setPdfId(null); setCandidato(""); setPdfErro(""); }} />}
+        {lendoPdf && <p className={styles.nota} role="status">{envio.isPending ? "Enviando PDF…" : "Lendo PDF…"}</p>}
+        {(pdfErro || documento.error) && <p className={styles.erro} role="alert">{pdfErro || "Não foi possível consultar o PDF. Tente novamente."}</p>}
+        {documento.data && ["invalido", "falhou"].includes(documento.data.estado) && <p className={styles.erro} role="alert">Não foi possível ler este PDF. Escolha outro arquivo.</p>}
+        {documento.data?.avisos.map((a, i) => <p key={i} className={styles.nota}>{a}</p>)}
+        {(documento.data?.resultado?.candidatos?.length ?? 0) > 1 && <Escolha titulo="Escolha a linha do boleto" erro={erros.instrumento}>
+          {documento.data?.resultado?.candidatos?.map((c) => <Chip key={c.codigo} label={c.codigo} wrap state={candidato === c.codigo ? "on" : "off"} onClick={() => escolherCandidato(c.codigo)} />)}
+        </Escolha>}
+        {(documento.data?.resultado?.candidatos?.length ?? 0) > 1 && <p className={styles.nota}>O arquivo inteiro ficará disponível para quem vê a conta. Escolher uma linha não recorta o PDF.</p>}
 
         {podeTrocarInstrumento && (
           <Escolha titulo="Como cadastrar">
@@ -261,6 +359,10 @@ export function ContaFolha({ open, onClose, conta }: Props) {
             </div>
           ) : <Field label="Vencimento" type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} error={erros.vencimento} required readOnly={!!conferencia?.vencimento} filled={!!conferencia?.vencimento} hint={conferencia?.vencimento ? "Do código" : undefined} />}
         </div>
+        {(pdfId || (pdfId === undefined && pdfInicial)) && podeTrocarInstrumento && <div className={styles.g2}>
+          <Field label="Emissão" type="date" value={emissao} onChange={(e) => { setEmissao(e.target.value); setMetadadosAlterados(true); }} hint="Do PDF" />
+          <Field label="Beneficiário" value={beneficiario} maxLength={200} onChange={(e) => { setBeneficiario(e.target.value); setMetadadosAlterados(true); }} hint="Confira o nome no PDF" />
+        </div>}
         <Field label="Descrição" placeholder="Energia · Casa 3" maxLength={150} value={descricao} onChange={(e) => setDescricao(e.target.value)} error={erros.descricao} required />
 
         {emGrupo && grupo.isPending && <p className={styles.nota} role="status">Carregando casas e pessoas…</p>}

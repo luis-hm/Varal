@@ -50,6 +50,8 @@ export function somarMes(mes: string, n: number) {
 
 /** "2026-11-14" → "14/11". */
 export const diaMes = (data: string) => `${data.slice(8, 10)}/${data.slice(5, 7)}`;
+/** Civil date, including its year; never convert it to an instant in Fortaleza. */
+export const dataCivil = (data: string) => fmt({ day: "2-digit", month: "2-digit", year: "numeric" }).format(civil(data));
 /** "2026-11-14" → "sex., 14/11". */
 export const diaSemana = (data: string) => `${fmt({ weekday: "short" }).format(civil(data))}, ${diaMes(data)}`;
 

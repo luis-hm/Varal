@@ -24,7 +24,7 @@ let salvarResposta: () => Promise<Response>;
 const contaBanco = (): ContaDetalhe => ({
   id: "l1", descricao: "Boleto antigo", valor_centavos: 12345, vencimento: "2000-07-03", status: "pendente", status_exibido: "vencida", dias_para_vencer: -100,
   espaco: pessoal, subgrupo: null, visibilidade: "grupo", acesso: [], quem_ve: [], pagador: null, criador: { nome: "Dev", sou_eu: true }, criado_em: "2000-07-01T12:00:00Z", historico: [], pode_editar: true,
-  instrumento: banco.instrumento,
+  instrumento: { ...banco.instrumento, data_emissao: null }, documento_pdf: null,
 });
 
 beforeEach(() => {
@@ -173,7 +173,7 @@ test("rf08/rn22: a remote instrument refetch cannot replace the preview of a dir
   await screen.findByText(/Pix conferido/);
   fireEvent.change(valor(), { target: { value: "42,00" } });
   fireEvent.change(screen.getByLabelText("Vencimento"), { target: { value: "2026-11-20" } });
-  await act(async () => refetch({ ...contaBanco(), instrumento: remoto.instrumento }));
+  await act(async () => refetch({ ...contaBanco(), instrumento: { ...remoto.instrumento, data_emissao: null } }));
   expect(vi.mocked(preview)).toHaveBeenCalledTimes(2);
   expect(screen.queryByText(/Boleto bancário conferido/)).toBeNull();
   expect(screen.getByText(/Pix conferido/)).toBeTruthy();

@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { agrupar } from "@/components/bills/contas-pagina";
 import type { Conta, Historico } from "./client";
-import { lerValor, reais } from "./formato";
+import { dataCivil, lerValor, reais } from "./formato";
 import { linhaHistorico, texto } from "./historico";
 
 test("money: pt-BR input to cents and back", () => {
@@ -10,6 +10,11 @@ test("money: pt-BR input to cents and back", () => {
   expect(lerValor("0")).toBeNull();
   expect(lerValor("12,345")).toBeNull();
   expect(reais(287455).replace(/\s/g, " ")).toBe("R$ 2.874,55");
+});
+
+test("data civil preserva dia e ano sem conversão de fuso", () => {
+  expect(dataCivil("2025-02-01")).toBe("01/02/2025");
+  expect(dataCivil("2026-01-01")).toBe("01/01/2026");
 });
 
 const c = (id: string, status_exibido: Conta["status_exibido"], dias: number) => ({ id, status_exibido, dias_para_vencer: dias, valor_centavos: 100 }) as Conta;

@@ -1,7 +1,7 @@
 # Modelo de dados
 
 > **Contém:** entidades, campos, decisões de modelagem e diagrama ER.
-> **Origem:** `docs/especificacao-varal.md`, seção 8 (diagrama ER derivado das entidades), mais as seções de implementação das Etapas 02–05 e o ADR 0005 (sem categoria).
+> **Origem:** `docs/especificacao-varal.md`, seção 8 (diagrama ER derivado das entidades), mais as seções de implementação das Etapas 02–06 e o ADR 0005 (sem categoria).
 
 ## 8. Modelo de dados
 
@@ -91,6 +91,20 @@ App `api/apps/boletos`, migração `boletos.0001_initial`; não modifica dados d
 - **Coerência:** preview não persiste. Criar/editar revalida o instrumento, inclusive o preservado quando PATCH omite a relação, e confere valor/data finais na transação da conta. O fator ambíguo oferece as duas datas; somente uma data codificada pode ser salva, sem inferência pelo relógio ([decisões](../etapas/05-boleto-pix/decisoes.md)).
 - **Privacidade:** relação é carregada só no detalhe autorizado e respostas de mutação; listas/resumos/históricos não carregam o payload. Sem registro independente no admin, e `__str__` não contém código/chave. A exclusão em cascata continua com prévia minimizada da 04.
 
+## Implementação da Etapa 06
+
+Migrações `boletos.0002_documentoboleto_limpezapdf_and_more` e `0003_documentoboleto_tentativa`, sem backfill destrutivo nas contas anteriores.
+
+- **`documento_boleto`:** UUID; `espaco` CASCADE; `criado_por` SET_NULL; `destino` FK opcional CASCADE para intenção de edição; `lancamento` OneToOne opcional CASCADE para vínculo confirmado; `vinculado_em`, `estado`, `tentativa` UUID operacional, nome sanitizado (até 200), tamanho, `resultado`/`avisos` estruturados, criação/leitura. Destino não confirma vínculo. Uma vez vinculado, nunca retorna ao caminho privado do uploader; troca/remoção elimina/revoga o registro anterior.
+- **Arquivos:** chave S3 e caminho de spool são derivados do UUID imutável, sem nome/e-mail/código do usuário. Não há URL pública persistida no modelo. Spool fica em volume privado compartilhado; django-storages faz I/O do objeto e um cliente configurado para o endpoint público assina links temporários.
+- **`limpeza_pdf`:** UUID independente e data de criação; guarda intenção durável de eliminar a versão identificada, mesmo depois de apagar DocumentoBoleto. Não depende de FK viva. Limpeza só após commit; falha de fila/storage preserva a intenção para recuperação idempotente.
+- **`instrumento`:** acrescenta tipo `manual` com código/chave nulos, `data_emissao` opcional e beneficiário até 200. Manual com PDF pode guardar metadados sem fabricar código; manual legado sem PDF continua sem relação. Restrições de boleto/Pix são preservadas. Beneficiário declarado no Pix continua vindo do payload, não identidade verificada.
+- **Histórico:** vínculo/troca/remoção usa `pdf_alterado: true`; alteração efetiva de metadados usa `metadados_pdf_alterados: true`. Reenvio idêntico normalizado é no-op e a precedência do beneficiário Pix não cria falso histórico. Não grava nome do arquivo, PDF/texto integral, código/chave S3 ou URL assinada. Dados da conta/instrumento/vínculo/histórico são salvos na mesma transação.
+- **Concorrência/recuperação:** `tentativa` distingue execuções antigas após recuperação; mutex operacional de objeto serializa PUT e limpeza sem segurar linha de conta/documento durante I/O externo. O worker só persiste resultado da tentativa atual e nunca altera conta salva. Cleanup tardio usa UUID antigo; rollback não dispara exclusão física. `recuperar_pdfs` retoma pendentes/leituras antigas, expira drafts de 24 h e recupera intenções.
+- **Resultado:** JSON limitado e tipado, sem texto bruto. NUL, Unicode inválido, datas/valores/candidatos inconsistentes e saída excessiva são convertidos para resultado controlado antes do banco; a proteção não depende do serializer HTTP. Estado do processamento não cria status novo de lançamento, e cadastro avulso continua pendente.
+
+Acesso a draft exige uploader e permissão atual no espaço/destino; documento vinculado usa somente o acesso atual à conta. Exclusão do uploader não elimina PDF de grupo por `criado_por`; exclusão da conta/espaço aciona limpeza após commit. Links já emitidos são credenciais por até 60 s, sem revogação instantânea prometida ([decisões06](../etapas/06-pdf-boleto/decisoes.md)).
+
 ## Diagrama ER
 
 ```mermaid
@@ -108,6 +122,10 @@ erDiagram
     lancamento ||--o{ lancamento_acesso : "restrita: quem vê"
     usuario ||--o{ lancamento_acesso : ve
     lancamento ||--o| instrumento : "paga-se com"
+    espaco ||--o{ documento_boleto : guarda
+    usuario |o--o{ documento_boleto : enviou
+    lancamento |o--o| documento_boleto : "PDF confirmado"
+    lancamento |o--o{ documento_boleto : "destino de edição"
     lancamento ||--o{ pagamento : recebe
     lancamento ||--o{ historico : registra
     lancamento ||--o{ notificacao : dispara

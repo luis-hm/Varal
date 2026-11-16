@@ -12,8 +12,8 @@
 | 02 | Autenticação | concluída | `etapa/02-autenticacao` | 13/11/2026 | [relatorio](etapas/02-autenticacao/relatorio.md) |
 | 03 | Espaços e grupos | concluída | `etapa/03-espacos-grupos` | 15/11/2026 | [relatorio](etapas/03-espacos-grupos/relatorio.md) |
 | 04 | Contas (núcleo) | concluída e integrada localmente à main (`fe48cbe`) | `etapa/04-contas` | 15/11/2026 (inicial); revisão 16/11/2026 | [relatorio](etapas/04-contas/relatorio.md) |
-| 05 | Boleto e Pix | concluída e validada, pronta para commit/merge local | `etapa/05-boleto-pix` | 16/11/2026 | [relatorio](etapas/05-boleto-pix/relatorio.md) |
-| 06 | PDF do boleto | pendente | — | — | — |
+| 05 | Boleto e Pix | concluída e integrada localmente à main (`e5c94e3`) | `etapa/05-boleto-pix` | 16/11/2026 | [relatorio](etapas/05-boleto-pix/relatorio.md) |
+| 06 | PDF do boleto | concluída; definição de pronto alcançada, pronta para commit e merge local | `etapa/06-pdf-boleto` | — | [relatorio](etapas/06-pdf-boleto/relatorio.md) |
 | 07 | Pagamento | pendente | — | — | — |
 | 08 | Recorrência e agendador | pendente | — | — | — |
 | 09 | Notificações | pendente | — | — | — |
@@ -36,6 +36,8 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 | P6 | Claude Code deve reexportar a especificação da origem rev 50 (sem categoria no CU05 e no modelo) e conferir os derivados/ADR 0005. O Codex não faz essa reexportação nem edita a origem à mão; a cópia permanece defasada. O ADR 0005 já aprovado rege a implementação sem categoria. | Pendência administrativa externa; continuidade sem categoria pelo ADR 0005 |
 | P7 | Entregar ao removido o aviso das contas canceladas pela RN32 na remoção pelo admin ([ADR 0006](arquitetura/adr/0006-rn32-conta-restrita-orfa.md)). A Etapa 04 grava `cancelada_automaticamente` com `dados.removido`; entrega na 09 ratificada por delegação em Q04-25. | Etapa 09 |
 | P9 | Confirmar que o CI dispara no próximo push: `gh run list`; se nada aparecer, `gh workflow run web.yml --ref main`. Causa provável e correção em "CI mudo" (Resolvidas). | Nada (verificação) |
+| P10 | Perfil da Etapa 11: pergunta enviada ao dono sobre montar dados/preferências/exportar/excluir/sair com `varal-ui` ou receber frame Doop, conforme ADR 0003. Ainda sem resposta; não mudar o desenho por silêncio. | Definição da tela Perfil na 11; não bloqueia 06–10 |
+| P11 | Destino da implantação: pergunta enviada ao dono entre validação local e VPS com domínio/alias SSH. Ainda sem resposta nem autorização de deploy na VPS; preparar/testar localmente não equivale a implantar. Não solicitar segredos no chat. | Implantação efetiva da 11; não bloqueia 06–10 ou preparação independente |
 
 ### Resolvidas
 
@@ -47,7 +49,7 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 | D4 | Qual armazenamento S3? | `pgsty/silo` com tag fixa, só local; código via `django-storages` com config no `.env`; produção na Etapa 11. Etapa 06 desbloqueada. | [ADR 0002](arquitetura/adr/0002-armazenamento-s3-local.md) |
 | D5 | Onde entra o RNF04 (LGPD)? | Etapa 11, como regra nova **RN30** (exportar JSON; excluir conta com autor "Ex-membro" nos grupos). Tela Perfil não existe no Doop: parar e pedir. | [ADR 0003](arquitetura/adr/0003-rn30-exportar-e-excluir-dados.md) |
 | D6 | Merge da Etapa 00 na main? | Merge local feito agora (`--no-ff`). Daqui em diante, rodar `/etapa` aprova a etapa anterior e faz o merge local dela antes da branch nova. Push só com pedido. | `.claude/commands/etapa.md` |
-| P1 | Verificar execução do armazenamento local | Resolvida em 15/11/2026 pelo Codex: `pgsty/silo:RELEASE.2026-11-12T00-00-00Z` iniciado; healthcheck 200 pela API na rede Compose e autenticação `mc admin info` com as variáveis do ambiente, sem exibir credenciais. Upload/download e URLs assinadas ainda serão validados na 06. | Pré-verificação da Etapa 06 |
+| P1 | Verificar execução do armazenamento local | Resolvida em 15/11/2026 pelo Codex: `pgsty/silo:RELEASE.2026-11-12T00-00-00Z` iniciado; healthcheck 200 pela API na rede Compose e autenticação `mc admin info` com as variáveis do ambiente, sem exibir credenciais. A Etapa 06 também comprovou upload/download, Celery, limpeza e URLs assinadas reais em 16/11/2026. | Pré-verificação da Etapa 06 |
 | P2 | Validação completa da Etapa 01 | Resolvida em 13/11/2026: Docker disponível; credenciais do `.env` local alinhadas às já existentes no volume, sem alterar usuários nem dados do banco. `make test`: API 3/3 e web 29/29; `make lint` verde. | Etapa 01, CA17 |
 | P5 | Limite de cadastro do allauth derrubava o E2E (~40 contas do mesmo IP contra 20/min) | Resolvida em 15/11/2026: `ACCOUNT_RATE_LIMIT_SIGNUP` vira `ACCOUNT_RATE_LIMITS["signup"]` só quando definida (o allauth mescla aos padrões; os outros limites seguem). `make e2e` e o job `e2e` do `web.yml` usam `1000/m/ip`; fora deles vale 20/m/ip. Saiu o retry em 429 do E2E. | Etapa 04; [stack](arquitetura/stack.md#variáveis-de-ambiente) |
 | P8 | 429 do allauth no primeiro cadastro do `make e2e` com a API fria | Resolvida em 15/11/2026: os dois workers disputavam a trava do limite do allauth (espera de 1 s) enquanto o servidor de dev ainda importava módulos. O `globalSetup` do Playwright (`web/e2e/global-setup.ts`) faz um cadastro sozinho antes dos workers. Duas medições de geometria passam a esperar `modal-pop`/`sheet-up` terminarem. E2E final a frio: 74 verdes, sem 429. | Etapa 04 |
@@ -58,6 +60,20 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 ## Log
 
 Ordem cronológica inversa.
+
+### 16/11/2026 — Etapa 06 concluída, pronta para commit e merge local
+
+- Documento/PDF manual, spool privado, Celery e processo dedicado integrados; I/O real por django-storages. Tentativa UUID, mutex e intenção persistida protegem execução antiga, limpeza e rollback. No-op de metadados corrigido com regressões.
+- **390 pytest, 89 Vitest e 97 E2E passaram, com 3 skips previstos; lint e tipos determinísticos verdes.** Provas reais de S3/Celery/assinatura/cleanup e inspeção headed do PDF/fallback em mobile/desktop passaram. Ajustes preliminares de popup/controle de arquivo foram conferidos com Tab real; repetição integral final com exit 0 e sem servidor Next próprio remanescente.
+- Segurança Astra sem bloqueantes por leitura; auditoria sem perguntas/decisões pendentes. Resultado final e matriz no [relatório](etapas/06-pdf-boleto/relatorio.md). Definição de pronto alcançada; commit e merge local pendentes do orquestrador. Sem push.
+- Ajustes: dono declarou ausência de pendentes pelo chat; sem conector/marcação remota. P6 continua externa. Perfil/deploy P10/P11 permanecem sem resposta, específicos da 11; não bloqueiam 06–10 nem autorizam VPS por silêncio.
+
+### 16/11/2026 — Merge local da Etapa 05 e início da Etapa 06
+
+- Etapa 05 em `7dc6a8e`, merge local `--no-ff` na `main` em `e5c94e3`; 354 pytest, 83 Vitest e 91 E2E verdes (3 skips previstos), lint, tipos determinísticos, comparação visual e segurança sem bloqueantes. Execuções interrompidas anteriores não contaram como resultado final. Sem push.
+- Criada `etapa/06-pdf-boleto`; spec/plano/tarefas/decisões aprovados sob a delegação vigente. Extrator isolado preparado com 17 testes sintéticos e revisão de segurança sem bloqueantes; worker/storage/interface ainda não implementados.
+- ADR 0010 detalha RNF06: recepção faz spool local privado; envio ao S3 e extração ficam fora da requisição, no worker. Extração em processo dedicado com limites e logs protegidos. Documento tem destino de edição separado do vínculo confirmado e nunca reabre acesso de draft depois de vinculado.
+- Limites definidos: PDF 5 MiB, extração 20 páginas/200 mil caracteres, URL assinada 60 s, draft 24 h. P1 resolvida quanto ao serviço/autenticação; esta etapa valida objeto e assinatura reais. Ajustes: dono informou que não há pendentes; P6 permanece externa, sem categoria pelo ADR 0005.
 
 ### 16/11/2026 — Etapa 05 concluída
 
