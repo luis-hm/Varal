@@ -1,7 +1,7 @@
 # Modelo de dados
 
 > **Contém:** entidades, campos, decisões de modelagem e diagrama ER.
-> **Origem:** `docs/especificacao-varal.md`, seção 8 (diagrama ER derivado das entidades), mais as seções de implementação das Etapas 02–06 e o ADR 0005 (sem categoria).
+> **Origem:** `docs/especificacao-varal.md`, seção 8 (diagrama ER derivado das entidades), mais as seções de implementação das Etapas 02–07 e os ADRs 0005 (sem categoria) e 0011 (pagamento integral/evidência).
 
 ## 8. Modelo de dados
 
@@ -105,6 +105,19 @@ Migrações `boletos.0002_documentoboleto_limpezapdf_and_more` e `0003_documento
 
 Acesso a draft exige uploader e permissão atual no espaço/destino; documento vinculado usa somente o acesso atual à conta. Exclusão do uploader não elimina PDF de grupo por `criado_por`; exclusão da conta/espaço aciona limpeza após commit. Links já emitidos são credenciais por até 60 s, sem revogação instantânea prometida ([decisões06](../etapas/06-pdf-boleto/decisoes.md)).
 
+## Implementação da Etapa 07 (em validação)
+
+Migrações `pagamentos.0001_initial` e `lancamentos.0002_remove_historico_historico_acao_valida_and_more`; o bloco da origem acima não representa o contrato atual de comprovante nem habilita parcial no MVP ([ADR0011](../arquitetura/adr/0011-pagamento-e-evidencia.md)).
+
+- **`pagamento`:** UUID, conta CASCADE, data civil `pago_em`, `valor_pago_centavos` >0, `marcado_por`, `pagador` do instante da marca e `desfeito_por` anuláveis SET_NULL, criação e `desfeito_em?`. Unicidade parcial por conta com `desfeito_em IS NULL`; uma marca integral ativa. Não guarda nomes/e-mails snapshots nem URL de arquivo.
+- **`evento_pagamento`:** UUID, pagamento OneToOne CASCADE, destinatário anulável SET_NULL, criação e `processado_em?`. Criado atomicamente com a marca; anexo não duplica e undo não remove. Consumo/transporte na09, com revalidação de estado/acesso/destinatário, não entregue pela07.
+- **`documento_comprovante`:** UUID, conta CASCADE, uploader SET_NULL, pagamento-alvo FK opcional e pagamento vinculado OneToOne opcional CASCADE, `versao`, `vinculado_em?`, `estado`, tentativaUUID, nome seguro (200), tamanho/MIME, criação/leitura. Enum `pendente|lendo|valido|invalido|erro`; distinto do status da conta. `lancamento.versao_pagamento` aumenta em marca/undo e impede reutilizar draft de ciclo antigo. Worker só valida documento, nunca confirma conta.
+- **`limpeza_comprovante`:** UUID independente e criação; intenção durável por objeto, recuperada após commit sob mutex de I/O. Chave `comprovantes/{uuid}` e spool privado derivam doUUID, sem URL persistida. Alias S3 privado `comprovantes` recebe MIME validado JPEG/PNG/PDF; conserva original/EXIF, até5MiB e imagem até20MP sem animação. Sem limite de20 páginas importado do extrator de boleto; validação de comprovante usa processo com memória/CPU/tempo limitados.
+- **Retenção:** undo mantém pagamento, comprovante e vínculo histórico imutável; nunca retorna a draft ou serve outra marca. A leitura depende da conta atual, inclusive para uploader/admin/observador. Sem troca/remoção isolada. Draft não vinculado expira em24h; exclusão física conta/espaço aciona limpeza após commit. URL dura60s e não promete revogação instantânea. Manutenção pelo beat a cada300s (D07-1); geração mensal08 ainda ausente.
+- **Histórico:** `paga` guarda id do pagamento, data, valor e indicação de comprovante; `comprovante_anexado` e `pagamento_desfeito` referenciam pagamento. Reabertura pode registrar remoção do pagador sem vínculo atual. Sem nome de arquivo, URL, chaveS3 ou conteúdo integral. Referências pessoais continuam resolvidas sem e-mail histórico.
+
+Métricas são projeções, não entidades novas: `pagas_qtd` em resumo/PorCasa e `contas_atribuidas_qtd` por membro, sempre pelo visível e mês de vencimento. Início/grupo usam mês atual; lista admite mês explícito. FK preservada de pagador sem membro atual integra filtro coletivo Ex-membro; FK nula é Sem pagador, sem reconstrução de identidade.
+
 ## Diagrama ER
 
 ```mermaid
@@ -127,6 +140,12 @@ erDiagram
     lancamento |o--o| documento_boleto : "PDF confirmado"
     lancamento |o--o{ documento_boleto : "destino de edição"
     lancamento ||--o{ pagamento : recebe
+    pagamento ||--|| evento_pagamento : origina
+    usuario |o--o{ evento_pagamento : destinatario
+    lancamento ||--o{ documento_comprovante : guarda
+    pagamento |o--o| documento_comprovante : evidencia
+    pagamento |o--o{ documento_comprovante : alvo_draft
+    usuario |o--o{ documento_comprovante : enviou
     lancamento ||--o{ historico : registra
     lancamento ||--o{ notificacao : dispara
     usuario ||--o{ notificacao : recebe

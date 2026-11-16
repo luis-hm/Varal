@@ -225,3 +225,12 @@ Os ícones são próprios e seguem o traço do logo: grade de 24 × 24 px, linha
 | `voltar` | Seta para a esquerda | Navegação |
 
 No código, os ícones devem virar componentes SVG com `stroke="currentColor"`, para herdar a cor do texto, e `aria-hidden="true"` quando acompanham um texto.
+
+
+### Pagamento (Etapa 07)
+
+Frontend consultou guia/tokens/`varal-ui`, HTML e screenshots dos frames08/M03,09/M04,07/D03,02/D02 e10/D04, sob Q07-10. Frames draft foram adotados como referência por delegação; isso não altera seu status no canvas. Canvas somente leitura e preservado. QA comparou a interface integrada em390×844/1440×900; evidências no [relatório07](../etapas/07-pagamento/relatorio.md). E2E integral final aprovado:107 passaram e3 skips previstos.
+
+Folha de pagamento recebe data e comprovante opcional; anexo usa aviso de original/metadados e limites antes do envio. Confirmação diz **“Pagamento registrado.”**, sem prometer aviso enviado antes da09. Ações obedecem flags do backend e nova autorização de cada escrita. Evidência da marca desfeita continua disponível no histórico para quem atualmente vê a conta; não oferecer troca/remoção isolada.
+
+Progresso usa `(paga+confirmada)/não_canceladas` visíveis do mês de vencimento, zero contas →0, com largura real em vez da barra ilustrativa dos frames. Hero/Início e HouseCard usam mês atual do resumo; MemberRow informa atribuições atuais do mês, não quem marcou pagamento. Ex-membro agrupa apenas pagadores de FK preservada sem vínculo; Sem pagador permanece separado. Aviso de arquivo/metadados e confirmação sem entrega são extensões delegadas, conferidas pelo QA nas duas larguras. Q07-11 mantém zero como “0 contas em mês”, sem barra/fração0 de0; demais casas mostram “X de Y pagas em mês”. Modal desktop final480×520; janela baixa mantém ação acessível. QA substituiu as capturas com animações desativadas e confirmou o check completo do sucesso mobile.

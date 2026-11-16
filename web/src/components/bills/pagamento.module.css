@@ -1,0 +1,30 @@
+/* Doop: 08/M03. Tokens and responsive layout from varal-ui. */
+.rotulo { font-size: var(--text-sm); font-weight: 600; }
+.rotulo span { color: var(--color-ink-muted); font-weight: 500; }
+.aviso, .dica { margin-top: var(--spacing-2); color: var(--color-ink-muted); font-size: var(--text-sm); line-height: var(--leading-small); }
+.arquivos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: var(--spacing-2); }
+.inputArquivo { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.upload { min-height: 116px; padding: var(--spacing-3); border: 1px dashed var(--color-ink-subtle); border-radius: var(--radius-lg); background: var(--color-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--spacing-2); text-align: center; font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
+.upload[data-disabled] { opacity: .55; cursor: default; }
+.inputArquivo:focus-visible + .upload { outline: 3px solid var(--color-amber); outline-offset: 2px; }
+.selecionado { display: flex; align-items: center; gap: var(--spacing-2); margin-top: var(--spacing-2); font-size: var(--text-sm); }
+.selecionado span { flex: 1; overflow-wrap: anywhere; }
+.selecionado button { min-height: 44px; border: 0; background: transparent; color: var(--color-ink); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.dica { display: flex; align-items: flex-start; gap: var(--spacing-2); }
+.dica svg { flex: none; color: var(--color-green-text); }
+.desktop { display: none; }
+.formulario { display: flex; flex-direction: column; gap: var(--spacing-4); }
+.erro { color: var(--color-red-text); font-size: var(--text-sm); }
+.cancelarMobile { order: 2; min-height: 44px; border: 0; background: transparent; color: var(--color-ink-muted); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
+.historicoPagamentos { padding: var(--spacing-4); border: 1px solid var(--color-line); border-radius: var(--radius-lg); background: var(--color-surface); }
+.historicoPagamentos h2 { font-family: var(--font-display); font-size: var(--text-lg); }
+.historicoPagamentos ul { display: grid; gap: var(--spacing-3); margin-top: var(--spacing-3); padding: 0; list-style: none; }
+.historicoPagamentos li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-2); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.acoesConta { display: flex; flex-wrap: wrap; gap: var(--spacing-2); }
+.acoesConta > * { flex: 1; }
+@media (min-width: 1024px) {
+  .arquivos label:first-of-type { order: 2; }
+  .mobile { display: none; }
+  .desktop { display: inline; }
+  .cancelarMobile { display: none; }
+}

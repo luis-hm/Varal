@@ -179,6 +179,7 @@
   background: var(--color-amber);
   color: var(--color-ink);
 }
+.tag[data-tom="paga"] b { background: var(--color-green); color: var(--color-surface); }
 
 .tag small {
   margin-top: 6px;
@@ -345,7 +346,7 @@
 
   .varal {
     grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-row: 1 / span 3;
     height: auto;
     margin: calc(-1 * var(--hero-padding-y)) 0 0;
   }

@@ -1,7 +1,7 @@
 # API e OpenAPI
 
 > **Contém:** endpoints, sessão/CSRF e geração do contrato composto e dos tipos do frontend.
-> **Origem:** RNF12, seção 9 de `docs/especificacao-varal.md` e implementação das Etapas 00 e 02–06.
+> **Origem:** RNF12, seção 9 de `docs/especificacao-varal.md` e implementação das Etapas 00 e 02–07.
 
 ## Fluxo
 
@@ -64,9 +64,9 @@ Toda consulta passa pelo filtro central de `acesso.py`: `lancamentos_visiveis` d
 
 | Método e rota | Permissão | Entrada / resultado |
 | --- | --- | --- |
-| `GET /api/espacos/{id}/lancamentos/` | participante | `?mes=AAAA-MM` (padrão: mês atual em Fortaleza) `&status=todas\|a_pagar\|vencidas\|pagas\|canceladas` `&subgrupo=<id>` `&pagador=<id>\|nenhum` → `{mes, total_centavos, contagens: {todas, a_pagar, vencidas, pagas, canceladas}, opcoes: {casas, pagadores, sem_pagador}, itens: [Conta]}`. `opcoes` alimenta os chips "Casa" e "Quem paga" com o visível do mês |
+| `GET /api/espacos/{id}/lancamentos/` | participante | `?mes=AAAA-MM` (padrão: mês atual em Fortaleza) `&status=todas\|a_pagar\|vencidas\|pagas\|canceladas` `&subgrupo=<id>` `&pagador=<id>\|nenhum\|ex_membro` → `{mes, total_centavos, contagens: {todas, a_pagar, vencidas, pagas, canceladas}, opcoes: {casas, pagadores, sem_pagador, ex_membro}, itens: [Conta]}`. `opcoes` alimenta os chips "Casa" e "Quem paga" com o visível do mês |
 | `POST /api/espacos/{id}/lancamentos/` | `criar_conta` | `{descricao, valor_centavos, vencimento, subgrupo?, pagador?, visibilidade?, acesso?: [usuario_id] (≤ 50)}` → 201 `ContaDetalhe`; nasce `pendente`; sem categoria |
-| `GET /api/espacos/{id}/resumo/` | participante | `{mes, janela_alerta_dias, total_centavos, qtd, vencidas_qtd, vence_qtd, atencao: [Conta], por_casa: [{id, nome, total_centavos, qtd}]}`. `atencao` = vencidas de qualquer mês + vence na janela; `por_casa` vazio no pessoal; sem `pagas_qtd` até a 07 |
+| `GET /api/espacos/{id}/resumo/` | participante | `{mes, janela_alerta_dias, total_centavos, qtd, pagas_qtd, vencidas_qtd, vence_qtd, atencao: [Conta], por_casa: [{id, nome, total_centavos, qtd, pagas_qtd}]}`. `atencao` = vencidas de qualquer mês + vence na janela; `por_casa` vazio no pessoal; `pagas_qtd` na 07 conta paga/confirmada do mês atual em Fortaleza |
 | `GET /api/lancamentos/{id}/` | quem vê | `ContaDetalhe` |
 | `PATCH /api/lancamentos/{id}/` | `editar_conta` | campos do POST, opcionais (espaço não muda) → `ContaDetalhe`; 400 (inclui a Q19b: ninguém mais veria), 409 cancelada |
 | `POST /api/lancamentos/{id}/cancelar/` | `editar_conta` | → `ContaDetalhe`; 409 se não `aguardando`/`pendente` |
@@ -75,7 +75,7 @@ Toda consulta passa pelo filtro central de `acesso.py`: `lancamentos_visiveis` d
 - **ContaDetalhe:** Conta + `criador {nome, sou_eu}`, `acesso [{id, nome}]` (seleção editável), **`quem_ve [{id, nome}]`** (somente leitura: audiência efetiva da restrita pelo filtro RN06/RN07, considerando criador, pagador, escolhidos e papéis atuais, sem duplicatas; vazio nas demais contas), `historico [{acao, automatica, autor, sou_eu, dados, criado_em}]`, `pode_editar`.
 - **Nomes:** em `pagador`, `criador`, `acesso`, `quem_ve` e `opcoes`, membro atual aparece pelo nome ou, se vazio, pelo e-mail; quem saiu ou excluiu a conta aparece como "Ex-membro", nunca pelo e-mail. Vale também para o pagador que já pode ver a conta, sem criar uma listagem geral de membros para ele. No `historico`, `autor` e as pessoas de `dados` vêm resolvidos dos ids gravados: nome, "Pessoa sem nome" ou "Ex-membro", **nunca e-mail**; ação automática tem `autor: null`. Ações em [modelo](../dados/modelo.md#implementação-da-etapa-04).
 
-**Concorrência:** criar revalida vínculo e permissão sob travas compatíveis com saída, remoção, troca de papel e exclusão de usuário. Essas operações travam todas as contas abertas do grupo, inclusive as ainda públicas, antes de avaliar a RN32; uma conversão concorrente para restrita não pode deixá-la órfã. O detalhe trava a conta, consulta a autorização em novo comando e mantém a trava até carregar relações e serializar. POST/PATCH/cancelar mantêm a própria transação até construir a resposta; a exceção de responder a quem acabou de retirar seu próprio acesso reconhece somente a própria operação, sem reler edição posterior de outra pessoa.
+**Concorrência:** criar revalida vínculo e permissão sob travas compatíveis com saída, remoção, troca de papel e exclusão de usuário. Essas operações travam todas as contas abertas do grupo, inclusive as ainda públicas, antes de avaliar a RN32; uma conversão concorrente para restrita não pode deixá-la órfã. O detalhe segue a ordem admins → membro → conta, revalida a autorização e mantém as travas até carregar relações e serializar, inclusive contas fechadas (correção B07-1 da 07). POST/PATCH/cancelar mantêm a própria transação até construir a resposta; a exceção de responder a quem acabou de retirar seu próprio acesso reconhece somente a própria operação, sem reler edição posterior de outra pessoa.
 
 ### Saída e RN32 (Etapa 04)
 
@@ -143,3 +143,27 @@ Base **`/api/auth/browser/v1/`**, acessada pela origem web `http://localhost:300
 Mutações browser exigem CSRF válido (`X-CSRFToken` no JSON). Ler o cookie atual a cada chamada, pois ele muda no login. Sessão usa cookie HttpOnly/SameSite=Lax; Secure e redirecionamento HTTPS com DEBUG desligado. Sem token no localStorage/sessionStorage. Consultas autenticadas no servidor Next encaminham cookies e não usam cache compartilhado.
 
 Google: o `redirect_uri` OAuth continua **`http://localhost:8000/accounts/google/login/callback/`** (`API_PUBLIC_URL`); a origem autorizada é **`http://localhost:3000`**. Depois do handshake, `callback_url` volta a `/entrar/retorno` no frontend, que consulta a sessão. Credenciais vêm exclusivamente do ambiente da API; `SocialApp` não é administrável nem fonte alternativa de credenciais. Cancelamento ou URL de retorno inválida volta à interface sem autenticar.
+
+
+## Pagamento e comprovante (Etapa 07, em validação)
+
+Contrato presente no OpenAPI/tipos; resultados finais de QA no [relatório07](../etapas/07-pagamento/relatorio.md). Sessão e CSRF nas escritas; invisível/inexistente →404, visível sem autorização da ação →403, conflito de estado/valor/alvo →409 após autorizar o contexto. Declaração integral, sem operação bancária ou pagamento parcial ([ADR 0011](../arquitetura/adr/0011-pagamento-e-evidencia.md)).
+
+| Método e rota | Entrada / resultado | Guarda |
+| --- | --- | --- |
+| `POST /api/lancamentos/{id}/pagamentos/` | `{pago_em,valor_centavos_esperado,comprovante_id?}` →201 ContaDetalhe | Pendente e permissão atual de pagar; data civil não futura em Fortaleza; valor integral esperado conferido sob trava; arquivo opcional próprio, válido e do ciclo atual |
+| `POST /api/lancamentos/{id}/comprovantes/` | Multipart `arquivo`, `pagamento_id?` →202 Documento | Permissão própria de pagar, sem exigir editar boleto. Sem alvo: pendente; com alvo: marca ativa exata do autor/admin e ainda sem comprovante |
+| `GET /api/comprovantes/{id}/` | Documento `{id,estado,nome,tamanho,mime,criado_em}` | Draft: uploader autorizado no contexto/ciclo, até24h; vinculado ativo/histórico: acesso atual à conta |
+| `GET /api/comprovantes/{id}/arquivo/` | `{url,expira_em}`; só estado `valido` | Mesma autorização atual; assinatura de60s para o endpoint público configurado |
+| `POST /api/lancamentos/{id}/pagamentos/{pid}/comprovante/` | `{comprovante_id}` →200 ContaDetalhe confirmada | Autor/admin visível com permissão atual de pagar; marca ativa exata sem arquivo; vínculo e promoção atômicos |
+| `POST /api/lancamentos/{id}/pagamentos/{pid}/desfazer/` | Sem corpo →200 ContaDetalhe pendente | Autor/admin visível; autor agora observador conserva só undo. Alvo desfeito/antigo →409 sem afetar nova marca |
+
+`Documento.estado` é enum `pendente|lendo|valido|invalido|erro`, não status de conta. Aceita JPEG/PNG/PDF até5MiB, imagem até20MP sem animação; subprocesso limitado valida formato, sem atestar autenticidade. Preserva bytes originais/EXIF no storage privado com MIME validado; não expõe metadados pessoais extraídos. Worker só altera documento. O vínculo exige validação pronta e nova autorização; upload tardio não muda a conta.
+
+`ContaDetalhe` acrescenta `pagamento_ativo: Pagamento|null`, `pagamentos: Pagamento[]`, `pode_pagar`, `pode_desfazer_pagamento`, `pode_anexar_comprovante`. Pagamento: `{id,pago_em,valor_pago_centavos,criado_em,desfeito_em,marcado_por,comprovante_id}`; autor é rótulo histórico sem e-mail. A lista histórica conserva a referência de comprovantes das marcas desfeitas. Flags não dispensam autorização no backend. Undo conserva evidência e evento; não há troca/remoção isolada de comprovante nem retorno a draft. Alteração efetiva de valor com marca ativa →409; mesmo valor é no-op. Reabertura limpa pagador sem vínculo atual e recusa RN32 órfã atomicamente.
+
+**Resumos e Ex-membro:** resumo/PorCasa incluem `pagas_qtd`; progresso = paga+confirmada sobre não canceladas do mês de vencimento, só do visível, zero contas →0. Início/resumo e `membros[].contas_atribuidas_qtd` do grupo usam o mês atual em Fortaleza; MemberRow mede atribuição, não autor da marca. A lista aceita `pagador=ex_membro` e expõe `opcoes.ex_membro` apenas se houver FK preservada sem membro atual no conjunto visível do mês; `nenhum` continua separado para FK nula, e opções UUID representam membros atuais.
+
+**Retenção e manutenção:** undo preserva arquivo privado ligado à conta/pagamento histórico; qualquer espectador atual pode baixá-lo. Novas assinaturas revalidam acesso, mas URL já emitida pode valer até expirar. Draft expira em24h; exclusão física gera intenção durável de limpeza após commit. `recuperar_comprovantes` roda pelo beat a cada5min (D07-1), sem implementar recorrência mensal08. Alias `comprovantes` preserva MIME validado, separado do MIME fixoPDF do boleto.
+
+**Evento07→09:** EventoPagamento único é gravado na transação da marca, sem transporte nesta etapa. Anexo não duplica evento e undo não o apaga. A09 deve revalidar destinatário, acesso e marca ativa, consumir/descartar quando inaplicável e evitar entrega duplicada. A interface07 confirma apenas “Pagamento registrado.”

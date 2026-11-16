@@ -49,6 +49,13 @@ test("ajuste 29: detail Quem paga, Quem vê, Criada por and history keep a long 
     criador: pessoa("u4"),
     criado_em: "2026-11-01T12:00:00Z",
     pode_editar: false,
+    pagamento_ativo: null,
+    pagamentos: [],
+    pode_pagar: false,
+    pode_desfazer_pagamento: false,
+    pode_anexar_comprovante: false,
+    documento_pdf: null,
+    instrumento: null,
     historico: [{ acao: "criada", automatica: false, autor: EMAIL, sou_eu: false, dados: {}, criado_em: "2026-11-01T12:00:00Z" }],
   } as unknown as Detalhe;
   render(<QueryClientProvider client={new QueryClient()}><ContaDetalhe conta={detalhe} voltar="/contas" /></QueryClientProvider>);

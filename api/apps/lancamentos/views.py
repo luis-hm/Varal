@@ -122,6 +122,27 @@ class HistoricoSerializer(serializers.Serializer):
         return obj.usuario_id == self.context["request"].user.pk
 
 
+class PagamentoSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    pago_em = serializers.DateField()
+    valor_pago_centavos = serializers.IntegerField()
+    criado_em = serializers.DateTimeField()
+    desfeito_em = serializers.DateTimeField(allow_null=True)
+    marcado_por = serializers.SerializerMethodField()
+    comprovante_id = serializers.SerializerMethodField()
+
+    def get_marcado_por(self, obj) -> str:
+        return servicos.rotulo(obj.marcado_por, self.context["membros"], historico=True)
+
+    @extend_schema_field(serializers.UUIDField(allow_null=True))
+    def get_comprovante_id(self, obj):
+        from apps.pagamentos.models import DocumentoComprovante
+
+        return (
+            DocumentoComprovante.objects.filter(pagamento=obj).values_list("pk", flat=True).first()
+        )
+
+
 class ContaDetalheSerializer(ContaSerializer):
     documento_pdf = DocumentoPDFSerializer(allow_null=True, read_only=True)
     instrumento = InstrumentoDetalheSerializer(allow_null=True, read_only=True)
@@ -132,6 +153,34 @@ class ContaDetalheSerializer(ContaSerializer):
     )
     historico = HistoricoSerializer(many=True)
     pode_editar = serializers.SerializerMethodField()
+    pagamento_ativo = serializers.SerializerMethodField()
+    pagamentos = PagamentoSerializer(many=True)
+    pode_pagar = serializers.SerializerMethodField()
+    pode_desfazer_pagamento = serializers.SerializerMethodField()
+    pode_anexar_comprovante = serializers.SerializerMethodField()
+
+    def _ativo(self, obj):
+        return next((p for p in obj.pagamentos.all() if p.desfeito_em is None), None)
+
+    @extend_schema_field(PagamentoSerializer(allow_null=True))
+    def get_pagamento_ativo(self, obj):
+        pagamento = self._ativo(obj)
+        return PagamentoSerializer(pagamento, context=self.context).data if pagamento else None
+
+    def get_pode_pagar(self, obj) -> bool:
+        from apps.pagamentos.servicos import pode_pagar
+
+        return obj.status == Status.PENDENTE and pode_pagar(self.context["request"].user, obj)
+
+    def get_pode_desfazer_pagamento(self, obj) -> bool:
+        from apps.pagamentos.servicos import pode_desfazer
+
+        return pode_desfazer(self.context["request"].user, obj, self._ativo(obj))
+
+    def get_pode_anexar_comprovante(self, obj) -> bool:
+        from apps.pagamentos.servicos import pode_anexar
+
+        return pode_anexar(self.context["request"].user, obj, self._ativo(obj))
 
     @extend_schema_field(CriadorSerializer)
     def get_criador(self, obj):
@@ -199,6 +248,7 @@ class OpcoesSerializer(serializers.Serializer):
     casas = RefSerializer(many=True)
     pagadores = PessoaSerializer(many=True)
     sem_pagador = serializers.BooleanField()
+    ex_membro = serializers.BooleanField()
 
 
 class ListaSerializer(serializers.Serializer):
@@ -212,6 +262,7 @@ class ListaSerializer(serializers.Serializer):
 class PorCasaSerializer(RefSerializer):
     total_centavos = serializers.IntegerField()
     qtd = serializers.IntegerField()
+    pagas_qtd = serializers.IntegerField()
 
 
 class ResumoSerializer(serializers.Serializer):
@@ -219,6 +270,7 @@ class ResumoSerializer(serializers.Serializer):
     janela_alerta_dias = serializers.IntegerField()
     total_centavos = serializers.IntegerField()
     qtd = serializers.IntegerField()
+    pagas_qtd = serializers.IntegerField()
     vencidas_qtd = serializers.IntegerField(help_text="Em atencao (qualquer mês)")
     vence_qtd = serializers.IntegerField(help_text="Em atencao (dentro da janela)")
     atencao = ContaSerializer(many=True)
@@ -350,7 +402,7 @@ def _detalhe(request, conta_id, espaco, codigo=status.HTTP_200_OK, apos_escrita=
             consulta.com_status(espaco.janela_alerta_dias)
             .select_related(*COM_DADOS, "criador")
             .select_related("instrumento")
-            .prefetch_related("acesso", "historico__usuario")
+            .prefetch_related("acesso", "historico__usuario", "pagamentos__marcado_por")
             .get(pk=conta_id)
         )
     except Lancamento.DoesNotExist as exc:
@@ -362,6 +414,7 @@ def _detalhe(request, conta_id, espaco, codigo=status.HTTP_200_OK, apos_escrita=
         "papel": getattr(conta, "meu_papel", espaco.meu_papel),
         "membros": membros,
     }
+    conta.espaco.meu_papel = contexto["papel"]
     return Response(ContaDetalheSerializer(conta, context=contexto).data, status=codigo)
 
 
@@ -415,7 +468,10 @@ class LancamentosView(APIView):
         contas = do_mes
         if casa := _uuid(request, "subgrupo"):
             contas = contas.filter(subgrupo_id=casa)
-        if request.query_params.get("pagador") == "nenhum":
+        membros_atuais = membros_ids(espaco)
+        if request.query_params.get("pagador") == "ex_membro":
+            contas = contas.filter(pagador__isnull=False).exclude(pagador_id__in=membros_atuais)
+        elif request.query_params.get("pagador") == "nenhum":
             contas = contas.filter(pagador__isnull=True)
         elif pagador := _uuid(request, "pagador"):
             contas = contas.filter(pagador_id=pagador)
@@ -427,7 +483,7 @@ class LancamentosView(APIView):
         com_casa = do_mes.filter(subgrupo__isnull=False).select_related("subgrupo")
         com_pagador = do_mes.filter(pagador__isnull=False).select_related("pagador")
         casas = {c.subgrupo for c in com_casa}
-        pagadores = {c.pagador for c in com_pagador}
+        pagadores = {c.pagador for c in com_pagador if c.pagador_id in membros_atuais}
         contexto = {"request": request, "membros": membros_ids(espaco)}
         corpo = {
             "mes": rotulo,
@@ -439,6 +495,9 @@ class LancamentosView(APIView):
                     (_pessoa(u, contexto) for u in pagadores), key=lambda p: p["nome"]
                 ),
                 "sem_pagador": do_mes.filter(pagador__isnull=True).exists(),
+                "ex_membro": do_mes.filter(pagador__isnull=False)
+                .exclude(pagador_id__in=membros_atuais)
+                .exists(),
             },
             "itens": itens.order_by("vencimento", "criado_em"),
         }
@@ -488,7 +547,11 @@ class ResumoView(APIView):
         rotulo, inicio, fim = _mes(None)
         visiveis = lancamentos_visiveis(request.user, espaco)
         do_mes = visiveis.filter(NAO_CANCELADA, vencimento__range=(inicio, fim))
-        numeros = do_mes.aggregate(total=Sum("valor_centavos", default=0), qtd=Count("pk"))
+        numeros = do_mes.aggregate(
+            total=Sum("valor_centavos", default=0),
+            qtd=Count("pk"),
+            pagas_qtd=Count("pk", filter=Q(status__in=(Status.PAGA, Status.CONFIRMADA))),
+        )
         # Q9 / decision 26: every open bill (pendente or aguardando) overdue from any month or
         # due within the window, by date; the badge keeps the real status. Never cancelled (D2).
         hoje = timezone.localdate()
@@ -506,7 +569,11 @@ class ResumoView(APIView):
                 {"id": c["subgrupo"], "nome": c["subgrupo__nome"], **c}
                 for c in do_mes.filter(subgrupo__isnull=False)
                 .values("subgrupo", "subgrupo__nome")
-                .annotate(total_centavos=Sum("valor_centavos"), qtd=Count("pk"))
+                .annotate(
+                    total_centavos=Sum("valor_centavos"),
+                    qtd=Count("pk"),
+                    pagas_qtd=Count("pk", filter=Q(status__in=(Status.PAGA, Status.CONFIRMADA))),
+                )
                 .order_by("subgrupo__nome")
             ]
         corpo = {
@@ -514,6 +581,7 @@ class ResumoView(APIView):
             "janela_alerta_dias": espaco.janela_alerta_dias,
             "total_centavos": numeros["total"],
             "qtd": numeros["qtd"],
+            "pagas_qtd": numeros["pagas_qtd"],
             "vencidas_qtd": sum(c.vencimento < hoje for c in atencao),
             "vence_qtd": sum(c.vencimento >= hoje for c in atencao),
             "atencao": atencao,
@@ -530,8 +598,11 @@ class LancamentoView(APIView):
         responses={200: ContaDetalheSerializer, **_erros(404)},
         examples=[DETALHE],
     )
+    @transaction.atomic
     def get(self, request, lancamento_id):
-        conta = lancamento_ou_404(request.user, lancamento_id)
+        from apps.pagamentos.servicos import conta_travada
+
+        conta = conta_travada(request.user, lancamento_id)
         return _detalhe(request, conta.pk, conta.espaco)
 
     @extend_schema(

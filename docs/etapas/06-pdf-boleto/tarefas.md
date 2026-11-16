@@ -22,4 +22,4 @@ Etapa aberta em 16/11/2026 após merge da 05 em `e5c94e3`. Definição de pronto
 | 13 | [x] test/lint/types/E2E verdes (390 pytest, 89 Vitest, 97 E2E e 3 skips previstos), screenshots/Doop e matriz atualizada; cenário uploader perde acesso após vínculo | varal-qa | todos |
 | 14 | [x] Revisão final Astra por leitura sem bloqueantes após mutex/tentativa/intenção, cobrindo arquivos, acesso, isolamento/logs/limpeza; nenhuma nova execução de testes atribuída à revisão | varal-seguranca; área responsável | CA02,CA07–CA11,CA14,CA15 |
 | 15 | [x] Auditoria de decisões, revisão atual de Ajustes e relatório/progresso/modelo/API/design/stack atualizados | decisor/docs | CA14 |
-| 16 | [ ] Commit e merge local pelo orquestrador, sem push | orquestrador | CA14 |
+| 16 | [x] Commit `4391b3d` e merge local `b21bd83` pelo orquestrador, sem push | orquestrador | CA14 |

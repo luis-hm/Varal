@@ -11,6 +11,7 @@ import { useResumo } from "@/lib/contas/hooks";
 import { mesAno, nomeMes, partesReais, plural, reais, saudacao } from "@/lib/contas/formato";
 import { ContaCard } from "./bill-card";
 import { useContagem } from "./contagem";
+import { ProgressoPagas } from "./progresso-pagas";
 import styles from "./inicio.module.css";
 
 export function Inicio() {
@@ -42,7 +43,7 @@ export function Inicio() {
         <p className={styles.vazio} role="status">Carregando contas…</p>
       ) : (
         <>
-          <Heroi mes={resumo.data.mes} total={resumo.data.total_centavos} qtd={resumo.data.qtd} vencidas={resumo.data.vencidas_qtd} vencem={resumo.data.vence_qtd} janela={resumo.data.janela_alerta_dias} />
+          <Heroi mes={resumo.data.mes} total={resumo.data.total_centavos} qtd={resumo.data.qtd} pagas={resumo.data.pagas_qtd} vencidas={resumo.data.vencidas_qtd} vencem={resumo.data.vence_qtd} janela={resumo.data.janela_alerta_dias} />
           <div className={styles.grade} data-grupo={espaco.tipo === "grupo" || undefined}>
             <section aria-labelledby="atencao-t">
               <div className={`${styles.sec} ${styles.in} ${styles.d1}`}>
@@ -72,7 +73,7 @@ export function Inicio() {
                 {resumo.data.por_casa.length ? (
                   <div className={`${styles.houses} ${styles.in} ${styles.d3}`}>
                     {resumo.data.por_casa.map((c) => (
-                      <HouseCard key={c.id} label={c.nome} caption={reais(c.total_centavos)} caption-2={`${plural(c.qtd, "conta", "contas")} em ${nomeMes(resumo.data.mes)}`} />
+                      <HouseCard key={c.id} label={c.nome} caption={reais(c.total_centavos)} progress={c.qtd ? c.pagas_qtd / c.qtd * 100 : undefined} caption-2={c.qtd ? `${c.pagas_qtd} de ${c.qtd} pagas em ${nomeMes(resumo.data.mes)}` : `0 contas em ${nomeMes(resumo.data.mes)}`} />
                     ))}
                   </div>
                 ) : (
@@ -87,10 +88,10 @@ export function Inicio() {
   );
 }
 
-type HeroiProps = { mes: string; total: number; qtd: number; vencidas: number; vencem: number; janela: number };
+type HeroiProps = { mes: string; total: number; qtd: number; pagas: number; vencidas: number; vencem: number; janela: number };
 
 /** Month total (count-up) and the clothesline (swing). Q12/Q23: no paid bar and no "pagas" tag until stage 07. */
-function Heroi({ mes, total, qtd, vencidas, vencem, janela }: HeroiProps) {
+function Heroi({ mes, total, qtd, pagas, vencidas, vencem, janela }: HeroiProps) {
   const [inteiro, centavos] = partesReais(useContagem(total));
   const rotulo = `Total de ${nomeMes(mes)}`;
   return (
@@ -106,7 +107,8 @@ function Heroi({ mes, total, qtd, vencidas, vencem, janela }: HeroiProps) {
           <span className={styles.cent}>{centavos}</span>
         </span>
       </p>
-      <div className={styles.varal} role="img" aria-label={`Precisa de atenção: ${plural(vencidas, "vencida", "vencidas")}, ${vencem} ${vencem === 1 ? "vence" : "vencem"} em até ${plural(janela, "dia", "dias")}`}>
+      <ProgressoPagas pagas={pagas} total={qtd} mes={nomeMes(mes)} />
+      <div className={styles.varal} role="img" aria-label={`Precisa de atenção: ${plural(vencidas, "vencida", "vencidas")}, ${vencem} ${vencem === 1 ? "vence" : "vencem"} em até ${plural(janela, "dia", "dias")}, ${plural(pagas, "paga", "pagas")}`}>
         <svg className={styles.fio} viewBox="0 0 366 44" preserveAspectRatio="none" aria-hidden="true">
           <path d="M-4 10 Q183 42 370 10" />
         </svg>
@@ -126,6 +128,7 @@ function Heroi({ mes, total, qtd, vencidas, vencem, janela }: HeroiProps) {
               </span>
             </small>
           </span>
+          <span className={styles.tag} data-tom="paga"><i /><b>{pagas}</b><small>{pagas === 1 ? "paga" : "pagas"}</small></span>
         </div>
       </div>
     </section>

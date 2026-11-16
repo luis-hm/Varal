@@ -13,8 +13,8 @@
 | 03 | Espaços e grupos | concluída | `etapa/03-espacos-grupos` | 15/11/2026 | [relatorio](etapas/03-espacos-grupos/relatorio.md) |
 | 04 | Contas (núcleo) | concluída e integrada localmente à main (`fe48cbe`) | `etapa/04-contas` | 15/11/2026 (inicial); revisão 16/11/2026 | [relatorio](etapas/04-contas/relatorio.md) |
 | 05 | Boleto e Pix | concluída e integrada localmente à main (`e5c94e3`) | `etapa/05-boleto-pix` | 16/11/2026 | [relatorio](etapas/05-boleto-pix/relatorio.md) |
-| 06 | PDF do boleto | concluída; definição de pronto alcançada, pronta para commit e merge local | `etapa/06-pdf-boleto` | — | [relatorio](etapas/06-pdf-boleto/relatorio.md) |
-| 07 | Pagamento | pendente | — | — | — |
+| 06 | PDF do boleto | concluída e integrada localmente à main (`b21bd83`) | `etapa/06-pdf-boleto` | 16/11/2026 | [relatorio](etapas/06-pdf-boleto/relatorio.md) |
+| 07 | Pagamento | concluída; pronta para commit/merge local | `etapa/07-pagamento` | 16/11/2026 | [relatorio](etapas/07-pagamento/relatorio.md) |
 | 08 | Recorrência e agendador | pendente | — | — | — |
 | 09 | Notificações | pendente | — | — | — |
 | 10 | Solicitação e modo simples | pendente | — | — | — |
@@ -61,11 +61,25 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 
 Ordem cronológica inversa.
 
-### 16/11/2026 — Etapa 06 concluída, pronta para commit e merge local
+
+### 16/11/2026 — Etapa 07 concluída, pronta para commit/merge local
+
+- Pagamento integral, comprovantes privados/históricos, undo, progresso e Ex-membro integrados; Q07-1–11/ADR0011 e D07-1 consolidados. Estado vazio preserva “0 contas em mês”, sem fração0/0; evento durável07→09 não equivale a aviso entregue.
+- `make test`:413 pytest/91 Vitest verdes; após ajuste mínimo de estado vazio, suíte web93/93 verde. Tipos2x determinísticos e lint verdes. S3/Celery real com PNG/PDF originais, bytes/MIME, assinatura e cleanup verdes. Foco pagamento10/10 e regressões de legenda6/6 verdes.
+- Segurança Astra integrada sem bloqueantes; B07-1 corrigido com teste concorrente paga/confirmada verde. Capturas/fluxo comparados ao Doop nas duas larguras; capturas finais com animações desativadas confirmam o check completo, substituindo a imagem mobile anterior durante animação.
+- E2E integral final:107 passaram/3 skips previstos em6,9min, status passed/exit0; lint final exit0. Rodada anterior101 aprovados/3 skips/6 falhas corrigidas não conta como aprovação. Backend413/tipos2x são da rodada anterior; web93 e lint/E2E verificaram as correções posteriores. QA confirmou capturas finais, matriz atualizada e runner/Next encerrados. Definição de pronto cumprida; [relatório](etapas/07-pagamento/relatorio.md) pronto para commit/merge local, sem push. P6 externa; P10/P11 específicos da11 preservados.
+
+### 16/11/2026 — Merge local da Etapa 06 e início da Etapa 07
+
+- PDF concluído em `4391b3d`, merge local `--no-ff` na main em `b21bd83`. Validação final: 390 pytest, 89 Vitest, 97 E2E e 3 skips previstos; tipos determinísticos, lint, storage/Celery real, inspeção headed e segurança sem bloqueantes. Processos de teste próprios encerrados. Sem push.
+- Criada `etapa/07-pagamento`; spec/plano/tarefas/decisões integrados. Q07-1–10 e ADR 0011 fecham pagamento integral, autoria, evidência original privada e histórica, métricas, reabertura e evento durável para notificações na 09. Doop consultado em leitura, incluindo frames draft usados por delegação sem alterar o canvas; barras seguem dados reais e confirmação não promete aviso entregue.
+- Ajustes: dono confirmou no chat que não há pendentes, sem alegar conector ou reexportação. P6 continua externa; P10/P11 específicos da 11 aguardam resposta. Próximo passo: backend, tipos e frontend da 07, depois QA/segurança/docs e continuidade autorizada.
+
+### 16/11/2026 — Etapa 06 concluída (commit/merge local realizados na sequência)
 
 - Documento/PDF manual, spool privado, Celery e processo dedicado integrados; I/O real por django-storages. Tentativa UUID, mutex e intenção persistida protegem execução antiga, limpeza e rollback. No-op de metadados corrigido com regressões.
 - **390 pytest, 89 Vitest e 97 E2E passaram, com 3 skips previstos; lint e tipos determinísticos verdes.** Provas reais de S3/Celery/assinatura/cleanup e inspeção headed do PDF/fallback em mobile/desktop passaram. Ajustes preliminares de popup/controle de arquivo foram conferidos com Tab real; repetição integral final com exit 0 e sem servidor Next próprio remanescente.
-- Segurança Astra sem bloqueantes por leitura; auditoria sem perguntas/decisões pendentes. Resultado final e matriz no [relatório](etapas/06-pdf-boleto/relatorio.md). Definição de pronto alcançada; commit e merge local pendentes do orquestrador. Sem push.
+- Segurança Astra sem bloqueantes por leitura; auditoria sem perguntas/decisões pendentes. Resultado final e matriz no [relatório](etapas/06-pdf-boleto/relatorio.md). Definição de pronto alcançada; commit `4391b3d` e merge local `b21bd83` realizados na sequência. Sem push.
 - Ajustes: dono declarou ausência de pendentes pelo chat; sem conector/marcação remota. P6 continua externa. Perfil/deploy P10/P11 permanecem sem resposta, específicos da 11; não bloqueiam 06–10 nem autorizam VPS por silêncio.
 
 ### 16/11/2026 — Merge local da Etapa 05 e início da Etapa 06
