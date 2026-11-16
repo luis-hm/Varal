@@ -536,6 +536,7 @@ def test_d2_cancelada_fora_de_tudo_menos_do_filtro_canceladas(f):
             "total_centavos": 1000,
             "qtd": 1,
             "pagas_qtd": 0,
+            "valores_indefinidos_qtd": 0,
         }
     ]
 
@@ -606,6 +607,7 @@ def test_rf13_resumo_total_do_mes_atencao_e_por_casa(f):
             "total_centavos": 200,
             "qtd": 1,
             "pagas_qtd": 0,
+            "valores_indefinidos_qtd": 0,
         }
     ]
     assert corpo["pagas_qtd"] == 0  # Q23 delivered in stage 07

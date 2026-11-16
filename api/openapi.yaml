@@ -2302,6 +2302,21 @@ components:
       required:
       - comprovante_id
       type: object
+    ArquivamentoPreview:
+      properties:
+        contas_qtd:
+          type: integer
+        recorrencias_qtd:
+          type: integer
+      required:
+      - contas_qtd
+      - recorrencias_qtd
+      type: object
+    CancelarEntrada:
+      properties:
+        escopo:
+          $ref: '#/components/schemas/EscopoEnum'
+      type: object
     CandidatoPDF:
       properties:
         avisos:
@@ -2381,6 +2396,7 @@ components:
           - $ref: '#/components/schemas/Ref'
           nullable: true
         valor_centavos:
+          nullable: true
           type: integer
         vencimento:
           format: date
@@ -2408,6 +2424,10 @@ components:
             $ref: '#/components/schemas/Ref'
           readOnly: true
           type: array
+        competencia:
+          format: date
+          nullable: true
+          type: string
         criado_em:
           format: date-time
           type: string
@@ -2465,6 +2485,9 @@ components:
         pode_pagar:
           readOnly: true
           type: boolean
+        pode_ver_recorrencia:
+          readOnly: true
+          type: boolean
         quem_ve:
           description: 'Acesso efetivo da restrita: criador, pagador e escolhidos;
             vazio nas demais.'
@@ -2472,6 +2495,14 @@ components:
             $ref: '#/components/schemas/Ref'
           readOnly: true
           type: array
+        recorrencia_id:
+          format: uuid
+          nullable: true
+          readOnly: true
+          type: string
+        recorrente:
+          readOnly: true
+          type: boolean
         status:
           $ref: '#/components/schemas/StatusEnum'
         status_exibido:
@@ -2481,6 +2512,7 @@ components:
           - $ref: '#/components/schemas/Ref'
           nullable: true
         valor_centavos:
+          nullable: true
           type: integer
         vencimento:
           format: date
@@ -2489,6 +2521,7 @@ components:
           $ref: '#/components/schemas/VisibilidadeEnum'
       required:
       - acesso
+      - competencia
       - criado_em
       - criador
       - descricao
@@ -2505,7 +2538,10 @@ components:
       - pode_desfazer_pagamento
       - pode_editar
       - pode_pagar
+      - pode_ver_recorrencia
       - quem_ve
+      - recorrencia_id
+      - recorrente
       - status
       - status_exibido
       - subgrupo
@@ -2526,6 +2562,8 @@ components:
           maxLength: 200
           nullable: true
           type: string
+        confirmar_chegada:
+          type: boolean
         data_emissao:
           format: date
           nullable: true
@@ -2537,6 +2575,8 @@ components:
           format: uuid
           nullable: true
           type: string
+        escopo:
+          $ref: '#/components/schemas/EscopoEnum'
         instrumento:
           allOf:
           - $ref: '#/components/schemas/InstrumentoEntrada'
@@ -2553,6 +2593,8 @@ components:
           maximum: 2147483647
           minimum: 1
           type: integer
+        valor_tipo:
+          $ref: '#/components/schemas/ValorTipoEnum'
         vencimento:
           format: date
           type: string
@@ -2671,6 +2713,18 @@ components:
       - grupo_nome
       - papel
       type: object
+    CriacaoResultado:
+      properties:
+        ocorrencia:
+          allOf:
+          - $ref: '#/components/schemas/ContaDetalhe'
+          nullable: true
+        recorrencia:
+          $ref: '#/components/schemas/Recorrencia'
+      required:
+      - ocorrencia
+      - recorrencia
+      type: object
     Criador:
       properties:
         nome:
@@ -2695,6 +2749,51 @@ components:
       required:
       - nome
       type: object
+    CriarRecorrencia:
+      properties:
+        acesso:
+          items:
+            format: uuid
+            type: string
+          maxItems: 50
+          type: array
+        chave_idempotencia:
+          format: uuid
+          type: string
+        descricao:
+          maxLength: 150
+          type: string
+        dia_vencimento:
+          maximum: 31
+          minimum: 1
+          type: integer
+        ocorrencia_inicial:
+          allOf:
+          - $ref: '#/components/schemas/OcorrenciaInicial'
+          nullable: true
+        pagador:
+          format: uuid
+          nullable: true
+          type: string
+        subgrupo:
+          format: uuid
+          nullable: true
+          type: string
+        valor_centavos:
+          maximum: 2147483647
+          minimum: 1
+          nullable: true
+          type: integer
+        valor_tipo:
+          $ref: '#/components/schemas/ValorTipoEnum'
+        visibilidade:
+          $ref: '#/components/schemas/VisibilidadeEnum'
+      required:
+      - chave_idempotencia
+      - descricao
+      - dia_vencimento
+      - valor_tipo
+      type: object
     Documento:
       properties:
         criado_em:
@@ -2702,7 +2801,7 @@ components:
           readOnly: true
           type: string
         estado:
-          $ref: '#/components/schemas/EstadoEnum'
+          $ref: '#/components/schemas/DocumentoEstadoEnum'
         id:
           format: uuid
           readOnly: true
@@ -2723,6 +2822,23 @@ components:
       - nome
       - tamanho
       type: object
+    DocumentoEstadoEnum:
+      description: '* `pendente` - Aguardando validação
+
+        * `lendo` - Validando
+
+        * `valido` - Validado
+
+        * `invalido` - Arquivo inválido
+
+        * `erro` - Falha na validação'
+      enum:
+      - pendente
+      - lendo
+      - valido
+      - invalido
+      - erro
+      type: string
     DocumentoPDF:
       properties:
         avisos:
@@ -2755,6 +2871,14 @@ components:
       required:
       - detail
       type: object
+    EscopoEnum:
+      description: '* `mes` - mes
+
+        * `proximos` - proximos'
+      enum:
+      - mes
+      - proximos
+      type: string
     EspacoPessoal:
       properties:
         id:
@@ -2785,23 +2909,6 @@ components:
       - nome
       - tipo
       type: object
-    EstadoEnum:
-      description: '* `pendente` - Aguardando validação
-
-        * `lendo` - Validando
-
-        * `valido` - Validado
-
-        * `invalido` - Arquivo inválido
-
-        * `erro` - Falha na validação'
-      enum:
-      - pendente
-      - lendo
-      - valido
-      - invalido
-      - erro
-      type: string
     GrupoDetalhe:
       properties:
         casas:
@@ -3032,7 +3139,9 @@ components:
           - $ref: '#/components/schemas/Opcoes'
           description: Casas e pagadores das contas visíveis do mês
         total_centavos:
-          description: Não canceladas do mês, com casa/pagador
+          description: Valor conhecido não cancelado do mês
+          type: integer
+        valores_indefinidos_qtd:
           type: integer
       required:
       - contagens
@@ -3040,6 +3149,7 @@ components:
       - mes
       - opcoes
       - total_centavos
+      - valores_indefinidos_qtd
       type: object
     Marcar:
       properties:
@@ -3113,6 +3223,35 @@ components:
       - papel
       - sou_eu
       - usuario
+      type: object
+    OcorrenciaInicial:
+      properties:
+        beneficiario:
+          maxLength: 200
+          nullable: true
+          type: string
+        data_emissao:
+          format: date
+          nullable: true
+          type: string
+        documento_pdf:
+          format: uuid
+          nullable: true
+          type: string
+        instrumento:
+          allOf:
+          - $ref: '#/components/schemas/InstrumentoEntrada'
+          nullable: true
+        valor_centavos:
+          maximum: 2147483647
+          minimum: 1
+          type: integer
+        vencimento:
+          format: date
+          type: string
+      required:
+      - valor_centavos
+      - vencimento
       type: object
     Opcoes:
       properties:
@@ -3189,10 +3328,15 @@ components:
       - pagador
       - observador
       type: string
-    PatchedCasa:
+    PatchedCasaAlterar:
       properties:
         arquivado:
           type: boolean
+        destino_subgrupo:
+          format: uuid
+          nullable: true
+          type: string
+          writeOnly: true
         id:
           format: uuid
           readOnly: true
@@ -3221,6 +3365,8 @@ components:
           maxLength: 200
           nullable: true
           type: string
+        confirmar_chegada:
+          type: boolean
         data_emissao:
           format: date
           nullable: true
@@ -3232,6 +3378,8 @@ components:
           format: uuid
           nullable: true
           type: string
+        escopo:
+          $ref: '#/components/schemas/EscopoEnum'
         instrumento:
           allOf:
           - $ref: '#/components/schemas/InstrumentoEntrada'
@@ -3248,6 +3396,8 @@ components:
           maximum: 2147483647
           minimum: 1
           type: integer
+        valor_tipo:
+          $ref: '#/components/schemas/ValorTipoEnum'
         vencimento:
           format: date
           type: string
@@ -3258,6 +3408,39 @@ components:
       properties:
         papel:
           $ref: '#/components/schemas/PapelEnum'
+      type: object
+    PatchedRecorrenciaEntrada:
+      properties:
+        acesso:
+          items:
+            format: uuid
+            type: string
+          maxItems: 50
+          type: array
+        descricao:
+          maxLength: 150
+          type: string
+        dia_vencimento:
+          maximum: 31
+          minimum: 1
+          type: integer
+        pagador:
+          format: uuid
+          nullable: true
+          type: string
+        subgrupo:
+          format: uuid
+          nullable: true
+          type: string
+        valor_centavos:
+          maximum: 2147483647
+          minimum: 1
+          nullable: true
+          type: integer
+        valor_tipo:
+          $ref: '#/components/schemas/ValorTipoEnum'
+        visibilidade:
+          $ref: '#/components/schemas/VisibilidadeEnum'
       type: object
     Pessoa:
       properties:
@@ -3297,13 +3480,98 @@ components:
           type: integer
         total_centavos:
           type: integer
+        valores_indefinidos_qtd:
+          type: integer
       required:
       - id
       - nome
       - pagas_qtd
       - qtd
       - total_centavos
+      - valores_indefinidos_qtd
       type: object
+    Recorrencia:
+      properties:
+        acesso:
+          items:
+            format: uuid
+            type: string
+          readOnly: true
+          type: array
+        criado_em:
+          format: date-time
+          type: string
+        descricao:
+          type: string
+        dia_vencimento:
+          type: integer
+        espaco_id:
+          format: uuid
+          type: string
+        estado:
+          $ref: '#/components/schemas/RecorrenciaEstadoEnum'
+        id:
+          format: uuid
+          type: string
+        motivo_pausa:
+          type: string
+        pagador:
+          format: uuid
+          nullable: true
+          type: string
+        pode_editar:
+          readOnly: true
+          type: boolean
+        pode_encerrar:
+          readOnly: true
+          type: boolean
+        pode_pausar:
+          readOnly: true
+          type: boolean
+        pode_retomar:
+          readOnly: true
+          type: boolean
+        subgrupo:
+          format: uuid
+          nullable: true
+          type: string
+        valor_centavos:
+          nullable: true
+          type: integer
+        valor_tipo:
+          $ref: '#/components/schemas/ValorTipoEnum'
+        visibilidade:
+          $ref: '#/components/schemas/VisibilidadeEnum'
+      required:
+      - acesso
+      - criado_em
+      - descricao
+      - dia_vencimento
+      - espaco_id
+      - estado
+      - id
+      - motivo_pausa
+      - pagador
+      - pode_editar
+      - pode_encerrar
+      - pode_pausar
+      - pode_retomar
+      - subgrupo
+      - valor_centavos
+      - valor_tipo
+      - visibilidade
+      type: object
+    RecorrenciaEstadoEnum:
+      description: '* `ativa` - Ativa
+
+        * `pausada` - Pausada
+
+        * `encerrada` - Encerrada'
+      enum:
+      - ativa
+      - pausada
+      - encerrada
+      type: string
     Ref:
       properties:
         id:
@@ -3389,6 +3657,8 @@ components:
           type: integer
         total_centavos:
           type: integer
+        valores_indefinidos_qtd:
+          type: integer
         vence_qtd:
           description: Em atencao (dentro da janela)
           type: integer
@@ -3403,6 +3673,7 @@ components:
       - por_casa
       - qtd
       - total_centavos
+      - valores_indefinidos_qtd
       - vence_qtd
       - vencidas_qtd
       type: object
@@ -3522,6 +3793,14 @@ components:
       required:
       - arquivo
       type: object
+    ValorTipoEnum:
+      description: '* `fixo` - Fixo
+
+        * `variavel` - Variável'
+      enum:
+      - fixo
+      - variavel
+      type: string
     VisibilidadeEnum:
       description: '* `grupo` - Todo o grupo
 
@@ -5105,6 +5384,67 @@ paths:
       summary: Nova conta manual; nasce pendente (RF10, RF11, RN11; dono, admin, membro)
       tags:
       - espacos
+  /api/espacos/{espaco_id}/recorrencias/:
+    get:
+      operationId: recorrencias_listar
+      parameters:
+      - in: path
+        name: espaco_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Recorrencia'
+                type: array
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - espacos
+    post:
+      operationId: recorrencias_criar
+      parameters:
+      - in: path
+        name: espaco_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CriarRecorrencia'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CriarRecorrencia'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CriarRecorrencia'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CriacaoResultado'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CriacaoResultado'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - espacos
   /api/espacos/{espaco_id}/resumo/:
     get:
       operationId: lancamentos_resumo
@@ -5771,13 +6111,13 @@ paths:
                 value:
                   arquivado: true
             schema:
-              $ref: '#/components/schemas/PatchedCasa'
+              $ref: '#/components/schemas/PatchedCasaAlterar'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedCasa'
+              $ref: '#/components/schemas/PatchedCasaAlterar'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedCasa'
+              $ref: '#/components/schemas/PatchedCasaAlterar'
       responses:
         '200':
           content:
@@ -5801,6 +6141,33 @@ paths:
       - cookieAuth: []
       summary: Renomear ou arquivar casa (admin; CU04). Arquivada sai da lista e fica
         no banco.
+      tags:
+      - grupos
+  /api/grupos/{grupo_id}/subgrupos/{casa_id}/arquivamento/:
+    get:
+      operationId: grupos_casas_arquivamento_preview
+      parameters:
+      - in: path
+        name: casa_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: grupo_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArquivamentoPreview'
+          description: ''
+      security:
+      - cookieAuth: []
       tags:
       - grupos
   /api/health/:
@@ -6030,6 +6397,17 @@ paths:
         schema:
           format: uuid
           type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelarEntrada'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CancelarEntrada'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CancelarEntrada'
       responses:
         '200':
           content:
@@ -6294,6 +6672,121 @@ paths:
       - cookieAuth: []
       tags:
       - me
+  /api/recorrencias/{recorrencia_id}/:
+    get:
+      operationId: recorrencias_detalhe
+      parameters:
+      - in: path
+        name: recorrencia_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recorrencia'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - recorrencias
+    patch:
+      operationId: recorrencias_editar
+      parameters:
+      - in: path
+        name: recorrencia_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRecorrenciaEntrada'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRecorrenciaEntrada'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRecorrenciaEntrada'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recorrencia'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - recorrencias
+  /api/recorrencias/{recorrencia_id}/encerrar/:
+    post:
+      operationId: recorrencias_encerrar
+      parameters:
+      - in: path
+        name: recorrencia_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recorrencia'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - recorrencias
+  /api/recorrencias/{recorrencia_id}/pausar/:
+    post:
+      operationId: recorrencias_pausar
+      parameters:
+      - in: path
+        name: recorrencia_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recorrencia'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - recorrencias
+  /api/recorrencias/{recorrencia_id}/retomar/:
+    post:
+      operationId: recorrencias_retomar
+      parameters:
+      - in: path
+        name: recorrencia_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recorrencia'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - recorrencias
 tags:
 - description: 'Exposes information on the configuration of django-allauth.
 

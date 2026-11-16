@@ -20,7 +20,7 @@ Etapa aberta em 16/11/2026 após merge local da 06 em `b21bd83`. Decisões Q07-1
 | 11 | [x] test/lint/types/E2E, provas reais de arquivo/assinatura, duas marcações/undo/papel alterado/upload tardio e matriz | varal-qa | todos |
 | 12 | [x] Segurança de todas as rotas/arquivos/papéis, contadores/404, limites e cleanup; corrigir bloqueantes | varal-seguranca | CA03–CA10,CA14 |
 | 13 | [x] Auditoria final sem bloqueantes, ajustes e relatório/progresso/docs/matriz atualizados; P10/P11 específicos da 11 preservados | decisor/docs | CA14 |
-| 14 | [ ] Commit e merge local, sem push | orquestrador | CA14 |
+| 14 | [x] Commit `098b934` e merge local `2599655`, sem push | orquestrador | CA14 |
 
 
 Implementação, tipos determinísticos, lint, provas reais S3/Celery e segurança final aprovados. `make test`:413 pytest/91 Vitest; após ajuste mínimo de estado vazio, web completa93/93. Foco pagamento10/10 e regressões de legenda6/6 verdes. Item11 concluído: E2E final107 aprovados/3 skips previstos em6,9min, status passed/exit0; lint final exit0. Rodada anterior com6 falhas corrigidas não vale aprovação. Item 13 concluído; resta o item 14 de commit/merge local. Ver [relatório](relatorio.md).

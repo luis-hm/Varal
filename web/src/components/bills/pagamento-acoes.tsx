@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { ContaDetalhe } from "@/lib/contas/client";
-import { dataCivil, hoje, nomeMes, reais } from "@/lib/contas/formato";
+import { dataCivil, hoje, nomeMes, reais, valorConta } from "@/lib/contas/formato";
 import { useAcoesPagamento, useContas } from "@/lib/contas/hooks";
 import { PagamentoFolha } from "./pagamento-folha";
 import { PagamentoSucesso } from "./pagamento-sucesso";
@@ -39,6 +39,8 @@ export function PagamentoAcoes({ conta }: { conta: ContaDetalhe }) {
   }
   async function salvar() {
     if (trava.current || !modo) return;
+    const valorAtual = conta.valor_centavos;
+    if (valorAtual === null) { setErro("Defina o valor antes de registrar o pagamento."); return; }
     trava.current = true;
     setOcupado(true); setErro("");
     const atual = ++geracao.current;
@@ -67,7 +69,7 @@ export function PagamentoAcoes({ conta }: { conta: ContaDetalhe }) {
       setEstado("Registrando…");
       const resultado = modo === "anexar" && pagamento && documentoId
         ? await acoes.anexar.mutateAsync({ id: conta.id, pagamento: pagamento.id, body: { comprovante_id: documentoId } })
-        : await acoes.marcar.mutateAsync({ id: conta.id, body: { pago_em: data, valor_centavos_esperado: conta.valor_centavos, ...(documentoId ? { comprovante_id: documentoId } : {}) } });
+        : await acoes.marcar.mutateAsync({ id: conta.id, body: { pago_em: data, valor_centavos_esperado: valorAtual, ...(documentoId ? { comprovante_id: documentoId } : {}) } });
       if (!vigente()) return;
       setModo(null); setArquivo(null); setEstado("");
       if (modo === "marcar") setSucesso(resultado);
@@ -112,7 +114,7 @@ export function PagamentoAcoes({ conta }: { conta: ContaDetalhe }) {
       {conta.pode_anexar_comprovante && <Button tone="secondary" icon="comprovante" label="Anexar comprovante" disabled={ocupado} onClick={() => abrir("anexar")} />}
       {conta.pode_desfazer_pagamento && <Button tone="ghost" label={ocupado ? "Aguarde…" : "Desfazer pagamento"} disabled={ocupado} onClick={desfazer} />}
     </div>
-    <PagamentoFolha open={!!modo} descricao={conta.descricao} valor={reais(conta.valor_centavos)} data={data} hoje={hoje()} arquivo={arquivo} ocupado={ocupado} erro={erro} estadoArquivo={estado} anexando={modo === "anexar"} onData={setData} onArquivo={(f) => { setArquivo(f); setErro(""); }} onSubmit={salvar} onClose={fechar} />
-    <PagamentoSucesso open={!!sucesso} descricao={conta.descricao} valor={reais(conta.valor_centavos)} progresso={resumo.data && !resumo.isFetching && resumo.data.contagens.todas ? `${nomeMes(resumo.data.mes)}: ${resumo.data.contagens.pagas} de ${resumo.data.contagens.todas} contas pagas` : undefined} podeAnexar={!!sucesso?.pode_anexar_comprovante} onAnexar={() => { setSucesso(null); abrir("anexar"); }} onClose={() => { setSucesso(null); if (!window.matchMedia?.("(min-width: 1024px)").matches) router.push("/"); }} />
+    <PagamentoFolha open={!!modo} descricao={conta.descricao} valor={valorConta(conta.valor_centavos)} data={data} hoje={hoje()} arquivo={arquivo} ocupado={ocupado} erro={erro} estadoArquivo={estado} anexando={modo === "anexar"} onData={setData} onArquivo={(f) => { setArquivo(f); setErro(""); }} onSubmit={salvar} onClose={fechar} />
+    <PagamentoSucesso open={!!sucesso} descricao={conta.descricao} valor={valorConta(conta.valor_centavos)} progresso={resumo.data && !resumo.isFetching && resumo.data.contagens.todas ? `${nomeMes(resumo.data.mes)}: ${resumo.data.contagens.pagas} de ${resumo.data.contagens.todas} contas pagas` : undefined} podeAnexar={!!sucesso?.pode_anexar_comprovante} onAnexar={() => { setSucesso(null); abrir("anexar"); }} onClose={() => { setSucesso(null); if (!window.matchMedia?.("(min-width: 1024px)").matches) router.push("/"); }} />
   </>;
 }

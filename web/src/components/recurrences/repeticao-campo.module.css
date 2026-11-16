@@ -1,0 +1,11 @@
+.grupo { min-width: 0; margin: 0; padding: 0; border: 0; }
+.toggle { min-height: 64px; display: flex; align-items: center; gap: var(--spacing-3); padding: var(--spacing-4); border: 1px solid var(--color-line); border-radius: var(--radius-lg); background: var(--color-surface); cursor: pointer; }
+.toggle > span { flex: 1; min-width: 0; }
+.toggle b, .toggle small { display: block; }
+.toggle small, .nota { color: var(--color-ink-muted); font-size: var(--text-sm); line-height: var(--leading-small); }
+.toggle input { width: 24px; height: 24px; accent-color: var(--color-green-text); }
+.campos, .opcoes { display: flex; flex-direction: column; gap: var(--spacing-3); }
+.campos { padding-top: var(--spacing-4); }
+.opcoes { min-width: 0; margin: 0; padding: 0; border: 0; }
+.opcoes legend { padding: 0 0 var(--spacing-2); font-size: var(--text-sm); font-weight: 600; }
+.erro { color: var(--color-red-text); font-size: var(--text-sm); }
