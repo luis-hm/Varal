@@ -33,4 +33,5 @@ Itens do documento "Varal — Ajustes" que tocam uma etapa futura entram na spec
 | `spec.md` | início | escopo, RF/CU/RN/telas, critérios de aceite (Dado/Quando/Então), fora de escopo |
 | `plano.md` | início | o que cada agente faz, contratos de API, migrações |
 | `tarefas.md` | início | checklist ordenada com o agente responsável |
-| `relatorio.md` | fim | o que foi feito, decisões, desvios, pendências |
+| `decisoes.md` | durante | decisões tomadas sem o dono (motivo, como desfazer) e perguntas ao dono com a resposta; mantido pelo `varal-decisor` |
+| `relatorio.md` | fim | o que foi feito, desvios, pendências; linka `decisoes.md` e lista as perguntas abertas |
