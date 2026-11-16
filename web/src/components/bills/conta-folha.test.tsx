@@ -78,6 +78,49 @@ test("creating sends cents and opens the new bill in its month", async () => {
   expect(enviados[0]).toMatchObject({ valor_centavos: 28743, vencimento: "2026-11-20", descricao: "Energia", pagador: "u1", visibilidade: "grupo" });
 });
 
+test("PDF sem código permite conferir manualmente antes de vincular", async () => {
+  const anterior = vi.mocked(fetch).getMockImplementation()!;
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
+    if (input === "/api/espacos/g1/boletos/pdf/" && init?.method === "POST") {
+      expect(init.body).toBeInstanceOf(FormData);
+      return json(202, { id: "pdf1", estado: "pendente", nome: "conta.pdf", tamanho: 5, resultado: {}, avisos: [] });
+    }
+    if (input === "/api/boletos/pdfs/pdf1/") return json(200, { id: "pdf1", estado: "conferencia_manual", nome: "conta.pdf", tamanho: 5, resultado: { candidatos: [], data_emissao: null, beneficiario: null }, avisos: ["Confira os dados manualmente."] });
+    if (input === "/api/boletos/pdfs/pdf1/arquivo/") return json(200, { url: "http://storage.example/conta.pdf", expira_em: "2026-11-16T12:00:00Z" });
+    return anterior(input, init);
+  });
+  criar = { status: 201, body: { id: "n1", vencimento: "2026-11-20" } };
+  renderComSessao(<ContaFolha open onClose={() => {}} />);
+  await grupoCarregado();
+  const file = new File(["%PDF-"], "conta.pdf", { type: "application/pdf" });
+  fireEvent.change(screen.getByLabelText(/Escolha ou arraste/), { target: { files: [file] } });
+  expect(await screen.findByText("Confira os dados manualmente.")).toBeTruthy();
+  expect(screen.queryByTitle("Prévia do PDF")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Carregar prévia" }));
+  expect((await screen.findByTitle("Prévia do PDF")).getAttribute("src")).toBe("http://storage.example/conta.pdf");
+  expect(screen.getByRole("button", { name: "Abrir PDF em outra aba" })).toBeTruthy();
+  preencher();
+  fireEvent.click(screen.getByRole("button", { name: "Salvar conta" }));
+  await waitFor(() => expect(enviados[0]).toMatchObject({ documento_pdf: "pdf1", valor_centavos: 28743, vencimento: "2026-11-20" }));
+});
+
+test("PDF com várias linhas exige escolha e informa acesso ao arquivo inteiro", async () => {
+  const anterior = vi.mocked(fetch).getMockImplementation()!;
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
+    if (input === "/api/espacos/g1/boletos/pdf/" && init?.method === "POST") return json(202, { id: "pdf2", estado: "pendente", nome: "contas.pdf", tamanho: 5, resultado: {}, avisos: [] });
+    if (input === "/api/boletos/pdfs/pdf2/") return json(200, { id: "pdf2", estado: "lido", nome: "contas.pdf", tamanho: 5, resultado: { candidatos: [{ codigo: "111" }, { codigo: "222" }] }, avisos: [] });
+    return anterior(input, init);
+  });
+  renderComSessao(<ContaFolha open onClose={() => {}} />);
+  await grupoCarregado();
+  fireEvent.change(screen.getByLabelText(/Escolha ou arraste/), { target: { files: [new File(["%PDF-"], "contas.pdf")] } });
+  expect(await screen.findByText(/O arquivo inteiro ficará disponível/)).toBeTruthy();
+  preencher();
+  fireEvent.click(screen.getByRole("button", { name: "Salvar conta" }));
+  expect(await screen.findAllByText("Escolha uma das linhas encontradas no PDF.")).not.toHaveLength(0);
+  expect(enviados).toHaveLength(0);
+});
+
 // Ajuste 30: "Onde fica" starts on the space you are in, already selected.
 function onde() {
   const chips = within(screen.getByRole("group", { name: /Onde fica/ })).getAllByRole("button");

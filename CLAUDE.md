@@ -90,7 +90,7 @@ Requisitos: Docker (com Compose), Node 22+ (para `make test-web`/`lint`/`types`)
 | `make limpar-dev` | Apaga do banco de dev os grupos e usuários de teste, com prévia e confirmação (`SIM=1` pula); nunca o `dev` |
 | `make codex-sync` | Regenera `.codex/agents/` e `.agents/skills/` a partir de `.claude/` (veja `AGENTS.md`) |
 
-O S3 local (`pgsty/silo`, ADR 0002) fica no profile `storage`: `docker compose -f infra/docker-compose.yml --profile storage up -d minio`.
+O S3 local (`pgsty/silo`, ADR 0002) sobe com o ambiente desde a Etapa 06. O serviço `storage-init` prepara o bucket privado antes da API e dos workers.
 
 ## Convenções
 

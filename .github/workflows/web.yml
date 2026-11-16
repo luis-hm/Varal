@@ -3,9 +3,9 @@ name: web
 on:
   push:
     # Browser authentication tests exercise both sides of the same-origin proxy.
-    paths: ["web/**", "api/**", ".github/workflows/web.yml"]
+    paths: ["web/**", "api/**", "infra/**", "Makefile", ".github/workflows/web.yml"]
   pull_request:
-    paths: ["web/**", "api/**", ".github/workflows/web.yml"]
+    paths: ["web/**", "api/**", "infra/**", "Makefile", ".github/workflows/web.yml"]
   # Manual run: `gh workflow run web.yml --ref <branch>` (path filters do not apply).
   workflow_dispatch:
 
@@ -40,6 +40,11 @@ jobs:
       FRONTEND_URL: http://localhost:3000
       API_PUBLIC_URL: http://localhost:8000
       API_INTERNAL_URL: http://localhost:8000
+      S3_ENDPOINT_URL: http://localhost:9000
+      S3_PUBLIC_ENDPOINT_URL: http://localhost:9000
+      S3_BUCKET_NAME: varal-pdfs
+      AWS_ACCESS_KEY_ID: varal-ci
+      AWS_SECRET_ACCESS_KEY: varal-ci-password
       # The suite signs up ~40 accounts from one IP; allauth's default is 20/m/ip (P5).
       ACCOUNT_RATE_LIMIT_SIGNUP: 1000/m/ip
     services:
@@ -70,10 +75,15 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: uv sync --frozen
         working-directory: api
+      - name: Start private S3 for PDF integration
+        working-directory: .
+        run: sh infra/scripts/ci-storage.sh
       - name: Start the real API
         working-directory: api
         run: |
           uv run python manage.py migrate --noinput
+          uv run python manage.py preparar_storage
+          uv run celery -A config worker -l warning > "$RUNNER_TEMP/varal-worker.log" 2>&1 &
           uv run python manage.py runserver 127.0.0.1:8000 --noreload > "$RUNNER_TEMP/varal-api.log" 2>&1 &
           curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused --retry-all-errors --retry-max-time 60 http://localhost:8000/api/health/ > /dev/null
       - run: npm run e2e
@@ -94,5 +104,6 @@ jobs:
           path: |
             web/playwright-report/
             ${{ runner.temp }}/varal-api.log
+            ${{ runner.temp }}/varal-worker.log
             ${{ runner.temp }}/varal-web-production.log
           retention-days: 7

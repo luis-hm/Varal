@@ -17,7 +17,11 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.boletos.serializers import InstrumentoEntradaSerializer, InstrumentoSerializer
+from apps.boletos.serializers import (
+    DocumentoPDFSerializer,
+    InstrumentoDetalheSerializer,
+    InstrumentoEntradaSerializer,
+)
 from apps.contas_usuario.models import Usuario
 from apps.espacos.acesso import (
     espaco_ou_404,
@@ -119,7 +123,8 @@ class HistoricoSerializer(serializers.Serializer):
 
 
 class ContaDetalheSerializer(ContaSerializer):
-    instrumento = InstrumentoSerializer(allow_null=True, read_only=True)
+    documento_pdf = DocumentoPDFSerializer(allow_null=True, read_only=True)
+    instrumento = InstrumentoDetalheSerializer(allow_null=True, read_only=True)
     criador = serializers.SerializerMethodField()
     acesso = serializers.SerializerMethodField()
     quem_ve = serializers.SerializerMethodField(
@@ -163,6 +168,11 @@ class CentavosField(serializers.IntegerField):
 
 
 class ContaEntradaSerializer(serializers.Serializer):
+    documento_pdf = serializers.UUIDField(allow_null=True, required=False)
+    data_emissao = serializers.DateField(allow_null=True, required=False)
+    beneficiario = serializers.CharField(
+        max_length=200, allow_null=True, allow_blank=True, required=False
+    )
     instrumento = InstrumentoEntradaSerializer(allow_null=True, required=False)
     descricao = serializers.CharField(max_length=150)
     valor_centavos = CentavosField(min_value=1, max_value=2_147_483_647)

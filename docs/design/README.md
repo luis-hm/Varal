@@ -1,7 +1,7 @@
 # Design — canvas do Doop
 
 > **Contém:** onde está cada tela e componente no Doop, como lê-los, a regra responsiva e as telas e ícones da especificação.
-> **Origem:** canvas Doop `k0kB5dc-Vo` (autenticação relida em 13/11/2026), guia `varal-ui`, especificação seções 11–12, código das Etapas 01–05 e decisões/revisões delegadas das etapas.
+> **Origem:** canvas Doop `k0kB5dc-Vo` (autenticação relida em 13/11/2026), guia `varal-ui`, especificação seções 11–12, código das Etapas 01–06 e decisões/revisões delegadas das etapas.
 
 ## Regras
 
@@ -128,6 +128,14 @@ Mesmas rotas nas duas larguras: `/` (02 ↔ D02), `/contas` (03 ↔ D03), `/cont
 `conta-detalhe.tsx` acrescenta bloco de linha digitável/Pix/chave, beneficiário quando disponível e `copiar-codigo.tsx` (07/D03). Copia dígitos normalizados do boleto, BR Code integral ou chave normalizada, anuncia sucesso e oferece textarea selecionada/focada se o clipboard falhar. Manual não exibe cópia fictícia. A ação copia dados: não inicia pagamento nem consulta URL Pix/DICT. O grupo de pagador recebe somente detalhes já autorizados; o modo simples completo continua na 10.
 
 Estilos em `instrumento.module.css`, com tokens existentes, textarea para código longo e rótulos acessíveis. PDF/prévia, emissão e pagamento permanecem ausentes até suas etapas. Leitura atual do Doop e comparação final em 390×844/1440×900 registradas no [relatório da 05](../etapas/05-boleto-pix/relatorio.md), com fixtures sintéticas e inspeção visual sem pixel a pixel. Avisos exibem datas em dd/mm/aaaa; datas estruturadas da API continuam ISO. O canvas permanece preservado.
+
+### PDF do boleto implementado e validado (Etapa 06)
+
+Formulário existente em `conta-folha.tsx` e `pdf-arquivo.tsx` referencia 05/M01 e06/M02: escolher/arrastar PDF, trocar/remover, acompanhar leitura e conferir candidatos/metadados. A seleção do arquivo não salva conta nem substitui o PDF ativo antes da confirmação. Sem código, permite conferência manual; várias linhas válidas exigem escolha e avisam que o arquivo inteiro fica disponível a quem vê a conta.
+
+`PdfArquivo` pede assinatura atual e aceita prévia HTTP(S) de outra origem, servida diretamente pelo S3 privado; não injeta PDF como HTML da aplicação nem usa URL do próprio app como documento. Há prévia em iframe e abertura em outra aba com `noopener noreferrer`. Detalhe07/D03 acrescenta arquivo, emissão/beneficiário e download autorizado. Emissão é data civil formatada sem conversão para o fuso de um instante, para não deslocar o dia.
+
+Inspeção em navegador headed confirmou PDF real e fallback em mobile/desktop. Resultado integral verde e capturas finais ficam no [relatório 06](../etapas/06-pdf-boleto/relatorio.md). Canvas somente leitura e preservado; pagamento/comprovante/recorrência permanecem para etapas seguintes.
 
 ### Conta cancelada (D2)
 

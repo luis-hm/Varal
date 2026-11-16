@@ -1,7 +1,7 @@
 # API e OpenAPI
 
 > **Contém:** endpoints, sessão/CSRF e geração do contrato composto e dos tipos do frontend.
-> **Origem:** RNF12, seção 9 de `docs/especificacao-varal.md` e implementação das Etapas 00 e 02–05.
+> **Origem:** RNF12, seção 9 de `docs/especificacao-varal.md` e implementação das Etapas 00 e 02–06.
 
 ## Fluxo
 
@@ -104,6 +104,25 @@ O tipo é inferido pela leitura, não confiado à entrada. Não há rota de inst
 **Pix:** valida TLV/CRC por bytes UTF-8, preserva BR Code completo e não consulta URL dinâmica, DICT ou titularidade. Em QR estático, ID54 ausente pede valor; presente com zero é inválido. No dinâmico, ID54 e txid são ignorados e o valor é informado pelo usuário. Chave avulsa normaliza apresentação; a chave já embutida deve ser canônica para não reescrever o payload. Beneficiário extraído é dado declarado no código, não identidade verificada. [Fontes e limites](../etapas/05-boleto-pix/fontes.md).
 
 **Fronteira textual:** serializers HTTP rejeitam NUL antes da leitura/gravação. A biblioteca pura tem limite conhecido de NUL em campos textuais com CRC recalculado; a Etapa 06 deve validar NUL e Unicode inválido também no worker, que extrai dados fora do DRF. Não registrar o texto integral do PDF ou códigos em erros/logs.
+
+## PDF do boleto (Etapa 06)
+
+| Método e rota | Entrada / resultado | Autorização |
+| --- | --- | --- |
+| `POST /api/espacos/{id}/boletos/pdf/` | Multipart `arquivo` PDF, não vazio e até 5 MiB, MIME `application/pdf` e assinatura `%PDF-`; `lancamento_id?` indica destino de edição.202 `DocumentoPDF` após spool privado, sem esperar S3/extração ou criar conta | Criar no espaço ou editar a conta aberta de destino no mesmo espaço; revalida permissão sob travas antes de gravar/enfileirar; sessão/CSRF |
+| `GET /api/boletos/pdfs/{id}/` |200 `DocumentoPDF` com `id,estado,nome,tamanho,resultado,avisos`; polling enquanto lê | Draft: uploader e permissão atual de criação/edição no destino, com prazo de 24 h. Vinculado: acesso atual à conta, sem privilégio residual do uploader. Fora do acesso/expirado →404 |
+| `GET /api/boletos/pdfs/{id}/arquivo/` | `{url,expira_em}` para documento `lido`/`conferencia_manual`; demais estados →404 | Mesma autorização do polling, revalidada antes de assinar |
+| `GET /api/lancamentos/{id}/pdf/` | URL do PDF ativo da conta; sem PDF →404 | Quem vê a conta; observador/pagador autorizado pode baixar sem ganhar edição |
+
+**Documento e leitura:** `resultado` contém candidatos válidos (`tipo,codigo,valor_centavos,vencimento,vencimentos_possiveis,avisos`), metadados opcionais `data_emissao,beneficiario` e valores/datas sugeridos/textuais. Não contém texto integral, staging ou chave S3. O arquivo é enviado ao S3 e lido no Celery, em processo dedicado limitado; o worker atualiza somente documento/resultados, nunca conta salva. Arquivo inválido não pode vincular; PDF válido sem código/leitura vai para conferência manual, sem OCR.
+
+**POST/PATCH da conta:** acrescenta `documento_pdf?: UUID|null`, `data_emissao?: date|null`, `beneficiario?: string|null` (até 200). Campo de PDF ausente preserva, UUID confirma vínculo e `null` remove explicitamente. Draft para criação não vincula a conta existente; draft com destino de edição só vincula à mesma conta. Somente documentos válidos, ativos, prontos e do próprio uploader/espaço são aceitos na confirmação. Metadados exigem PDF e podem ser conferidos por quem edita conta aberta; o beneficiário declarado no Pix não é reescrito por metadado do PDF. Paga/confirmada não trocam PDF/metadados e cancelada não edita.
+
+Quando o PDF tem candidatos válidos, o instrumento confirmado deve corresponder a um deles; múltiplos exigem escolha explícita. Não é permitido ignorar cobrança válida escolhendo manual ou associar código de outro documento. Sem candidatos válidos, permite colar código ou salvar manual com campos completos. Código prevalece sobre texto divergente e datas codificadas conservam a política da 05. Escolher um candidato **não recorta o PDF**: quem vê a conta recebe o arquivo inteiro, com aviso na conferência.
+
+`ContaDetalhe` acrescenta `documento_pdf: DocumentoPDF|null`; instrumento passa a admitir tipo `manual` com código/chave nulos e campo opcional `data_emissao`. Manual antigo sem PDF continua `instrumento:null`; PDF manual cria relação somente para seus metadados. Vínculo/instrumento/campos/histórico são atômicos; histórico usa indicadores `pdf_alterado`/`metadados_pdf_alterados`, sem nome do arquivo, URL, chave de objeto ou conteúdo integral. Metadados idênticos após normalização são no-op; a precedência do beneficiário Pix não gera alteração/histórico fictícios.
+
+**URLs e ciclo:** assinatura dura 60 s e já usa o endpoint público configurado, sem reescrever host. Bucket privado; URL não é persistida no cliente/histórico/log. Revogação impede nova assinatura, mas uma URL já entregue pode continuar válida até expirar ou o objeto ser apagado. Troca/remoção elimina/revoga o documento antigo, que nunca volta a draft; limpeza de S3/spool ocorre após commit com intenção persistida, retry e identificador imutável. Rollback preserva o arquivo usado; tentativas antigas não atingem objeto novo. `recuperar_pdfs` recupera leituras/limpeza e expira drafts sem renovar 24 h por polling. [ADR 0010](../arquitetura/adr/0010-pdf-assincrono-e-conferencia.md), [modelo](../dados/modelo.md#implementação-da-etapa-06).
 
 ## Autenticação (Etapa 02)
 
