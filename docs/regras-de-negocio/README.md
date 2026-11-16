@@ -44,7 +44,7 @@ Vinte e nove regras; as de espaço e visibilidade (RN01 a RN07) valem para toda 
 stateDiagram-v2
     [*] --> Aguardando: recorrência de valor variável
     [*] --> Pendente: conta cadastrada
-    Aguardando --> Pendente: boleto anexado
+    Aguardando --> Pendente: conferência explícita completa (ADR 0012)
     Pendente --> VenceEmBreve: faltam 3 dias (calculado)
     VenceEmBreve --> Vencida: passou do dia (calculado)
     Pendente --> Paga: marcou como paga
@@ -112,3 +112,14 @@ Não estão na especificação; valem tanto quanto ela.
 - **RF16/RN22:** original/metadados preservados em storage privado, com aviso antes do envio; validação não atesta autenticidade. Undo conserva evidência histórica vinculada, legível por qualquer espectador atual, inclusive observador. Uploader não conserva privilégio após perder acesso. Não volta a draft, não confirma outra marca. Draft expira em24h; exclusão física limpa após commit. Assinatura de60s pode continuar válida até expirar depois da perda de acesso.
 - **Q12/Q23/Q04-37:** progresso por quantidade paga+confirmada sobre não canceladas do mês de vencimento visível; aguardando entra no denominador, cancelada sai, vazio é0. MemberRow conta atribuições, não autoria. Ex-membro agrupa FK preservada sem vínculo atual; nulo segue Sem pagador. Nenhuma conta invisível cria contador/opção.
 - **CU08/07→09:** marca gera EventoPagamento durável único, não aviso entregue. A09 revalida destinatário, visibilidade e marca ativa antes de consumir/entregar ou descartar; undo conserva evento. Exportação/exclusão integra-se na11 conforme RN30, sem ampliar visibilidade.
+
+## Recorrência — precedências da Etapa 08
+
+[ADR 0012](../arquitetura/adr/0012-recorrencias-e-valores-desconhecidos.md), Q08-1–10 e D08-1 detalham RN11/RN17/RN21/RN22/RN23 sem editar a origem. Implementação concluída; verificações finais no [relatório](../etapas/08-recorrencia-agendador/relatorio.md).
+
+- Valor desconhecido é NULL somente em aguardando/cancelada; valor positivo legado em aguardando permanece, zero/negativo nunca são válidos. Novas variáveis começam aguardando/NULL. Total conhecido e quantidade a definir usam o mesmo universo visível; progresso conta aguardando.
+- Criar/retomar torna atual elegível uma vez, mesmo vencida. Competência é civil/imutável; recuperação gera meses devidos em atividade, inclusive após pausa/encerramento, sem preencher meses pausados ou anteriores à criação. Dias 29–31 ajustam ao último dia válido.
+- Aguardando só vira pendente por conferência explícita autorizada de valor/data completos, com código válido ou manual completo, inclusive PDF sem candidato conhecido. Upload/worker isolado não confirma. Repetir cobrança conferida cria modelo e uma única ocorrência atual atomicamente; código/PDF ficam só nela. Mês errado ou valor fixo divergente recusa sem perda do draft/formulário; retry idêntico não duplica.
+- Só mês altera a ocorrência; próximos aplica campos pedidos nas abertas visíveis/editáveis pelo corte de competência, preservando finais, exceções anteriores e guardas de instrumento/PDF. Cancelar próximos encerra futuro e cancela abertas autorizadas do corte. Pausar/encerrar modelo isolado preserva geradas; encerramento é terminal.
+- Geração revalida membros/audiência e retira pagador inelegível. Sem audiência, pausa privada mantém competência bloqueada sem acesso novo ao admin. Autor usa UUID/papel atuais no reingresso; pagador/escolhidos removidos não retornam por reingresso/revisão antiga e pausa não retoma sozinha.
+- CU04 move abertas/modelos visíveis/editáveis para destino ativo ou Sem casa. Preview/contagem/resposta não revelam invisíveis; finais/invisíveis conservam casa histórica. Nova ocorrência com casa arquivada nasce Sem casa, sem perder cobrança. RN18 entrega avisos somente na Etapa 09.

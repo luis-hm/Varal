@@ -40,6 +40,7 @@ beforeEach(() => {
     chamadas.push({ method, url: input, body: init?.body ? JSON.parse(String(init.body)) : undefined });
     if (input === "/api/grupos/g1/" && method === "GET") return json(detalhe.status, detalhe.body);
     if (input === "/api/grupos/g1/convites/" && method === "GET") return json(200, []);
+    if (input === "/api/espacos/g1/recorrencias/" && method === "GET") return json(200, []);
     if (input === "/api/espacos/g1/resumo/")
       return json(200, { mes: "2026-11", total_centavos: 0, qtd: 4, pagas_qtd: 3, vencidas_qtd: 0, vence_qtd: 0, janela_alerta_dias: 3, atencao: [], por_casa: [{ id: "c1", nome: "Casa 1", total_centavos: 147960, qtd: 4, pagas_qtd: 3 }] });
     if (input === "/api/grupos/g1/" && method === "PATCH") return json(200, { ...grupo("admin"), ...JSON.parse(String(init!.body)) });
@@ -80,8 +81,8 @@ test("ca11/ca18: admin sees the whole page with management actions; name falls b
   expect(await screen.findByText("R$ 1.479,60")).toBeTruthy();
   expect(screen.getByText("3 de 4 pagas em novembro")).toBeTruthy();
   expect(screen.getAllByRole("button", { name: "Configurações" }).length).toBeGreaterThan(0);
-  // Later stages stay hidden.
-  expect(screen.queryByText(/Contas que se repetem|Gerenciar papéis/)).toBeNull();
+  expect(screen.getByRole("heading", { name: "Contas que se repetem" })).toBeTruthy();
+  expect(screen.queryByText(/Gerenciar papéis/)).toBeNull();
 });
 
 test("q07-7: a house without visible bills shows zero without a progress bar", async () => {

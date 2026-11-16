@@ -22,7 +22,7 @@ const campos: Record<string, string> = {
 
 function valor(campo: string, v: unknown): Trecho[] {
   if (v === null || v === undefined || (Array.isArray(v) && !v.length)) {
-    return [campo === "subgrupo" ? "sem casa" : "ninguém"];
+    return [campo === "valor_centavos" ? "valor a definir" : campo === "subgrupo" ? "sem casa" : "ninguém"];
   }
   if (campo === "valor_centavos") return [reais(Number(v))];
   if (campo === "vencimento") return [String(v).split("-").reverse().join("/")];
@@ -52,7 +52,7 @@ export function linhaHistorico(h: Historico): [Trecho[], Trecho[]] {
   const naSaida = h.dados.motivo === "saida_rn32" ? " ao sair do grupo" : "";
   switch (h.acao) {
     case "criada":
-      return [[quem, " criou a conta"], []];
+      return h.automatica ? [["Conta gerada automaticamente"], []] : [[quem, " criou a conta"], []];
     case "editada":
       return [[quem, ` editou${naSaida}`], mudancas(h.dados)];
     case "cancelada":

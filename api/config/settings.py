@@ -181,6 +181,8 @@ SPECTACULAR_SETTINGS = {
         "PapelEnum": "apps.espacos.models.Papel",
         "TipoEspacoEnum": "apps.espacos.models.Espaco.Tipo",
         "TipoInstrumentoEnum": "apps.boletos.models.TipoInstrumento",
+        "VisibilidadeEnum": "apps.lancamentos.models.Visibilidade",
+        "ValorTipoEnum": "apps.recorrencias.models.Recorrencia.ValorTipo",
     },
 }
 
@@ -245,4 +247,11 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.pagamentos.tasks.recuperar_comprovantes",
         "schedule": 300.0,
     },
+}
+
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BEAT_SCHEDULE["gerar-recorrencias"] = {
+    "task": "apps.recorrencias.tasks.gerar_recorrencias",
+    "schedule": crontab(hour=7, minute=0),
 }

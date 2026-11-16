@@ -13,9 +13,11 @@ import { Chip } from "@/components/ui/chip";
 import { Field } from "@/components/ui/field";
 import { Folha } from "@/components/ui/folha";
 import { Icon } from "@/components/ui/icon";
-import type { ContaDetalhe, ContaEntrada, InstrumentoEntrada, Leitura } from "@/lib/contas/client";
-import { lerValor, valorEditavel } from "@/lib/contas/formato";
-import { useAcoesConta, useEnviarPdf, useLerInstrumento, usePdf } from "@/lib/contas/hooks";
+import { RepeticaoCampo } from "@/components/recurrences/repeticao-campo";
+import { EscopoRecorrencia } from "@/components/recurrences/escopo-recorrencia";
+import type { ContaAlteracao, ContaDetalhe, ContaEntrada, InstrumentoEntrada, Leitura } from "@/lib/contas/client";
+import { lerValor, mesAtual, valorEditavel } from "@/lib/contas/formato";
+import { useAcoesConta, useAcoesRecorrencia, useEnviarPdf, useLerInstrumento, usePdf, useRecorrencia } from "@/lib/contas/hooks";
 import { espacosParaCriar } from "@/lib/espaco";
 import { ApiError, type Membro } from "@/lib/grupos/client";
 import { useGrupo } from "@/lib/grupos/hooks";
@@ -55,13 +57,21 @@ export function ContaFolha({ open, onClose, conta }: Props) {
   const router = useRouter();
   const { user, espaco: atual } = useSessao();
   const { criar, editar, cancelar } = useAcoesConta();
+  const recorrencias = useAcoesRecorrencia();
   const espacos = espacosParaCriar(user, atual.id); // ajuste 30: current space first and selected
   const [espacoId, setEspacoId] = useState(conta?.espaco.id ?? espacos[0].id);
   const espaco = conta?.espaco ?? espacos.find((e) => e.id === espacoId)!;
   const emGrupo = espaco.tipo === "grupo";
   const grupo = useGrupo(espaco.id, emGrupo);
+  const modelo = useRecorrencia(open && conta?.pode_ver_recorrencia ? conta.recorrencia_id ?? undefined : undefined);
+  // The editable values belong to this form session; refetches may change the live prop.
+  const [base] = useState(() => conta ? {
+    descricao: conta.descricao, valor_centavos: conta.valor_centavos, vencimento: conta.vencimento,
+    subgrupo: conta.subgrupo?.id ?? null, pagador: conta.pagador?.id ?? null,
+    visibilidade: conta.visibilidade, acesso: conta.acesso.map((p) => p.id),
+  } : null);
 
-  const [valor, setValor] = useState(conta ? valorEditavel(conta.valor_centavos) : "");
+  const [valor, setValor] = useState(conta?.valor_centavos != null ? valorEditavel(conta.valor_centavos) : "");
   const [vencimento, setVencimento] = useState(conta?.vencimento ?? "");
   const [descricao, setDescricao] = useState(conta?.descricao ?? "");
   const [casa, setCasa] = useState<string | null>(conta?.subgrupo?.id ?? null);
@@ -70,6 +80,13 @@ export function ContaFolha({ open, onClose, conta }: Props) {
   const [visibilidade, setVisibilidade] = useState(conta?.visibilidade ?? "grupo");
   const [acesso, setAcesso] = useState<string[]>(conta?.acesso.map((p) => p.id) ?? []);
   const [local, setLocal] = useState<Record<string, string>>({});
+  const [repetir, setRepetir] = useState(false);
+  const [tipoRecorrencia, setTipoRecorrencia] = useState<"fixo" | "variavel">("fixo");
+  const [diaRecorrencia, setDiaRecorrencia] = useState("");
+  const [escopo, setEscopo] = useState<"mes" | "proximos">("mes");
+  const [confirmarChegada, setConfirmarChegada] = useState(false);
+  const escopoEfetivo = modelo.data?.pode_editar ? escopo : "mes";
+  const tentativa = useRef<{ assinatura: string; chave: string } | null>(null);
   // A form session owns its initial instrument. Remote refetches do not replace local entry/preview.
   const [inicial] = useState(() => conta?.instrumento && { ...conta.instrumento });
   const [modo, setModo] = useState<Modo>(inicial?.chave_pix ? "chave" : inicial?.codigo ? "codigo" : "manual");
@@ -92,6 +109,8 @@ export function ContaFolha({ open, onClose, conta }: Props) {
   const { mutate: ler } = leitura;
   const versaoLeitura = useRef(0);
   const gravacao = useRef(false);
+  const sessao = useRef(0);
+  useEffect(() => () => { sessao.current++; versaoLeitura.current++; }, []);
   const codigoId = useId();
   const dataId = useId();
   const podeTrocarInstrumento = !conta || conta.status === "pendente" || conta.status === "aguardando";
@@ -157,7 +176,7 @@ export function ContaFolha({ open, onClose, conta }: Props) {
   const casas = [...(grupo.data?.casas ?? [])];
   if (conta?.subgrupo && !casas.some((c) => c.id === conta.subgrupo!.id)) casas.push(conta.subgrupo);
 
-  const erro = criar.error ?? editar.error ?? cancelar.error;
+  const erro = criar.error ?? editar.error ?? cancelar.error ?? recorrencias.criar.error;
   const api = erro instanceof ApiError ? erro.campos : {};
   const erros = {
     valor: local.valor ?? api.valor_centavos,
@@ -170,7 +189,7 @@ export function ContaFolha({ open, onClose, conta }: Props) {
     instrumento: local.instrumento ?? api.instrumento ?? api.codigo ?? api.chave_pix,
   };
   const geral = erro && !Object.values(erros).some(Boolean) ? erro.message : undefined;
-  const gravando = criar.isPending || editar.isPending || cancelar.isPending;
+  const gravando = criar.isPending || editar.isPending || cancelar.isPending || recorrencias.criar.isPending;
   const lendoPdf = envio.isPending || (!!pdfId && (!documento.data || ["pendente", "lendo"].includes(documento.data.estado)) && !documento.error);
   const ocupado = gravando || leitura.isPending || lendoPdf;
   const aviso = emGrupo && visibilidade === "restrita" && !!pagador && pagador !== user.id;
@@ -248,17 +267,22 @@ export function ContaFolha({ open, onClose, conta }: Props) {
     if (gravacao.current || enviando.current || leitura.isPending || lendoPdf) return;
     const centavos = lerValor(valor);
     const faltas: Record<string, string> = {};
-    if (centavos === null) faltas.valor = "Informe um valor maior que zero, como 287,43.";
+    const aguardandoSemConfirmar = conta?.status === "aguardando" && !confirmarChegada;
+    if (centavos === null && !(aguardandoSemConfirmar && base?.valor_centavos === null && !valor.trim())) faltas.valor = "Informe um valor maior que zero, como 287,43.";
+    if (aguardandoSemConfirmar && centavos !== base?.valor_centavos) faltas.valor = "Confirme a chegada para alterar o valor.";
+    if (aguardandoSemConfirmar && (instrumentoAlterado || pdfId)) faltas.instrumento = "Confirme a chegada para salvar os dados conferidos.";
     if (!vencimento) faltas.vencimento = "Informe o vencimento.";
     if (!descricao.trim()) faltas.descricao = "Dê um nome para a conta.";
+    if (repetir && vencimento.slice(0, 7) !== mesAtual()) faltas.repeticao = "Para repetir, o vencimento da primeira conta precisa ser deste mês. Você pode salvar sem repetir.";
+    if (repetir && (!Number.isInteger(Number(diaRecorrencia)) || Number(diaRecorrencia) < 1 || Number(diaRecorrencia) > 31)) faltas.repeticao = "Informe o dia das próximas contas, de 1 a 31.";
     if (modo !== "manual" && !conferencia) faltas.instrumento = "Confira o código ou a chave antes de salvar.";
     if (pdfId && !["lido", "conferencia_manual"].includes(documento.data?.estado ?? "")) faltas.instrumento = "Escolha um PDF válido antes de salvar.";
     if ((documento.data?.resultado?.candidatos?.length ?? 0) > 0 && (!candidato || modo !== "codigo" || conteudo !== candidato)) faltas.instrumento = "Escolha uma das linhas encontradas no PDF.";
     setLocal(faltas);
     if (Object.keys(faltas).length) return;
-    const body: ContaEntrada = {
+    const body: ContaAlteracao = {
       descricao: descricao.trim(),
-      valor_centavos: centavos!,
+      ...(centavos !== null ? { valor_centavos: centavos } : {}),
       vencimento,
       ...(emGrupo && { subgrupo: casa, pagador, visibilidade, acesso: visibilidade === "restrita" ? acesso : [] }),
       ...((!conta || instrumentoAlterado) && modo !== "manual" ? { instrumento: modo === "chave" ? { chave_pix: conteudo } : { codigo: conteudo } } : instrumentoAlterado ? { instrumento: null } : {}),
@@ -267,12 +291,33 @@ export function ContaFolha({ open, onClose, conta }: Props) {
     };
     // The synchronous latch also covers repeated submits before React paints the pending state.
     gravacao.current = true;
+    const versaoSessao = sessao.current;
     const terminou = () => { gravacao.current = false; };
-    if (conta) return editar.mutate({ id: conta.id, body }, { onSuccess: onClose, onSettled: terminou });
+    if (conta && base) {
+      const alteracoes: ContaAlteracao = { ...body };
+      if (body.descricao === base.descricao) delete alteracoes.descricao;
+      if (body.valor_centavos === base.valor_centavos) delete alteracoes.valor_centavos;
+      if (body.vencimento === base.vencimento) delete alteracoes.vencimento;
+      if (body.subgrupo === base.subgrupo) delete alteracoes.subgrupo;
+      if (body.pagador === base.pagador) delete alteracoes.pagador;
+      if (body.visibilidade === base.visibilidade) delete alteracoes.visibilidade;
+      const acessoBase = base.visibilidade === "restrita" ? base.acesso : [];
+      if (body.acesso && JSON.stringify([...body.acesso].sort()) === JSON.stringify([...acessoBase].sort())) delete alteracoes.acesso;
+      return editar.mutate({ id: conta.id, body: { ...alteracoes, ...(conta.recorrente ? { escopo: escopoEfetivo } : {}), ...(conta.status === "aguardando" && confirmarChegada ? { confirmar_chegada: true } : {}) } }, { onSuccess: () => { if (sessao.current === versaoSessao) onClose(); }, onSettled: terminou });
+    }
+    if (centavos === null) { terminou(); return; }
+    const entrada: ContaEntrada = { ...body, descricao: descricao.trim(), valor_centavos: centavos, vencimento };
+    if (repetir) {
+      const dados = { descricao: entrada.descricao, dia_vencimento: Number(diaRecorrencia), valor_tipo: tipoRecorrencia, valor_centavos: tipoRecorrencia === "fixo" ? centavos : null, subgrupo: entrada.subgrupo, pagador: entrada.pagador, visibilidade: entrada.visibilidade, acesso: entrada.acesso, ocorrencia_inicial: { valor_centavos: centavos, vencimento: entrada.vencimento, instrumento: entrada.instrumento, documento_pdf: entrada.documento_pdf, data_emissao: entrada.data_emissao, beneficiario: entrada.beneficiario } };
+      const assinatura = JSON.stringify([espaco.id, dados]);
+      if (tentativa.current?.assinatura !== assinatura) tentativa.current = { assinatura, chave: crypto.randomUUID() };
+      return recorrencias.criar.mutate({ espaco: espaco.id, body: { ...dados, chave_idempotencia: tentativa.current.chave } }, { onSuccess: (resultado) => { if (sessao.current !== versaoSessao) return; onClose(); if (resultado.ocorrencia) router.push(`/contas/${resultado.ocorrencia.id}?mes=${resultado.ocorrencia.vencimento.slice(0, 7)}`); }, onSettled: terminou });
+    }
     criar.mutate(
-      { espaco: espaco.id, body },
+      { espaco: espaco.id, body: entrada },
       {
         onSuccess(nova) {
+          if (sessao.current !== versaoSessao) return;
           onClose();
           // The new bill, in its month's list (desktop: list + panel; mobile: its detail).
           router.push(`/contas/${nova.id}?mes=${nova.vencimento.slice(0, 7)}`);
@@ -364,6 +409,9 @@ export function ContaFolha({ open, onClose, conta }: Props) {
           <Field label="Beneficiário" value={beneficiario} maxLength={200} onChange={(e) => { setBeneficiario(e.target.value); setMetadadosAlterados(true); }} hint="Confira o nome no PDF" />
         </div>}
         <Field label="Descrição" placeholder="Energia · Casa 3" maxLength={150} value={descricao} onChange={(e) => setDescricao(e.target.value)} error={erros.descricao} required />
+        {conta?.status === "aguardando" && <label className={styles.confirmacao}><input type="checkbox" checked={confirmarChegada} onChange={(e) => setConfirmarChegada(e.target.checked)} />Confirmar valor e vencimento desta conta</label>}
+        {!conta && <RepeticaoCampo repetir={repetir} tipo={tipoRecorrencia} dia={diaRecorrencia} disabled={ocupado} erro={local.repeticao} onRepetir={(v) => { setRepetir(v); if (v && !diaRecorrencia && vencimento) setDiaRecorrencia(String(Number(vencimento.slice(8, 10)))); }} onTipo={setTipoRecorrencia} onDia={setDiaRecorrencia} />}
+        {conta?.recorrente && modelo.data?.pode_editar && <EscopoRecorrencia value={escopo} onChange={setEscopo} disabled={ocupado} />}
 
         {emGrupo && grupo.isPending && <p className={styles.nota} role="status">Carregando casas e pessoas…</p>}
         {emGrupo && grupo.data && (
@@ -421,9 +469,9 @@ export function ContaFolha({ open, onClose, conta }: Props) {
             disabled={ocupado}
             onClick={() => {
               if (gravacao.current) return;
-              if (window.confirm(`Cancelar ${conta.descricao}? Ela sai das listas e dos totais e fica no histórico.`)) {
+              if (window.confirm(escopoEfetivo === "proximos" && conta.recorrente ? `Cancelar ${conta.descricao} neste mês e nos próximos? As contas abertas serão canceladas e as futuras gerações encerradas.` : `Cancelar ${conta.descricao}? Ela sai das listas e dos totais e fica no histórico.`)) {
                 gravacao.current = true;
-                cancelar.mutate(conta.id, { onSuccess: onClose, onSettled: () => { gravacao.current = false; } });
+                cancelar.mutate({ id: conta.id, body: conta.recorrente ? { escopo: escopoEfetivo } : undefined }, { onSuccess: onClose, onSettled: () => { gravacao.current = false; } });
               }
             }}
           />

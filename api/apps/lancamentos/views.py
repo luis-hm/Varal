@@ -34,6 +34,7 @@ from apps.espacos.acesso import (
 )
 from apps.espacos.models import Espaco
 from apps.espacos.views import ErroSerializer
+from apps.recorrencias.models import Recorrencia
 
 from . import servicos
 from .models import ABERTOS, STATUS_EXIBIDOS, Historico, Lancamento, Status
@@ -83,7 +84,7 @@ class ContaSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     espaco = EspacoRefSerializer()
     descricao = serializers.CharField()
-    valor_centavos = serializers.IntegerField()
+    valor_centavos = serializers.IntegerField(allow_null=True)
     vencimento = serializers.DateField()
     status = serializers.ChoiceField(Status.choices)
     status_exibido = serializers.ChoiceField(STATUS_EXIBIDOS)
@@ -110,10 +111,10 @@ class HistoricoSerializer(serializers.Serializer):
     criado_em = serializers.DateTimeField()
 
     def get_automatica(self, obj) -> bool:
-        return obj.acao in Historico.AUTOMATICAS
+        return obj.automatica
 
     def get_autor(self, obj) -> str | None:
-        if obj.acao in Historico.AUTOMATICAS:
+        if obj.automatica:
             return None
         # RN30 / decision 23: "Ex-membro" or "Pessoa sem nome"; never the e-mail.
         return servicos.rotulo(obj.usuario, self.context["membros"], historico=True)
@@ -153,11 +154,32 @@ class ContaDetalheSerializer(ContaSerializer):
     )
     historico = HistoricoSerializer(many=True)
     pode_editar = serializers.SerializerMethodField()
+    recorrente = serializers.SerializerMethodField()
+    recorrencia_id = serializers.SerializerMethodField()
+    competencia = serializers.DateField(allow_null=True)
+    pode_ver_recorrencia = serializers.SerializerMethodField()
     pagamento_ativo = serializers.SerializerMethodField()
     pagamentos = PagamentoSerializer(many=True)
     pode_pagar = serializers.SerializerMethodField()
     pode_desfazer_pagamento = serializers.SerializerMethodField()
     pode_anexar_comprovante = serializers.SerializerMethodField()
+
+    def get_recorrente(self, obj) -> bool:
+        return obj.recorrencia_id is not None
+
+    def get_pode_ver_recorrencia(self, obj) -> bool:
+        from apps.espacos.acesso import recorrencias_do_usuario
+
+        return bool(
+            obj.recorrencia_id
+            and recorrencias_do_usuario(self.context["request"].user)
+            .filter(pk=obj.recorrencia_id)
+            .exists()
+        )
+
+    @extend_schema_field(serializers.UUIDField(allow_null=True))
+    def get_recorrencia_id(self, obj):
+        return obj.recorrencia_id if self.get_pode_ver_recorrencia(obj) else None
 
     def _ativo(self, obj):
         return next((p for p in obj.pagamentos.all() if p.desfeito_em is None), None)
@@ -217,6 +239,9 @@ class CentavosField(serializers.IntegerField):
 
 
 class ContaEntradaSerializer(serializers.Serializer):
+    escopo = serializers.ChoiceField(["mes", "proximos"], required=False)
+    confirmar_chegada = serializers.BooleanField(required=False)
+    valor_tipo = serializers.ChoiceField(Recorrencia.ValorTipo.choices, required=False)
     documento_pdf = serializers.UUIDField(allow_null=True, required=False)
     data_emissao = serializers.DateField(allow_null=True, required=False)
     beneficiario = serializers.CharField(
@@ -253,7 +278,8 @@ class OpcoesSerializer(serializers.Serializer):
 
 class ListaSerializer(serializers.Serializer):
     mes = serializers.CharField(help_text="AAAA-MM do total e das contagens")
-    total_centavos = serializers.IntegerField(help_text="Não canceladas do mês, com casa/pagador")
+    total_centavos = serializers.IntegerField(help_text="Valor conhecido não cancelado do mês")
+    valores_indefinidos_qtd = serializers.IntegerField()
     contagens = ContagensSerializer()
     opcoes = OpcoesSerializer(help_text="Casas e pagadores das contas visíveis do mês")
     itens = ContaSerializer(many=True)
@@ -263,6 +289,7 @@ class PorCasaSerializer(RefSerializer):
     total_centavos = serializers.IntegerField()
     qtd = serializers.IntegerField()
     pagas_qtd = serializers.IntegerField()
+    valores_indefinidos_qtd = serializers.IntegerField()
 
 
 class ResumoSerializer(serializers.Serializer):
@@ -271,6 +298,7 @@ class ResumoSerializer(serializers.Serializer):
     total_centavos = serializers.IntegerField()
     qtd = serializers.IntegerField()
     pagas_qtd = serializers.IntegerField()
+    valores_indefinidos_qtd = serializers.IntegerField()
     vencidas_qtd = serializers.IntegerField(help_text="Em atencao (qualquer mês)")
     vence_qtd = serializers.IntegerField(help_text="Em atencao (dentro da janela)")
     atencao = ContaSerializer(many=True)
@@ -477,6 +505,7 @@ class LancamentosView(APIView):
             contas = contas.filter(pagador_id=pagador)
         numeros = contas.aggregate(
             total=Sum("valor_centavos", filter=NAO_CANCELADA, default=0),
+            indefinidos=Count("pk", filter=NAO_CANCELADA & Q(valor_centavos__isnull=True)),
             **{nome: Count("pk", filter=q) for nome, q in filtros.items()},
         )
         itens = contas.filter(filtros[filtro]).select_related(*COM_DADOS)
@@ -488,6 +517,7 @@ class LancamentosView(APIView):
         corpo = {
             "mes": rotulo,
             "total_centavos": numeros.pop("total"),
+            "valores_indefinidos_qtd": numeros.pop("indefinidos"),
             "contagens": numeros,
             "opcoes": {
                 "casas": [{"id": c.pk, "nome": c.nome} for c in sorted(casas, key=str)],
@@ -550,6 +580,7 @@ class ResumoView(APIView):
         numeros = do_mes.aggregate(
             total=Sum("valor_centavos", default=0),
             qtd=Count("pk"),
+            valores_indefinidos_qtd=Count("pk", filter=Q(valor_centavos__isnull=True)),
             pagas_qtd=Count("pk", filter=Q(status__in=(Status.PAGA, Status.CONFIRMADA))),
         )
         # Q9 / decision 26: every open bill (pendente or aguardando) overdue from any month or
@@ -570,8 +601,9 @@ class ResumoView(APIView):
                 for c in do_mes.filter(subgrupo__isnull=False)
                 .values("subgrupo", "subgrupo__nome")
                 .annotate(
-                    total_centavos=Sum("valor_centavos"),
+                    total_centavos=Sum("valor_centavos", default=0),
                     qtd=Count("pk"),
+                    valores_indefinidos_qtd=Count("pk", filter=Q(valor_centavos__isnull=True)),
                     pagas_qtd=Count("pk", filter=Q(status__in=(Status.PAGA, Status.CONFIRMADA))),
                 )
                 .order_by("subgrupo__nome")
@@ -582,6 +614,7 @@ class ResumoView(APIView):
             "total_centavos": numeros["total"],
             "qtd": numeros["qtd"],
             "pagas_qtd": numeros["pagas_qtd"],
+            "valores_indefinidos_qtd": numeros["valores_indefinidos_qtd"],
             "vencidas_qtd": sum(c.vencimento < hoje for c in atencao),
             "vence_qtd": sum(c.vencimento >= hoje for c in atencao),
             "atencao": atencao,
@@ -624,15 +657,23 @@ class LancamentoView(APIView):
         return _detalhe(request, conta.pk, conta.espaco, apos_escrita=True)
 
 
+class CancelarEntradaSerializer(serializers.Serializer):
+    escopo = serializers.ChoiceField(["mes", "proximos"], required=False)
+
+
 class CancelarView(APIView):
     @extend_schema(
         operation_id="lancamentos_cancelar",
         summary="Cancelar conta aguardando ou pendente; nada é apagado (RN22, D2)",
-        request=None,
+        request=CancelarEntradaSerializer,
         responses={200: ContaDetalheSerializer, **_erros(403, 404, 409)},
         examples=[DETALHE],
     )
     @transaction.atomic
     def post(self, request, lancamento_id):
-        conta = servicos.cancelar(request.user, lancamento_id)
+        entrada = CancelarEntradaSerializer(data=request.data)
+        entrada.is_valid(raise_exception=True)
+        conta = servicos.cancelar(
+            request.user, lancamento_id, entrada.validated_data.get("escopo", "mes")
+        )
         return _detalhe(request, conta.pk, conta.espaco, apos_escrita=True)

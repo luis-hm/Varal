@@ -78,7 +78,7 @@ Difere do bloco da especificação (RN30, RN32, ADR 0005–0009). App `api/apps/
 | `cancelada_automaticamente` | automática | `{motivo: "sem_quem_veja", removido: id}`: remoção pelo admin deixou a restrita sem ninguém (RN32); base do aviso da Etapa 09 |
 | `acesso_preservado` | automática | `{motivo: "papel_pagador"}`: troca para pagador manteve o acesso (ADR 0008) |
 
-Ações automáticas não têm autor e nunca aparecem como "Ex-membro".
+Ações automáticas não têm autor e nunca aparecem como "Ex-membro". Na geração recorrente, `criada` com usuário nulo e competência interna é classificada por `Historico.automatica` como sistema (B08-4); criação manual com autor excluído permanece Ex-membro, sem inferir automação apenas pelo nulo.
 
 ## Implementação da Etapa 05
 
@@ -87,7 +87,7 @@ App `api/apps/boletos`, migração `boletos.0001_initial`; não modifica dados d
 - **`instrumento`:** `lancamento` é OneToOne, chave primária UUID herdada da conta, `CASCADE`; `tipo` = `boleto_bancario|boleto_arrecadacao|pix`; `codigo` (até 4096), `chave_pix` (até 77) e `beneficiario` (até 25) aceitam `null`. Manual é ausência de relação, **não linha com tipo manual** nesta etapa; `ContaDetalhe.instrumento` retorna `null`.
 - **Restrição `instrumento_tipo_conteudo_valido`:** bancário contém exatamente 47 dígitos ASCII; arrecadação começa com 8 e contém 48; Pix contém código não vazio ou chave não vazia, exclusivamente. DVs/CRC e semântica são revalidados no serviço; a restrição estrutural do banco não os substitui. Mesmo código pode existir em contas distintas, sem unicidade global.
 - **Persistência:** boleto guarda dígitos normalizados; Pix copia e cola conserva o payload original, sem extrair chave para outro campo; chave avulsa guarda forma normalizada. Beneficiário pode vir do payload Pix e não significa identidade verificada. Data de emissão/arquivo PDF ficam para a 06.
-- **Histórico:** criação/troca/remoção acrescenta `instrumento: [tipo_anterior, tipo_novo]` (manual quando ausente) e `codigo_alterado: true`; nunca código/chave integrais. A edição sem mudança não grava linha adicional. Troca/remoção só em aguardando/pendente; instrumento válido em aguardando promove a pendente atomicamente.
+- **Histórico:** criação/troca/remoção acrescenta `instrumento: [tipo_anterior, tipo_novo]` (manual quando ausente) e `codigo_alterado: true`; nunca código/chave integrais. A edição sem mudança não grava linha adicional. Troca/remoção só em aguardando/pendente; na Etapa 08 a promoção de aguardando exige confirmação explícita e dados completos, não só a existência do instrumento.
 - **Coerência:** preview não persiste. Criar/editar revalida o instrumento, inclusive o preservado quando PATCH omite a relação, e confere valor/data finais na transação da conta. O fator ambíguo oferece as duas datas; somente uma data codificada pode ser salva, sem inferência pelo relógio ([decisões](../etapas/05-boleto-pix/decisoes.md)).
 - **Privacidade:** relação é carregada só no detalhe autorizado e respostas de mutação; listas/resumos/históricos não carregam o payload. Sem registro independente no admin, e `__str__` não contém código/chave. A exclusão em cascata continua com prévia minimizada da 04.
 
@@ -113,10 +113,22 @@ Migrações `pagamentos.0001_initial` e `lancamentos.0002_remove_historico_histo
 - **`evento_pagamento`:** UUID, pagamento OneToOne CASCADE, destinatário anulável SET_NULL, criação e `processado_em?`. Criado atomicamente com a marca; anexo não duplica e undo não remove. Consumo/transporte na09, com revalidação de estado/acesso/destinatário, não entregue pela07.
 - **`documento_comprovante`:** UUID, conta CASCADE, uploader SET_NULL, pagamento-alvo FK opcional e pagamento vinculado OneToOne opcional CASCADE, `versao`, `vinculado_em?`, `estado`, tentativaUUID, nome seguro (200), tamanho/MIME, criação/leitura. Enum `pendente|lendo|valido|invalido|erro`; distinto do status da conta. `lancamento.versao_pagamento` aumenta em marca/undo e impede reutilizar draft de ciclo antigo. Worker só valida documento, nunca confirma conta.
 - **`limpeza_comprovante`:** UUID independente e criação; intenção durável por objeto, recuperada após commit sob mutex de I/O. Chave `comprovantes/{uuid}` e spool privado derivam doUUID, sem URL persistida. Alias S3 privado `comprovantes` recebe MIME validado JPEG/PNG/PDF; conserva original/EXIF, até5MiB e imagem até20MP sem animação. Sem limite de20 páginas importado do extrator de boleto; validação de comprovante usa processo com memória/CPU/tempo limitados.
-- **Retenção:** undo mantém pagamento, comprovante e vínculo histórico imutável; nunca retorna a draft ou serve outra marca. A leitura depende da conta atual, inclusive para uploader/admin/observador. Sem troca/remoção isolada. Draft não vinculado expira em24h; exclusão física conta/espaço aciona limpeza após commit. URL dura60s e não promete revogação instantânea. Manutenção pelo beat a cada300s (D07-1); geração mensal08 ainda ausente.
+- **Retenção:** undo mantém pagamento, comprovante e vínculo histórico imutável; nunca retorna a draft ou serve outra marca. A leitura depende da conta atual, inclusive para uploader/admin/observador. Sem troca/remoção isolada. Draft não vinculado expira em24h; exclusão física conta/espaço aciona limpeza após commit. URL dura60s e não promete revogação instantânea. Manutenção pelo beat a cada300s (D07-1); geração mensal passa a existir na Etapa 08, descrita abaixo.
 - **Histórico:** `paga` guarda id do pagamento, data, valor e indicação de comprovante; `comprovante_anexado` e `pagamento_desfeito` referenciam pagamento. Reabertura pode registrar remoção do pagador sem vínculo atual. Sem nome de arquivo, URL, chaveS3 ou conteúdo integral. Referências pessoais continuam resolvidas sem e-mail histórico.
 
 Métricas são projeções, não entidades novas: `pagas_qtd` em resumo/PorCasa e `contas_atribuidas_qtd` por membro, sempre pelo visível e mês de vencimento. Início/grupo usam mês atual; lista admite mês explícito. FK preservada de pagador sem membro atual integra filtro coletivo Ex-membro; FK nula é Sem pagador, sem reconstrução de identidade.
+
+## Implementação da Etapa 08
+
+[ADR 0012](../arquitetura/adr/0012-recorrencias-e-valores-desconhecidos.md), Q08-1–10/D08-1. Migrações `lancamentos.0003–0004` e `recorrencias.0001–0003` aplicadas em desenvolvimento; resultados finais no [relatório](../etapas/08-recorrencia-agendador/relatorio.md).
+
+- **`recorrencia`:** UUID, espaço CASCADE, criador/pagador anuláveis SET_NULL, descrição (150), `dia_vencimento` 1–31, `valor_tipo` fixo/variavel, `valor_centavos?`, casa RESTRICT, visibilidade grupo/restrita e M2M acesso. Estado ativa/pausada/encerrada, motivo privado da pausa, cursor de competência e timestamps. Constraint exige positivo no fixo e NULL no variável. Não guarda instrumento, arquivo ou snapshot de identidade.
+- **`revisao_recorrencia`:** FK CASCADE, competência inicial, patch JSON `alteracoes`, criação; aplicação em ordem de gravação preserva campos não alterados. Autorização, pagador, escolhidos e casa são revalidados pelo estado atual, sem ressuscitar concessão antiga.
+- **`competencia_devida`:** FK CASCADE, competência no primeiro dia civil, estado pendente/bloqueada/gerada; única por modelo/mês. Materialização em lotes de 120 e cursor persistido preservam devidas anteriores à pausa/encerramento; retomada começa no mês corrente e não preenche meses pausados. Não há tabela adicional de intervalos.
+- **`operacao_recorrencia`:** usuário CASCADE, chave UUID, hash SHA-256 da entrada, modelo OneToOne CASCADE e competência. Unicidade usuário/chave protege criação/retry; divergência é 409. IDs internos dessas três entidades operacionais usam a chave automática do Django, sem contrato público de UUID.
+- **`lancamento`:** acrescenta `recorrencia?` RESTRICT e `competencia?`, obrigatoriamente pareados; competência no primeiro dia e única por modelo/mês. Valor passa a nullable: positivo é válido em qualquer status; NULL só em aguardando/cancelada, nunca zero/negativo. D08-1 preserva aguardando positivo legado sem backfill/promoção; variável nova nasce NULL pelo serviço. Conferência explícita promove na mesma transação da conta/instrumento/PDF/histórico.
+- **Autoria e saída:** criador segue UUID/papel/vínculo atuais (Q08-10); reingresso elegível pode recuperar gestão mas exige retomada explícita. Saída retira pagador/escolhidos; reingresso/revisão antiga não os restaura. A FK experimental à participação foi removida por `recorrencias.0003`, preservando migrações já aplicadas.
+- **Casa e evidência:** arquivamento move só abertas/modelos autorizados; finais/invisíveis guardam referência histórica. Geração de modelo com casa arquivada cria Sem casa. Código/PDF inicial pertence só à primeira cobrança confirmada, sem cópia para futuros meses. Modelo sem audiência válida pausa e mantém obrigação bloqueada privada.
 
 ## Diagrama ER
 
@@ -131,6 +143,11 @@ erDiagram
     espaco ||--o{ recorrencia : tem
     subgrupo |o--o{ lancamento : agrupa
     recorrencia |o--o{ lancamento : gera
+    recorrencia ||--o{ revisao_recorrencia : revisa
+    recorrencia ||--o{ competencia_devida : deve
+    usuario ||--o{ operacao_recorrencia : solicita
+    recorrencia ||--|| operacao_recorrencia : identifica
+    usuario }o--o{ recorrencia : "acesso escolhido"
     lancamento |o--o| lancamento : "origem (solicitação)"
     lancamento ||--o{ lancamento_acesso : "restrita: quem vê"
     usuario ||--o{ lancamento_acesso : ve

@@ -86,6 +86,7 @@ export const alterarPapel = (id: string, membroId: string, papel: Papel) =>
   call<Membro>(g(id, `membros/${membroId}/`), "PATCH", { papel } satisfies S["PatchedPapel"]);
 export const removerMembro = (id: string, membroId: string) => call<null>(g(id, `membros/${membroId}/`), "DELETE");
 export const criarCasa = (id: string, nome: string) => call<Casa>(g(id, "subgrupos/"), "POST", { nome } satisfies Omit<Casa, "id">);
-export const alterarCasa = (id: string, casaId: string, body: S["PatchedCasa"]) => call<Casa>(g(id, `subgrupos/${casaId}/`), "PATCH", body);
+export const alterarCasa = (id: string, casaId: string, body: S["PatchedCasaAlterar"]) => call<Casa>(g(id, `subgrupos/${casaId}/`), "PATCH", body);
+export const previewArquivamento = (id: string, casaId: string) => call<S["ArquivamentoPreview"]>(g(id, `subgrupos/${casaId}/arquivamento/`));
 export const verConvite = (token: string) => call<ConvitePublico>(t(token));
 export const aceitarConvite = (token: string) => call<Aceite>(t(token, "aceitar/"), "POST");

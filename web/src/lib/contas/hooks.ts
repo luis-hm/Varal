@@ -24,6 +24,17 @@ export const usePdf = (id: string | undefined) => useQuery({
 });
 export const useLinkPdfConta = () => useMutation({ mutationFn: api.linkPdfConta });
 export const useLinkPdf = () => useMutation({ mutationFn: api.linkPdf });
+export const useRecorrencias = (espaco: string | undefined) => useQuery({ queryKey: ["recorrencias", "lista", espaco], queryFn: () => api.listarRecorrencias(espaco!), enabled: !!espaco, retry });
+export const useRecorrencia = (id: string | undefined) => useQuery({ queryKey: ["recorrencias", "detalhe", id], queryFn: () => api.verRecorrencia(id!), enabled: !!id, retry });
+export function useAcoesRecorrencia() {
+  const qc = useQueryClient();
+  const atualizar = () => { for (const key of ["recorrencias", "contas", "grupos"]) void qc.invalidateQueries({ queryKey: [key] }); };
+  return {
+    criar: useMutation({ mutationFn: ({ espaco, body }: { espaco: string; body: api.CriarRecorrencia }) => api.criarRecorrencia(espaco, body), onSuccess: atualizar }),
+    editar: useMutation({ mutationFn: ({ id, body }: { id: string; body: api.EditarRecorrencia }) => api.editarRecorrencia(id, body), onSuccess: atualizar }),
+    acao: useMutation({ mutationFn: ({ id, acao }: { id: string; acao: "pausar" | "retomar" | "encerrar" }) => api.acaoRecorrencia(id, acao), onSuccess: atualizar }),
+  };
+}
 
 export function useAcoesPagamento() {
   const qc = useQueryClient();
@@ -47,11 +58,12 @@ export function useAcoesConta() {
   const qc = useQueryClient();
   const onSuccess = () => {
     void qc.invalidateQueries({ queryKey: ["grupos"] });
+    void qc.invalidateQueries({ queryKey: ["recorrencias"] });
     return qc.invalidateQueries({ queryKey: ["contas"] });
   };
   return {
     criar: useMutation({ mutationFn: ({ espaco, body }: { espaco: string; body: api.ContaEntrada }) => api.criarConta(espaco, body), onSuccess }),
     editar: useMutation({ mutationFn: ({ id, body }: { id: string; body: Parameters<typeof api.editarConta>[1] }) => api.editarConta(id, body), onSuccess }),
-    cancelar: useMutation({ mutationFn: api.cancelarConta, onSuccess }),
+    cancelar: useMutation({ mutationFn: ({ id, body }: { id: string; body?: Parameters<typeof api.cancelarConta>[1] }) => api.cancelarConta(id, body), onSuccess }),
   };
 }
