@@ -6,7 +6,7 @@ API_DB := $(RUN) api
 # Fail fast on Node < 22 (CI reads web/.nvmrc); v20 hides errors that only show up in CI.
 NODE22 := @node -e 'process.exit(parseInt(process.versions.node) < 22 ? 1 : 0)' 2>/dev/null || { echo "Node 22+ required (found $$(node -v 2>/dev/null || echo none)). Run: cd web && nvm install && nvm use" >&2; exit 1; }
 
-.PHONY: help env dev down test test-api test-web e2e lint types migrate seed limpar-dev
+.PHONY: help env dev down test test-api test-web e2e lint types migrate seed limpar-dev codex-sync
 
 help: ## List targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
@@ -55,6 +55,9 @@ migrate: env ## Create and apply migrations
 
 seed: env ## Load development data
 	$(API_DB) python manage.py seed
+
+codex-sync: ## Regenerate Codex agents/skills from .claude (see AGENTS.md)
+	sh infra/scripts/codex-sync.sh
 
 limpar-dev: env ## Delete test leftovers from the dev DB (asks first; SIM=1 skips it)
 	$(API_DB) python manage.py limpar_dev $(if $(SIM),--sim)
