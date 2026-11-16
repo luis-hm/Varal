@@ -1,0 +1,6 @@
+@keyframes grow { from { width: 0; } to { width: var(--progresso); } }
+.progresso { margin-top: var(--spacing-4); }
+.barra { width: 100%; height: 8px; overflow: hidden; border-radius: var(--radius-full); background: var(--color-ink-soft); }
+.barra span { display: block; height: 100%; width: var(--progresso); border-radius: inherit; background: var(--color-green); animation: grow 1.4s .4s both; }
+.legenda { margin-top: var(--spacing-2); color: var(--color-surface); font-size: var(--text-sm); }
+@media (prefers-reduced-motion: reduce) { .barra span { animation: none; } }

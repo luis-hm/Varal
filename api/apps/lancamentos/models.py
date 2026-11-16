@@ -88,6 +88,7 @@ class Lancamento(models.Model):
         db_table="lancamento_acesso",
         related_name="lancamentos_com_acesso",
     )
+    versao_pagamento = models.PositiveBigIntegerField(default=0)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
@@ -120,6 +121,9 @@ class Acao(models.TextChoices):
     ACESSO_REMOVIDO = "acesso_removido", "Saiu de quem vê"
     CANCELADA_AUTOMATICAMENTE = "cancelada_automaticamente", "Cancelada automaticamente"
     ACESSO_PRESERVADO = "acesso_preservado", "Acesso preservado"
+    PAGA = "paga", "Marcou como paga"
+    PAGAMENTO_DESFEITO = "pagamento_desfeito", "Desfez pagamento"
+    COMPROVANTE_ANEXADO = "comprovante_anexado", "Anexou comprovante"
 
 
 class Historico(models.Model):

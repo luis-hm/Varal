@@ -233,3 +233,16 @@ STORAGES = {
         },
     },
 }
+
+# Evidence retains its validated MIME; the PDF alias intentionally fixes application/pdf.
+STORAGES["comprovantes"] = {
+    "BACKEND": STORAGES["pdf"]["BACKEND"],
+    "OPTIONS": {k: v for k, v in STORAGES["pdf"]["OPTIONS"].items() if k != "object_parameters"},
+}
+
+CELERY_BEAT_SCHEDULE = {
+    "recuperar-comprovantes": {
+        "task": "apps.pagamentos.tasks.recuperar_comprovantes",
+        "schedule": 300.0,
+    },
+}

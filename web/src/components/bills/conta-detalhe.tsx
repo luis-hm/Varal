@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { linhaHistorico, type Trecho } from "@/lib/contas/historico";
 import { ContaFolha } from "./conta-folha";
 import { CopiarCodigo } from "./copiar-codigo";
+import { PagamentoAcoes } from "./pagamento-acoes";
 import { StatusBadge } from "./status-badge";
 import styles from "./contas.module.css";
 import instrumentoStyles from "./instrumento.module.css";
@@ -165,6 +166,7 @@ export function ContaDetalhe({ conta, voltar }: Props) {
             })}
           </ol>
         </section>
+        <PagamentoAcoes key={conta.id} conta={conta} />
       </div>
       {edicao > 0 && <ContaFolha key={edicao} open={editando} onClose={() => setEditando(false)} conta={conta} />}
     </article>

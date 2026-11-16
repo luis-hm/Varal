@@ -23,9 +23,9 @@ Telas: frame mobile ↔ frame desktop no canvas `k0kB5dc-Vo` (ids e equivalênci
 | RF12 | CU07 | RN05, RN22, D2 | 07 · Detalhe da conta ↔ D03 | 04 | `api/tests/test_contas.py`: `test_rn22_edicao_registra_autor_e_so_o_que_mudou`, `test_rn22_cancelar_nao_apaga_e_so_aberta`, `test_rn05_contas_por_papel`, `test_rn05_fora_da_saida_observador_403_404`; Vitest `rn22/rn30: automatic actions have no author…` (`contas.test.ts`); E2E `ca12/ca13/ca14 rn22 d2…` (`web/e2e/contas.spec.ts`) |
 | RF13 | CU06 | RN02, RN06, RN07, RN12, RN13, D2 | 02 · Início ↔ D02, 03 · Contas ↔ D03 | 04 | `api/tests/test_contas.py`: `test_rf13_filtros_mes_status_casa_pagador_e_contagens`, `test_rf13_resumo_total_do_mes_atencao_e_por_casa`, `test_d2_cancelada_fora_de_tudo_menos_do_filtro_canceladas`, `test_rn02_*`, `test_rn06_*`, `test_rn07_*`, `test_rn12_*`, `test_rn13_*`; Vitest `q9/q12/q23: the hero names its month…` (`inicio.test.tsx`), `d2: list groups by due date…` (`contas.test.ts`), `ca17/ca27…` (`nav.test.tsx`); E2E `ca01/ca16/ca17/ca31…`, `ca15 rf13 q14…` (filtros na URL, Voltar, folha Filtros), `ca30…` (lista + painel `slide-in` / 07 sozinho), `ca27 q4/q5 rn07…` (seletor e cookie), `ca29…` (screenshots) (`web/e2e/contas.spec.ts`) |
 | RF14 | CU08 | RN29 | 07 · Detalhe da conta ↔ D03, 13 · Modo simples ↔ D05 | 05 | — |
-| RF15 | CU08 | RN14 | 08 · Marcar como paga ↔ M03 | 07 | — |
-| RF16 | CU08 | RN15 | 08 · Marcar como paga ↔ M03, 09 · Conta paga ↔ M04 | 07 | — |
-| RF17 | CU08 | RN16 | 07 · Detalhe da conta ↔ D03 | 07 | — |
+| RF15 | CU08 | RN14 | 08 · Marcar como paga ↔ M03 | 07 | `test_rn14_rn22_pagamento_e_evento_atomicos`, `test_rn14_valor_data_e_edicao_com_marca`, `test_rnf11_rn14_data_civil_perto_da_virada_utc`, `test_rf15_rn22_concorrencia_duas_marcacoes` (`api/tests/test_pagamentos.py`); E2E `rf15/rn14/rn16…` (`web/e2e/pagamentos.spec.ts`) |
+| RF16 | CU08 | RN15 | 08 · Marcar como paga ↔ M03, 09 · Conta paga ↔ M04 | 07 | `test_rf16_rn15_retencao_historica_e_draft_antigo`, `test_rf16_rnf06_worker_preserva_original_e_mime`, `test_rn15_upload_tardio_concorrente_com_undo` (`api/tests/test_pagamentos.py`); `test_rnf03_rn15_draft_expirado_nao_pode_ser_lido_assinado_ou_vinculado` (`api/tests/test_pagamentos_qa.py`); E2E `rf16/rn15…` (`web/e2e/pagamentos.spec.ts`) |
+| RF17 | CU08 | RN16 | 07 · Detalhe da conta ↔ D03 | 07 | `test_rn16_autor_observador_pode_desfazer_sem_pagar`, `test_rn16_concorrencia_dois_undos`, `test_rn06_comprovante_historico_revoga_acesso` (`api/tests/test_pagamentos.py`); E2E `rf15/rn14/rn16…`, `rf16/rn15/rn16…` (`web/e2e/pagamentos.spec.ts`) |
 | RF18 | CU09 | RN17, RN23 | 05 · Nova conta ↔ M01, 10 · Grupo ↔ D04 | 08 | — |
 | RF19 | CU12 | RN17, RN18, RN23 | — (agendador) | 08 | — |
 | RF20 | CU12 | RN18, RN19 | 04 · Avisos ↔ D06 | 09 | — |
@@ -120,6 +120,18 @@ Casos de uso: CU05 = RF10 e RF11 (só o manual); CU06 = RF13; CU07 = RF12 (teste
 | CA35 · criação × desligamento | `test_rn01_rn05_criar_revalida_vinculo_apos_autorizacao`, `test_rn01_rn21_rn32_criacao_serializa_vinculos_com_desligamento` (criador, pagador e escolhido × saída, remoção e exclusão) |
 | CA36 · grupo → restrita × desligamento | `test_rn32_concorrencia_grupo_para_restrita_e_saida` (saída e remoção) |
 | CA37 · detalhe e resposta de edição consistentes | `test_rn06_detalhe_revalida_acesso_na_consulta_que_carrega_dados`, `test_rn06_detalhe_mantem_snapshot_ate_prefetch_e_historico`, `test_rn06_detalhe_espera_edicao_e_rele_acesso_em_snapshot_novo`, `test_rn06_resposta_propria_edicao_nao_le_edicao_alheia_posterior` |
+
+## Rastreabilidade da Etapa 07
+
+| Critérios / regras | Testes |
+| --- | --- |
+| CA01/02/04, RN14/RN22 · registro, data, valor e concorrência | `test_rn14_rn22_pagamento_e_evento_atomicos`, `test_rn14_valor_data_e_edicao_com_marca`, `test_rnf11_rn14_data_civil_perto_da_virada_utc`, `test_rf15_rn22_concorrencia_duas_marcacoes` (`api/tests/test_pagamentos.py`); E2E `rf15/rn14/rn16…`, `rn05/rn06/rn14…` (`web/e2e/pagamentos.spec.ts`) |
+| CA05–07, RN15/RNF06 · comprovante e isolamento | `test_rf16_imagem_e_pdf_validados_em_processo`, `test_rf16_rnf06_worker_preserva_original_e_mime`, `test_rn15_upload_tardio_concorrente_com_undo` (`api/tests/test_pagamentos.py`); `test_rnf06_validacao_isolada_limita_tempo_e_memoria`, `test_rnf06_tentativa_antiga_nao_sobrescreve_nova_nem_apaga_vivo` (`api/tests/test_pagamentos_qa.py`); E2E `rf16/rn15…` com Silo e worker reais |
+| CA03/08–10, RN01/RN06/RN16 · desfazer, acesso e histórico | `test_rn16_autor_observador_pode_desfazer_sem_pagar`, `test_rn16_concorrencia_dois_undos`, `test_rn06_arquivos_e_escritas_respeitam_visibilidade`, `test_rn06_comprovante_historico_revoga_acesso`, `test_rn06_pagador_com_acesso_explicito_nao_paga_de_outro` (`api/tests/test_pagamentos.py`); E2E `rf15/rn14/rn16…`, `rf16/rn15/rn16…`, `rn05/rn06/rn14…` |
+| CA11–13 · progresso e responsividade | `test_q07_7_resumo_atribuicao_e_visibilidade` (`api/tests/test_pagamentos.py`); E2E `rf15/rn14/rn16…` (progresso 1/1 e 0/1, anexar e desfazer na interface, modal desktop e viewport baixo), `q04-37/rf13…` (`web/e2e/pagamentos.spec.ts`); capturas mobile e desktop |
+| CA09/10, RN29 · expiração e recuperação | `test_rnf03_rn15_draft_expirado_nao_pode_ser_lido_assinado_ou_vinculado`, `test_rn22_rn29_rollback_preserva_documento_e_recupera_broker_storage`, `test_rn29_expiracao_remove_draft_mas_nao_documento_vinculado` (`api/tests/test_pagamentos_qa.py`); prova Silo real de assinatura válida, sem assinatura e expirada, bytes e MIME originais |
+
+Validação em 16/11/2026: `make types` duas vezes preservou os hashes; `make test` passou com 413 pytest e 91 Vitest antes do ajuste da legenda, seguido de 93 Vitest após o ajuste; `make lint` final passou e `make e2e` final passou (107 testes, 3 skips previstos). A primeira rodada integral de E2E teve 101 passes, 3 skips e 6 falhas em três cenários nas duas larguras, relativas a legendas; após correção do estado vazio e atualização das expectativas positivas, o foco passou 6/6. Prova Silo real e capturas nas duas larguras constam no relatório.
 
 ## Rastreabilidade da Etapa 06
 
