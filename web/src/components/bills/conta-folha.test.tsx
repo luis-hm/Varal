@@ -1,7 +1,7 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { AVISO_VISIBILIDADE, ContaFolha } from "./conta-folha";
-import { json, renderComSessao } from "./teste-sessao";
+import { json, me, renderComSessao } from "./teste-sessao";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh: vi.fn() }) }));
@@ -71,4 +71,28 @@ test("creating sends cents and opens the new bill in its month", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Salvar conta" }));
   await waitFor(() => expect(push).toHaveBeenCalledWith("/contas/n1?mes=2026-11"));
   expect(enviados[0]).toMatchObject({ valor_centavos: 28743, vencimento: "2026-11-20", descricao: "Energia", pagador: "u1", visibilidade: "grupo" });
+});
+
+// Ajuste 30: "Onde fica" starts on the space you are in, already selected.
+function onde() {
+  const chips = within(screen.getByRole("group", { name: /Onde fica/ })).getAllByRole("button");
+  return chips.map((b) => `${b.textContent}${b.getAttribute("aria-pressed") === "true" ? "*" : ""}`);
+}
+
+test("ajuste 30: in the personal space, Pessoal comes first and selected", () => {
+  renderComSessao(<ContaFolha open onClose={() => {}} />, { id: "p1", nome: "Pessoal", tipo: "pessoal" });
+  expect(onde()).toEqual(["Pessoal*", "Família"]);
+});
+
+test("ajuste 30: in a group, that group comes first and selected; the others keep their order", async () => {
+  const user = { ...me, grupos: [{ id: "g0", nome: "Trabalho", papel: "membro" as const }, ...me.grupos] };
+  renderComSessao(<ContaFolha open onClose={() => {}} />, { id: "g1", nome: "Família", tipo: "grupo", papel: "admin" }, user);
+  expect(onde()).toEqual(["Família*", "Pessoal", "Trabalho"]);
+  await screen.findByRole("button", { name: "Mãe" });
+});
+
+test("ajuste 30: in a group where you only observe, the order stays and the first is selected", () => {
+  const user = { ...me, grupos: [...me.grupos, { id: "g2", nome: "Condomínio", papel: "observador" as const }] };
+  renderComSessao(<ContaFolha open onClose={() => {}} />, { id: "g2", nome: "Condomínio", tipo: "grupo", papel: "observador" }, user);
+  expect(onde()).toEqual(["Pessoal*", "Família"]);
 });

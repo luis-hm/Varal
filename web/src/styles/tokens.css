@@ -79,4 +79,7 @@
   --shadow-selected: 0 8px 24px color-mix(in srgb, var(--color-ink) 8%, transparent); /* D03 .sel .bill */
   --opacity-cancelled: 0.6; /* D2: cancelled BillCard ("opacidade reduzida", no value in the Doop) */
   --list-width: 540px; /* D03 list column */
+  /* Etapa 04, ajustes */
+  --hero-padding-y: 28px; /* D02 hero padding 28px 32px; the clothesline starts at the same height */
+  --hero-varal-width: 560px; /* D02 clothesline box on the right of the hero */
 }

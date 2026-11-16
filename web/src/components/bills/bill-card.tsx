@@ -2,6 +2,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Icon } from "@/components/ui/icon";
+import { Nome } from "@/components/ui/nome";
 import type { Conta } from "@/lib/contas/client";
 import { metaConta, reais } from "@/lib/contas/formato";
 import { StatusBadge } from "./status-badge";
@@ -34,7 +35,8 @@ export function BillCard({ title, meta, value, icon, status, href, selected, can
       <span className={styles.lead}>{icon}</span>
       <span className={styles.main}>
         <span className={styles.t}>{title}</span>
-        <span className={styles.m}>{meta}</span>
+        {/* Ajuste 29: the payer's name or e-mail never wraps the meta line. */}
+        <Nome className={styles.m}>{meta}</Nome>
         <span className={styles.s}>{status}</span>
       </span>
       <span className={styles.v}>{value}</span>

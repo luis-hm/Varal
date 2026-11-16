@@ -292,6 +292,9 @@
   }
 
   .ola h1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-family: var(--font-display);
     font-size: var(--text-2xl);
     font-weight: 800;
@@ -308,12 +311,20 @@
     padding: 0;
   }
 
+  /* Ajuste 27: no fixed height. Without the paid bar (Q12) the hero is as tall as its clothesline. */
   .hero {
-    position: relative;
-    height: 248px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--hero-varal-width);
+    grid-template-rows: auto 1fr;
     margin: 0;
-    padding: 28px var(--spacing-8);
+    padding: var(--hero-padding-y) 0 var(--hero-padding-y) var(--spacing-8);
     animation-delay: 0.06s;
+  }
+
+  .heroTopo,
+  .valor {
+    grid-column: 1;
+    align-self: start;
   }
 
   .heroTopo {
@@ -333,16 +344,14 @@
   }
 
   .varal {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 560px;
-    height: 248px;
-    margin: 0;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    height: auto;
+    margin: calc(-1 * var(--hero-padding-y)) 0 0;
   }
 
   .fio {
-    top: 28px;
+    top: var(--hero-padding-y);
     height: 70px;
     stroke-width: 3;
   }

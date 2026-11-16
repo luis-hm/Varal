@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { useSessao } from "@/components/layout/app-shell";
+import { TopBar } from "@/components/layout/top-bar";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Folha } from "@/components/ui/folha";
@@ -148,17 +149,25 @@ export function ContasPagina({ contaId }: { contaId?: string }) {
           </p>
         ) : conta.data ? (
           <ContaDetalhe conta={conta.data} voltar={voltar} />
-        ) : naoAchou ? (
-          // RN06: the same answer for a bill that does not exist and one you cannot see.
-          <div className={styles.escolha} role="alert">
-            <Icon name="alerta" size="xl" />
-            <b>Conta não encontrada</b>
-            <Link href={voltar}>Voltar para Contas</Link>
-          </div>
         ) : (
-          <p className={styles.escolha} role={conta.error ? "alert" : "status"}>
-            {conta.error?.message ?? "Carregando conta…"}
-          </p>
+          <>
+            {/* Ajuste 28: no TabBar on the stacked 07, so loading and errors keep the way back too. */}
+            <div className={styles.mobTop}>
+              <TopBar title="Conta" backHref={voltar} />
+            </div>
+            {naoAchou ? (
+              // RN06: the same answer for a bill that does not exist and one you cannot see.
+              <div className={styles.escolha} role="alert">
+                <Icon name="alerta" size="xl" />
+                <b>Conta não encontrada</b>
+                <Link href={voltar}>Voltar para Contas</Link>
+              </div>
+            ) : (
+              <p className={styles.escolha} role={conta.error ? "alert" : "status"}>
+                {conta.error?.message ?? "Carregando conta…"}
+              </p>
+            )}
+          </>
         )}
       </aside>
 

@@ -25,7 +25,8 @@ export function Inicio() {
         <SeletorEspaco variant="pilula" espaco={espacos.find((e) => e.atual) ?? espacos[0]} espacos={espacos} onEscolher={escolherEspaco} />
       </header>
       <header className={`${styles.ola} ${styles.in}`}>
-        <h1>
+        {/* Ajuste 29: an e-mail used as name never wraps the greeting. */}
+        <h1 title={`${saudacao()}, ${primeiroNome}`}>
           {saudacao()}, {primeiroNome}
         </h1>
         {resumo.data && (

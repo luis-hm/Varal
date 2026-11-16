@@ -51,8 +51,8 @@ export function ContaFolha({ open, onClose, conta }: Props) {
   const router = useRouter();
   const { user, espaco: atual } = useSessao();
   const { criar, editar, cancelar } = useAcoesConta();
-  const espacos = espacosParaCriar(user);
-  const [espacoId, setEspacoId] = useState(conta?.espaco.id ?? (espacos.some((e) => e.id === atual.id) ? atual.id : espacos[0].id));
+  const espacos = espacosParaCriar(user, atual.id); // ajuste 30: current space first and selected
+  const [espacoId, setEspacoId] = useState(conta?.espaco.id ?? espacos[0].id);
   const espaco = conta?.espaco ?? espacos.find((e) => e.id === espacoId)!;
   const emGrupo = espaco.tipo === "grupo";
   const grupo = useGrupo(espaco.id, emGrupo);

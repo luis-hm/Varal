@@ -45,13 +45,11 @@ button.mr:focus-visible {
   min-width: 0;
 }
 
+/* One line each, cut by Nome (ajuste 29). */
 .nm {
   display: block;
   font-size: var(--text-base);
   font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .dt {
