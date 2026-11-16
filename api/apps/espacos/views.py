@@ -56,13 +56,15 @@ class CriarGrupoSerializer(serializers.Serializer):
 
 
 class MembroSerializer(serializers.ModelSerializer):
+    # The bill form needs user ids: `pagador` and `acesso` reference users, not memberships.
+    usuario = serializers.UUIDField(source="usuario_id", read_only=True)
     nome = serializers.CharField(source="usuario.nome", read_only=True)
     email = serializers.SerializerMethodField()
     sou_eu = serializers.SerializerMethodField()
 
     class Meta:
         model = Membro
-        fields = ["id", "nome", "email", "papel", "sou_eu"]
+        fields = ["id", "usuario", "nome", "email", "papel", "sou_eu"]
 
     def get_email(self, obj) -> str | None:
         # LGPD minimisation: admins see every e-mail; others only when there is no name to show.
@@ -84,6 +86,7 @@ class GrupoDetalheSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     nome = serializers.CharField()
     meu_papel = serializers.ChoiceField(Papel.choices)
+    janela_alerta_dias = serializers.IntegerField(help_text="Avisar N dias antes (RN13)")
     membros = serializers.SerializerMethodField()
     casas = serializers.SerializerMethodField()
 
@@ -98,6 +101,43 @@ class GrupoDetalheSerializer(serializers.Serializer):
         return CasaSerializer(
             grupo.subgrupos.filter(arquivado=False).order_by("nome"), many=True
         ).data
+
+
+class ConfiguracoesSerializer(serializers.Serializer):
+    janela_alerta_dias = serializers.IntegerField(min_value=1, max_value=7)
+
+
+class ResolucaoSerializer(serializers.Serializer):
+    lancamento = serializers.UUIDField()
+    acao = serializers.ChoiceField(["acesso", "cancelar"])
+    usuarios = serializers.ListField(
+        child=serializers.UUIDField(), required=False, default=list, max_length=50
+    )
+
+    def validate(self, attrs):
+        if attrs["acao"] == "acesso" and not attrs["usuarios"]:
+            raise serializers.ValidationError({"usuarios": ["Escolha quem passa a ver a conta."]})
+        return attrs
+
+
+class SairSerializer(serializers.Serializer):
+    resolucoes = ResolucaoSerializer(many=True, required=False, default=list, max_length=50)
+
+
+class ContaRefSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    descricao = serializers.CharField()
+
+
+class PessoaRefSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    nome = serializers.CharField()
+
+
+class ContaRestritaOrfaSerializer(ErroSerializer):
+    code = serializers.ChoiceField(["conta_restrita_orfa"])
+    contas = ContaRefSerializer(many=True)
+    pessoas = PessoaRefSerializer(many=True)
 
 
 class PapelSerializer(serializers.Serializer):
@@ -157,6 +197,7 @@ DETALHE_EXEMPLO = OpenApiExample(
         "id": GRUPO_ID,
         "nome": "Família Martins",
         "meu_papel": "admin",
+        "janela_alerta_dias": 3,
         "membros": [
             {
                 "id": MEMBRO_ID,
@@ -245,16 +286,78 @@ class GrupoView(APIView):
         grupo = _grupo(request, grupo_id, "ver_grupo")
         return Response(GrupoDetalheSerializer(grupo, context={"request": request}).data)
 
+    @extend_schema(
+        operation_id="grupos_configurar",
+        summary="Configurações do grupo: avisar N dias antes, 1 a 7 (admin; RN13)",
+        request=ConfiguracoesSerializer,
+        responses={
+            200: GrupoDetalheSerializer,
+            400: OpenApiResponse(description="Fora de 1 a 7"),
+            **_erros(403, 404),
+        },
+        examples=[
+            OpenApiExample("Cinco dias", value={"janela_alerta_dias": 5}, request_only=True),
+            DETALHE_EXEMPLO,
+        ],
+    )
+    def patch(self, request, grupo_id):
+        grupo = _grupo(request, grupo_id, "gerenciar_grupo")
+        entrada = ConfiguracoesSerializer(data=request.data)
+        entrada.is_valid(raise_exception=True)
+        grupo.janela_alerta_dias = entrada.validated_data["janela_alerta_dias"]
+        grupo.save(update_fields=["janela_alerta_dias"])
+        return Response(GrupoDetalheSerializer(grupo, context={"request": request}).data)
+
 
 class SairView(APIView):
     @extend_schema(
         operation_id="grupos_sair",
-        summary="Sair do grupo (qualquer papel; RN04, RN21)",
-        request=None,
-        responses={204: None, **_erros(404, 409)},
+        summary="Sair do grupo (qualquer papel; RN04, RN21, RN32). `resolucoes` só aqui (ADR 0007)",
+        description=(
+            "Se você é a única pessoa que vê uma conta restrita aberta, a saída dá 409 "
+            "`conta_restrita_orfa` com as contas e as pessoas que podem passar a vê-las. Reenvie "
+            "com uma resolução por conta (`acesso` com `usuarios`, ou `cancelar`): tudo acontece "
+            "na mesma transação; se ainda sobrar conta, 409 e nada muda."
+        ),
+        request=SairSerializer,
+        responses={
+            204: None,
+            400: OpenApiResponse(description="Resolução de conta que não impede a saída"),
+            404: _erros(404)[404],
+            409: OpenApiResponse(
+                ContaRestritaOrfaSerializer,
+                description="RN04 (só `detail`) ou RN32 (`code` conta_restrita_orfa)",
+            ),
+        },
+        examples=[
+            OpenApiExample(
+                "Resolver e sair",
+                value={
+                    "resolucoes": [
+                        {"lancamento": CONVITE_ID, "acao": "acesso", "usuarios": [MEMBRO_ID]},
+                        {"lancamento": CASA_ID, "acao": "cancelar"},
+                    ]
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Barrada pela RN32",
+                value={
+                    "detail": servicos.ContaRestritaSemQuemVeja.SAIR,
+                    "code": "conta_restrita_orfa",
+                    "contas": [{"id": CONVITE_ID, "descricao": "Presente da mãe"}],
+                    "pessoas": [{"id": MEMBRO_ID, "nome": "Bia"}],
+                },
+                response_only=True,
+                status_codes=["409"],
+            ),
+        ],
     )
     def post(self, request, grupo_id):
-        servicos.sair(request.user, _grupo(request, grupo_id))
+        grupo = _grupo(request, grupo_id)
+        entrada = SairSerializer(data=request.data)
+        entrada.is_valid(raise_exception=True)
+        servicos.sair(request.user, grupo, entrada.validated_data["resolucoes"])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -380,11 +483,12 @@ class MembroView(APIView):
 
     @extend_schema(
         operation_id="grupos_membros_remover",
-        summary="Remover membro (admin; RN04, RN21)",
+        summary="Remover membro (admin; RN04, RN21, RN32 sem sinal ao admin)",
         responses={204: None, **_erros(403, 404, 409)},
     )
     def delete(self, request, grupo_id, membro_id):
-        servicos.remover_membro(_grupo(request, grupo_id, "gerenciar_grupo"), membro_id)
+        grupo = _grupo(request, grupo_id, "gerenciar_grupo")
+        servicos.remover_membro(grupo, membro_id, por=request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

@@ -1,0 +1,94 @@
+/* Doop: k0kB5dc-Vo / componente BillCard */
+.bill {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  padding: 14px var(--spacing-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+
+.bill:hover {
+  border-color: var(--color-ink-subtle);
+}
+
+.bill:focus-visible {
+  outline: 3px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+/* D03 .sel .bill: the open bill. 1px less padding keeps the content still under the 2px border. */
+.bill[data-selected] {
+  border: 2px solid var(--color-ink);
+  padding: 13px 15px;
+  box-shadow: var(--shadow-selected);
+}
+
+.lead {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-ink);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.t {
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: var(--leading-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.m {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink-muted);
+  line-height: var(--leading-small);
+}
+
+.s {
+  margin-top: var(--spacing-1);
+  display: flex;
+}
+
+.v {
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: var(--leading-body);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* D2: cancelled bills only appear under "Canceladas". */
+.bill[data-cancelled] {
+  opacity: var(--opacity-cancelled);
+}
+
+.bill[data-cancelled] .v {
+  text-decoration: line-through;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bill {
+    transition: none;
+  }
+}

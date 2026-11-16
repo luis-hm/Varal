@@ -1,0 +1,10 @@
+.body {
+  padding: 0 var(--spacing-3) var(--spacing-6);
+}
+
+@media (min-width: 1024px) {
+  .body {
+    max-width: var(--list-width);
+    padding: 0;
+  }
+}

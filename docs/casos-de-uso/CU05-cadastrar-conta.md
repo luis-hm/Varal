@@ -7,7 +7,7 @@
 - **Fluxo principal:**
   1. O usuário escolhe: enviar o PDF do boleto, colar o código, Pix ou digitar.
   2. O sistema lê o PDF ou o código, valida e preenche código, valor, data de emissão, vencimento e beneficiário.
-  3. O usuário confere e informa descrição, subgrupo, pagador, categoria e visibilidade.
+  3. O usuário confere e informa descrição, subgrupo, pagador e visibilidade. (A origem ainda cita categoria aqui; categoria saiu do MVP pelo [ADR 0005](../arquitetura/adr/0005-rf11-sem-categoria.md).)
   4. Opcionalmente, marca "Repetir todo mês" (segue para CU09).
   5. O sistema salva e agenda os lembretes.
 - **Alternativos:** código inválido → mostra o erro e mantém o campo. Boleto de concessionária → pede o vencimento. Pix dinâmico sem valor → pede o valor. PDF sem texto ou sem código válido → guarda o arquivo e pede para colar o código.

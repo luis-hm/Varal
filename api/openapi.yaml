@@ -2309,6 +2309,222 @@ components:
       - id
       - nome
       type: object
+    CodeEnum:
+      description: '* `conta_restrita_orfa` - conta_restrita_orfa'
+      enum:
+      - conta_restrita_orfa
+      type: string
+    Conta:
+      properties:
+        criado_em:
+          format: date-time
+          type: string
+        descricao:
+          type: string
+        dias_para_vencer:
+          readOnly: true
+          type: integer
+        espaco:
+          $ref: '#/components/schemas/EspacoRef'
+        id:
+          format: uuid
+          type: string
+        pagador:
+          allOf:
+          - $ref: '#/components/schemas/Pessoa'
+          nullable: true
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        status_exibido:
+          $ref: '#/components/schemas/StatusExibidoEnum'
+        subgrupo:
+          allOf:
+          - $ref: '#/components/schemas/Ref'
+          nullable: true
+        valor_centavos:
+          type: integer
+        vencimento:
+          format: date
+          type: string
+        visibilidade:
+          $ref: '#/components/schemas/VisibilidadeEnum'
+      required:
+      - criado_em
+      - descricao
+      - dias_para_vencer
+      - espaco
+      - id
+      - pagador
+      - status
+      - status_exibido
+      - subgrupo
+      - valor_centavos
+      - vencimento
+      - visibilidade
+      type: object
+    ContaDetalhe:
+      properties:
+        acesso:
+          items:
+            $ref: '#/components/schemas/Ref'
+          readOnly: true
+          type: array
+        criado_em:
+          format: date-time
+          type: string
+        criador:
+          allOf:
+          - $ref: '#/components/schemas/Criador'
+          readOnly: true
+        descricao:
+          type: string
+        dias_para_vencer:
+          readOnly: true
+          type: integer
+        espaco:
+          $ref: '#/components/schemas/EspacoRef'
+        historico:
+          items:
+            $ref: '#/components/schemas/Historico'
+          type: array
+        id:
+          format: uuid
+          type: string
+        pagador:
+          allOf:
+          - $ref: '#/components/schemas/Pessoa'
+          nullable: true
+          readOnly: true
+        pode_editar:
+          readOnly: true
+          type: boolean
+        quem_ve:
+          description: 'Acesso efetivo da restrita: criador, pagador e escolhidos;
+            vazio nas demais.'
+          items:
+            $ref: '#/components/schemas/Ref'
+          readOnly: true
+          type: array
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        status_exibido:
+          $ref: '#/components/schemas/StatusExibidoEnum'
+        subgrupo:
+          allOf:
+          - $ref: '#/components/schemas/Ref'
+          nullable: true
+        valor_centavos:
+          type: integer
+        vencimento:
+          format: date
+          type: string
+        visibilidade:
+          $ref: '#/components/schemas/VisibilidadeEnum'
+      required:
+      - acesso
+      - criado_em
+      - criador
+      - descricao
+      - dias_para_vencer
+      - espaco
+      - historico
+      - id
+      - pagador
+      - pode_editar
+      - quem_ve
+      - status
+      - status_exibido
+      - subgrupo
+      - valor_centavos
+      - vencimento
+      - visibilidade
+      type: object
+    ContaEntrada:
+      properties:
+        acesso:
+          description: Quem vê (restrita)
+          items:
+            format: uuid
+            type: string
+          maxItems: 50
+          type: array
+        descricao:
+          maxLength: 150
+          type: string
+        pagador:
+          format: uuid
+          nullable: true
+          type: string
+        subgrupo:
+          format: uuid
+          nullable: true
+          type: string
+        valor_centavos:
+          maximum: 2147483647
+          minimum: 1
+          type: integer
+        vencimento:
+          format: date
+          type: string
+        visibilidade:
+          $ref: '#/components/schemas/VisibilidadeEnum'
+      required:
+      - descricao
+      - valor_centavos
+      - vencimento
+      type: object
+    ContaRef:
+      properties:
+        descricao:
+          type: string
+        id:
+          format: uuid
+          type: string
+      required:
+      - descricao
+      - id
+      type: object
+    ContaRestritaOrfa:
+      properties:
+        code:
+          $ref: '#/components/schemas/CodeEnum'
+        contas:
+          items:
+            $ref: '#/components/schemas/ContaRef'
+          type: array
+        detail:
+          type: string
+        pessoas:
+          items:
+            $ref: '#/components/schemas/PessoaRef'
+          type: array
+      required:
+      - code
+      - contas
+      - detail
+      - pessoas
+      type: object
+    Contagens:
+      properties:
+        a_pagar:
+          type: integer
+        canceladas:
+          type: integer
+        pagas:
+          type: integer
+        todas:
+          type: integer
+        vencidas:
+          description: Abertas vencidas pela data, inclusive aguardando
+          type: integer
+      required:
+      - a_pagar
+      - canceladas
+      - pagas
+      - todas
+      - vencidas
+      type: object
     ConviteCriado:
       properties:
         expira_em:
@@ -2366,6 +2582,16 @@ components:
       - grupo_nome
       - papel
       type: object
+    Criador:
+      properties:
+        nome:
+          type: string
+        sou_eu:
+          type: boolean
+      required:
+      - nome
+      - sou_eu
+      type: object
     CriarGrupo:
       properties:
         casas:
@@ -2403,6 +2629,20 @@ components:
       - nome
       - tipo
       type: object
+    EspacoRef:
+      properties:
+        id:
+          format: uuid
+          type: string
+        nome:
+          type: string
+        tipo:
+          $ref: '#/components/schemas/TipoEnum'
+      required:
+      - id
+      - nome
+      - tipo
+      type: object
     GrupoDetalhe:
       properties:
         casas:
@@ -2413,6 +2653,9 @@ components:
         id:
           format: uuid
           type: string
+        janela_alerta_dias:
+          description: Avisar N dias antes (RN13)
+          type: integer
         membros:
           items:
             $ref: '#/components/schemas/Membro'
@@ -2425,6 +2668,7 @@ components:
       required:
       - casas
       - id
+      - janela_alerta_dias
       - membros
       - meu_papel
       - nome
@@ -2472,6 +2716,84 @@ components:
       required:
       - status
       type: object
+    Historico:
+      properties:
+        acao:
+          $ref: '#/components/schemas/HistoricoAcaoEnum'
+        automatica:
+          readOnly: true
+          type: boolean
+        autor:
+          description: null em ação automática
+          nullable: true
+          readOnly: true
+          type: string
+        criado_em:
+          format: date-time
+          type: string
+        dados:
+          additionalProperties: {}
+          description: Pessoas já como nomes
+          type: object
+        sou_eu:
+          readOnly: true
+          type: boolean
+      required:
+      - acao
+      - automatica
+      - autor
+      - criado_em
+      - dados
+      - sou_eu
+      type: object
+    HistoricoAcaoEnum:
+      description: '* `criada` - Criou
+
+        * `editada` - Editou
+
+        * `cancelada` - Cancelou
+
+        * `pagador_removido` - Ficou sem pagador
+
+        * `acesso_removido` - Saiu de quem vê
+
+        * `cancelada_automaticamente` - Cancelada automaticamente
+
+        * `acesso_preservado` - Acesso preservado'
+      enum:
+      - criada
+      - editada
+      - cancelada
+      - pagador_removido
+      - acesso_removido
+      - cancelada_automaticamente
+      - acesso_preservado
+      type: string
+    Lista:
+      properties:
+        contagens:
+          $ref: '#/components/schemas/Contagens'
+        itens:
+          items:
+            $ref: '#/components/schemas/Conta'
+          type: array
+        mes:
+          description: AAAA-MM do total e das contagens
+          type: string
+        opcoes:
+          allOf:
+          - $ref: '#/components/schemas/Opcoes'
+          description: Casas e pagadores das contas visíveis do mês
+        total_centavos:
+          description: Não canceladas do mês, com casa/pagador
+          type: integer
+      required:
+      - contagens
+      - itens
+      - mes
+      - opcoes
+      - total_centavos
+      type: object
     Me:
       properties:
         email:
@@ -2513,12 +2835,34 @@ components:
         sou_eu:
           readOnly: true
           type: boolean
+        usuario:
+          format: uuid
+          readOnly: true
+          type: string
       required:
       - email
       - id
       - nome
       - papel
       - sou_eu
+      - usuario
+      type: object
+    Opcoes:
+      properties:
+        casas:
+          items:
+            $ref: '#/components/schemas/Ref'
+          type: array
+        pagadores:
+          items:
+            $ref: '#/components/schemas/Pessoa'
+          type: array
+        sem_pagador:
+          type: boolean
+      required:
+      - casas
+      - pagadores
+      - sem_pagador
       type: object
     Papel:
       properties:
@@ -2553,11 +2897,208 @@ components:
           maxLength: 150
           type: string
       type: object
+    PatchedConfiguracoes:
+      properties:
+        janela_alerta_dias:
+          maximum: 7
+          minimum: 1
+          type: integer
+      type: object
+    PatchedContaEntrada:
+      properties:
+        acesso:
+          description: Quem vê (restrita)
+          items:
+            format: uuid
+            type: string
+          maxItems: 50
+          type: array
+        descricao:
+          maxLength: 150
+          type: string
+        pagador:
+          format: uuid
+          nullable: true
+          type: string
+        subgrupo:
+          format: uuid
+          nullable: true
+          type: string
+        valor_centavos:
+          maximum: 2147483647
+          minimum: 1
+          type: integer
+        vencimento:
+          format: date
+          type: string
+        visibilidade:
+          $ref: '#/components/schemas/VisibilidadeEnum'
+      type: object
     PatchedPapel:
       properties:
         papel:
           $ref: '#/components/schemas/PapelEnum'
       type: object
+    Pessoa:
+      properties:
+        id:
+          format: uuid
+          type: string
+        nome:
+          type: string
+        sou_eu:
+          type: boolean
+      required:
+      - id
+      - nome
+      - sou_eu
+      type: object
+    PessoaRef:
+      properties:
+        id:
+          format: uuid
+          type: string
+        nome:
+          type: string
+      required:
+      - id
+      - nome
+      type: object
+    PorCasa:
+      properties:
+        id:
+          format: uuid
+          type: string
+        nome:
+          type: string
+        qtd:
+          type: integer
+        total_centavos:
+          type: integer
+      required:
+      - id
+      - nome
+      - qtd
+      - total_centavos
+      type: object
+    Ref:
+      properties:
+        id:
+          format: uuid
+          type: string
+        nome:
+          type: string
+      required:
+      - id
+      - nome
+      type: object
+    Resolucao:
+      properties:
+        acao:
+          $ref: '#/components/schemas/ResolucaoAcaoEnum'
+        lancamento:
+          format: uuid
+          type: string
+        usuarios:
+          items:
+            format: uuid
+            type: string
+          maxItems: 50
+          type: array
+      required:
+      - acao
+      - lancamento
+      type: object
+    ResolucaoAcaoEnum:
+      description: '* `acesso` - acesso
+
+        * `cancelar` - cancelar'
+      enum:
+      - acesso
+      - cancelar
+      type: string
+    Resumo:
+      properties:
+        atencao:
+          items:
+            $ref: '#/components/schemas/Conta'
+          type: array
+        janela_alerta_dias:
+          type: integer
+        mes:
+          description: AAAA-MM de total_centavos, qtd e por_casa
+          type: string
+        por_casa:
+          items:
+            $ref: '#/components/schemas/PorCasa'
+          type: array
+        qtd:
+          type: integer
+        total_centavos:
+          type: integer
+        vence_qtd:
+          description: Em atencao (dentro da janela)
+          type: integer
+        vencidas_qtd:
+          description: Em atencao (qualquer mês)
+          type: integer
+      required:
+      - atencao
+      - janela_alerta_dias
+      - mes
+      - por_casa
+      - qtd
+      - total_centavos
+      - vence_qtd
+      - vencidas_qtd
+      type: object
+    Sair:
+      properties:
+        resolucoes:
+          items:
+            $ref: '#/components/schemas/Resolucao'
+          type: array
+      type: object
+    StatusEnum:
+      description: '* `aguardando` - Aguardando boleto
+
+        * `pendente` - Pendente
+
+        * `paga` - Paga
+
+        * `confirmada` - Confirmada
+
+        * `cancelada` - Cancelada'
+      enum:
+      - aguardando
+      - pendente
+      - paga
+      - confirmada
+      - cancelada
+      type: string
+    StatusExibidoEnum:
+      description: '* `aguardando` - aguardando
+
+        * `pendente` - pendente
+
+        * `paga` - paga
+
+        * `confirmada` - confirmada
+
+        * `cancelada` - cancelada
+
+        * `vence` - vence
+
+        * `vencida` - vencida'
+      enum:
+      - aguardando
+      - pendente
+      - paga
+      - confirmada
+      - cancelada
+      - vence
+      - vencida
+      type: string
     TipoEnum:
       description: '* `pessoal` - Pessoal
 
@@ -2565,6 +3106,14 @@ components:
       enum:
       - pessoal
       - grupo
+      type: string
+    VisibilidadeEnum:
+      description: '* `grupo` - Todo o grupo
+
+        * `restrita` - Só algumas pessoas'
+      enum:
+      - grupo
+      - restrita
       type: string
   securitySchemes:
     AllauthSessionToken:
@@ -3749,6 +4298,291 @@ paths:
       summary: Aceitar convite (exige sessão; uso único; 10 tentativas por hora)
       tags:
       - convites
+  /api/espacos/{espaco_id}/lancamentos/:
+    get:
+      operationId: lancamentos_listar
+      parameters:
+      - in: path
+        name: espaco_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: 'AAAA-MM; padrão: mês atual'
+        in: query
+        name: mes
+        schema:
+          type: string
+      - description: id de usuário ou `nenhum`
+        in: query
+        name: pagador
+        schema:
+          type: string
+      - description: 'Padrão: todas; vencidas inclui abertas aguardando pela data.'
+        in: query
+        name: status
+        schema:
+          enum:
+          - a_pagar
+          - canceladas
+          - pagas
+          - todas
+          - vencidas
+          type: string
+      - description: casa
+        in: query
+        name: subgrupo
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              examples:
+                Novembro:
+                  value:
+                    contagens:
+                      a_pagar: 1
+                      canceladas: 0
+                      pagas: 0
+                      todas: 1
+                      vencidas: 0
+                    itens:
+                    - criado_em: '2026-11-15T12:00:00Z'
+                      descricao: Energia
+                      dias_para_vencer: 3
+                      espaco:
+                        id: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+                        nome: Família
+                        tipo: grupo
+                      id: 3f2c8d4e-7a1b-4c5d-9e8f-0a1b2c3d4e5f
+                      pagador:
+                        id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                        nome: Ana
+                        sou_eu: true
+                      status: pendente
+                      status_exibido: vence
+                      subgrupo:
+                        id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
+                        nome: Casa da praia
+                      valor_centavos: 28743
+                      vencimento: '2026-11-18'
+                      visibilidade: restrita
+                    mes: 2026-11
+                    opcoes:
+                      casas:
+                      - id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
+                        nome: Casa da praia
+                      pagadores:
+                      - id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                        nome: Ana
+                        sou_eu: true
+                      sem_pagador: false
+                    total_centavos: 28743
+              schema:
+                $ref: '#/components/schemas/Lista'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Valor, casa, pagador ou quem vê inválidos (RN11, RF11, Q19b).
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Espaço ou conta fora do seu acesso; igual para inexistente
+            e invisível (RN06).
+      security:
+      - cookieAuth: []
+      summary: Contas do espaço por mês, com contagens dos chips (RF13; só o que você
+        vê)
+      tags:
+      - espacos
+    post:
+      operationId: lancamentos_criar
+      parameters:
+      - in: path
+        name: espaco_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            examples:
+              RestritaComPagador:
+                summary: Restrita com pagador
+                value:
+                  acesso:
+                  - c4a7d1e2-9b3f-4a6c-8d2e-1f0a9b8c7d6e
+                  descricao: Energia
+                  pagador: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                  subgrupo: ae779d06-431b-48fc-b75e-66ff8a7a60e7
+                  valor_centavos: 28743
+                  vencimento: '2026-11-18'
+                  visibilidade: restrita
+            schema:
+              $ref: '#/components/schemas/ContaEntrada'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContaEntrada'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContaEntrada'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              examples:
+                Conta:
+                  value:
+                    acesso:
+                    - id: c4a7d1e2-9b3f-4a6c-8d2e-1f0a9b8c7d6e
+                      nome: Bia
+                    criado_em: '2026-11-15T12:00:00Z'
+                    criador:
+                      nome: Ana
+                      sou_eu: true
+                    descricao: Energia
+                    dias_para_vencer: 3
+                    espaco:
+                      id: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+                      nome: Família
+                      tipo: grupo
+                    historico:
+                    - acao: criada
+                      automatica: false
+                      autor: Ana
+                      criado_em: '2026-11-15T12:00:00Z'
+                      dados: {}
+                      sou_eu: true
+                    - acao: editada
+                      automatica: false
+                      autor: Ex-membro
+                      criado_em: '2026-11-15T13:00:00Z'
+                      dados:
+                        valor_centavos:
+                        - 25000
+                        - 28743
+                      sou_eu: false
+                    id: 3f2c8d4e-7a1b-4c5d-9e8f-0a1b2c3d4e5f
+                    pagador:
+                      id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Ana
+                      sou_eu: true
+                    pode_editar: true
+                    quem_ve:
+                    - id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Ana
+                    - id: c4a7d1e2-9b3f-4a6c-8d2e-1f0a9b8c7d6e
+                      nome: Bia
+                    status: pendente
+                    status_exibido: vence
+                    subgrupo:
+                      id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
+                      nome: Casa da praia
+                    valor_centavos: 28743
+                    vencimento: '2026-11-18'
+                    visibilidade: restrita
+              schema:
+                $ref: '#/components/schemas/ContaDetalhe'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Valor, casa, pagador ou quem vê inválidos (RN11, RF11, Q19b).
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Seu papel vê a conta, mas não pode criar, editar nem cancelar
+            (RN05).
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Espaço ou conta fora do seu acesso; igual para inexistente
+            e invisível (RN06).
+      security:
+      - cookieAuth: []
+      summary: Nova conta manual; nasce pendente (RF10, RF11, RN11; dono, admin, membro)
+      tags:
+      - espacos
+  /api/espacos/{espaco_id}/resumo/:
+    get:
+      operationId: lancamentos_resumo
+      parameters:
+      - in: path
+        name: espaco_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              examples:
+                Grupo:
+                  value:
+                    atencao:
+                    - criado_em: '2026-11-15T12:00:00Z'
+                      descricao: Energia
+                      dias_para_vencer: 3
+                      espaco:
+                        id: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+                        nome: Família
+                        tipo: grupo
+                      id: 3f2c8d4e-7a1b-4c5d-9e8f-0a1b2c3d4e5f
+                      pagador:
+                        id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                        nome: Ana
+                        sou_eu: true
+                      status: pendente
+                      status_exibido: vence
+                      subgrupo:
+                        id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
+                        nome: Casa da praia
+                      valor_centavos: 28743
+                      vencimento: '2026-11-18'
+                      visibilidade: restrita
+                    janela_alerta_dias: 3
+                    mes: 2026-11
+                    por_casa:
+                    - id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
+                      nome: Casa da praia
+                      qtd: 1
+                      total_centavos: 28743
+                    qtd: 1
+                    total_centavos: 28743
+                    vence_qtd: 1
+                    vencidas_qtd: 0
+              schema:
+                $ref: '#/components/schemas/Resumo'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Espaço ou conta fora do seu acesso; igual para inexistente
+            e invisível (RN06).
+      security:
+      - cookieAuth: []
+      summary: 'Início: total do mês, Precisa de atenção e Por casa (só o que você
+        vê)'
+      tags:
+      - espacos
   /api/grupos/:
     get:
       operationId: grupos_listar
@@ -3814,6 +4648,7 @@ paths:
                       id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
                       nome: Casa da praia
                     id: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+                    janela_alerta_dias: 3
                     membros:
                     - email: ana@example.com
                       id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
@@ -3855,6 +4690,7 @@ paths:
                       id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
                       nome: Casa da praia
                     id: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+                    janela_alerta_dias: 3
                     membros:
                     - email: ana@example.com
                       id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
@@ -3881,6 +4717,75 @@ paths:
       security:
       - cookieAuth: []
       summary: 'Página do grupo: admin, membro e observador (pagador recebe 403)'
+      tags:
+      - grupos
+    patch:
+      operationId: grupos_configurar
+      parameters:
+      - in: path
+        name: grupo_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            examples:
+              CincoDias:
+                summary: Cinco dias
+                value:
+                  janela_alerta_dias: 5
+            schema:
+              $ref: '#/components/schemas/PatchedConfiguracoes'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedConfiguracoes'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedConfiguracoes'
+      responses:
+        '200':
+          content:
+            application/json:
+              examples:
+                GrupoVistoPeloAdmin:
+                  summary: Grupo visto pelo admin
+                  value:
+                    casas:
+                    - arquivado: false
+                      id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
+                      nome: Casa da praia
+                    id: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+                    janela_alerta_dias: 3
+                    membros:
+                    - email: ana@example.com
+                      id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Ana
+                      papel: admin
+                      sou_eu: true
+                    meu_papel: admin
+                    nome: Família Martins
+              schema:
+                $ref: '#/components/schemas/GrupoDetalhe'
+          description: ''
+        '400':
+          description: Fora de 1 a 7
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Seu papel não permite esta ação.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Grupo, membro, casa ou convite fora do seu acesso.
+      security:
+      - cookieAuth: []
+      summary: 'Configurações do grupo: avisar N dias antes, 1 a 7 (admin; RN13)'
       tags:
       - grupos
   /api/grupos/{grupo_id}/convites/:
@@ -4061,7 +4966,7 @@ paths:
           description: 'Regra de negócio (ex.: RN04, o grupo ficaria sem admin).'
       security:
       - cookieAuth: []
-      summary: Remover membro (admin; RN04, RN21)
+      summary: Remover membro (admin; RN04, RN21, RN32 sem sinal ao admin)
       tags:
       - grupos
     patch:
@@ -4127,6 +5032,10 @@ paths:
       - grupos
   /api/grupos/{grupo_id}/sair/:
     post:
+      description: 'Se você é a única pessoa que vê uma conta restrita aberta, a saída
+        dá 409 `conta_restrita_orfa` com as contas e as pessoas que podem passar a
+        vê-las. Reenvie com uma resolução por conta (`acesso` com `usuarios`, ou `cancelar`):
+        tudo acontece na mesma transação; se ainda sobrar conta, 409 e nada muda.'
       operationId: grupos_sair
       parameters:
       - in: path
@@ -4135,9 +5044,33 @@ paths:
         schema:
           format: uuid
           type: string
+      requestBody:
+        content:
+          application/json:
+            examples:
+              ResolverESair:
+                summary: Resolver e sair
+                value:
+                  resolucoes:
+                  - acao: acesso
+                    lancamento: 9a1f7c2e-5b3d-4e8a-9c6f-0d2b4a7e1f35
+                    usuarios:
+                    - 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                  - acao: cancelar
+                    lancamento: ae779d06-431b-48fc-b75e-66ff8a7a60e7
+            schema:
+              $ref: '#/components/schemas/Sair'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Sair'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Sair'
       responses:
         '204':
           description: No response body
+        '400':
+          description: Resolução de conta que não impede a saída
         '404':
           content:
             application/json:
@@ -4147,12 +5080,27 @@ paths:
         '409':
           content:
             application/json:
+              examples:
+                BarradaPelaRN32:
+                  summary: Barrada pela RN32
+                  value:
+                    code: conta_restrita_orfa
+                    contas:
+                    - descricao: Presente da mãe
+                      id: 9a1f7c2e-5b3d-4e8a-9c6f-0d2b4a7e1f35
+                    detail: Você é a única pessoa que vê estas contas restritas. Para
+                      cada uma, escolha outra pessoa para ver ou cancele a conta;
+                      depois saia do grupo.
+                    pessoas:
+                    - id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Bia
               schema:
-                $ref: '#/components/schemas/Erro'
-          description: 'Regra de negócio (ex.: RN04, o grupo ficaria sem admin).'
+                $ref: '#/components/schemas/ContaRestritaOrfa'
+          description: RN04 (só `detail`) ou RN32 (`code` conta_restrita_orfa)
       security:
       - cookieAuth: []
-      summary: Sair do grupo (qualquer papel; RN04, RN21)
+      summary: Sair do grupo (qualquer papel; RN04, RN21, RN32). `resolucoes` só aqui
+        (ADR 0007)
       tags:
       - grupos
   /api/grupos/{grupo_id}/subgrupos/:
@@ -4288,6 +5236,294 @@ paths:
       - {}
       tags:
       - health
+  /api/lancamentos/{lancamento_id}/:
+    get:
+      operationId: lancamentos_detalhe
+      parameters:
+      - in: path
+        name: lancamento_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              examples:
+                Conta:
+                  value:
+                    acesso:
+                    - id: c4a7d1e2-9b3f-4a6c-8d2e-1f0a9b8c7d6e
+                      nome: Bia
+                    criado_em: '2026-11-15T12:00:00Z'
+                    criador:
+                      nome: Ana
+                      sou_eu: true
+                    descricao: Energia
+                    dias_para_vencer: 3
+                    espaco:
+                      id: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+                      nome: Família
+                      tipo: grupo
+                    historico:
+                    - acao: criada
+                      automatica: false
+                      autor: Ana
+                      criado_em: '2026-11-15T12:00:00Z'
+                      dados: {}
+                      sou_eu: true
+                    - acao: editada
+                      automatica: false
+                      autor: Ex-membro
+                      criado_em: '2026-11-15T13:00:00Z'
+                      dados:
+                        valor_centavos:
+                        - 25000
+                        - 28743
+                      sou_eu: false
+                    id: 3f2c8d4e-7a1b-4c5d-9e8f-0a1b2c3d4e5f
+                    pagador:
+                      id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Ana
+                      sou_eu: true
+                    pode_editar: true
+                    quem_ve:
+                    - id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Ana
+                    - id: c4a7d1e2-9b3f-4a6c-8d2e-1f0a9b8c7d6e
+                      nome: Bia
+                    status: pendente
+                    status_exibido: vence
+                    subgrupo:
+                      id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
+                      nome: Casa da praia
+                    valor_centavos: 28743
+                    vencimento: '2026-11-18'
+                    visibilidade: restrita
+              schema:
+                $ref: '#/components/schemas/ContaDetalhe'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Espaço ou conta fora do seu acesso; igual para inexistente
+            e invisível (RN06).
+      security:
+      - cookieAuth: []
+      summary: Detalhe da conta com histórico (404 se você não a vê)
+      tags:
+      - lancamentos
+    patch:
+      operationId: lancamentos_editar
+      parameters:
+      - in: path
+        name: lancamento_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            examples:
+              NovoValor:
+                summary: Novo valor
+                value:
+                  valor_centavos: 30000
+            schema:
+              $ref: '#/components/schemas/PatchedContaEntrada'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedContaEntrada'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedContaEntrada'
+      responses:
+        '200':
+          content:
+            application/json:
+              examples:
+                Conta:
+                  value:
+                    acesso:
+                    - id: c4a7d1e2-9b3f-4a6c-8d2e-1f0a9b8c7d6e
+                      nome: Bia
+                    criado_em: '2026-11-15T12:00:00Z'
+                    criador:
+                      nome: Ana
+                      sou_eu: true
+                    descricao: Energia
+                    dias_para_vencer: 3
+                    espaco:
+                      id: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+                      nome: Família
+                      tipo: grupo
+                    historico:
+                    - acao: criada
+                      automatica: false
+                      autor: Ana
+                      criado_em: '2026-11-15T12:00:00Z'
+                      dados: {}
+                      sou_eu: true
+                    - acao: editada
+                      automatica: false
+                      autor: Ex-membro
+                      criado_em: '2026-11-15T13:00:00Z'
+                      dados:
+                        valor_centavos:
+                        - 25000
+                        - 28743
+                      sou_eu: false
+                    id: 3f2c8d4e-7a1b-4c5d-9e8f-0a1b2c3d4e5f
+                    pagador:
+                      id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Ana
+                      sou_eu: true
+                    pode_editar: true
+                    quem_ve:
+                    - id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Ana
+                    - id: c4a7d1e2-9b3f-4a6c-8d2e-1f0a9b8c7d6e
+                      nome: Bia
+                    status: pendente
+                    status_exibido: vence
+                    subgrupo:
+                      id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
+                      nome: Casa da praia
+                    valor_centavos: 28743
+                    vencimento: '2026-11-18'
+                    visibilidade: restrita
+              schema:
+                $ref: '#/components/schemas/ContaDetalhe'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Valor, casa, pagador ou quem vê inválidos (RN11, RF11, Q19b).
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Seu papel vê a conta, mas não pode criar, editar nem cancelar
+            (RN05).
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Espaço ou conta fora do seu acesso; igual para inexistente
+            e invisível (RN06).
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Conta cancelada (editar) ou já paga/cancelada (cancelar).
+      security:
+      - cookieAuth: []
+      summary: Editar conta (dono, admin, membro); histórico só do que mudou (RF12,
+        RN22)
+      tags:
+      - lancamentos
+  /api/lancamentos/{lancamento_id}/cancelar/:
+    post:
+      operationId: lancamentos_cancelar
+      parameters:
+      - in: path
+        name: lancamento_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              examples:
+                Conta:
+                  value:
+                    acesso:
+                    - id: c4a7d1e2-9b3f-4a6c-8d2e-1f0a9b8c7d6e
+                      nome: Bia
+                    criado_em: '2026-11-15T12:00:00Z'
+                    criador:
+                      nome: Ana
+                      sou_eu: true
+                    descricao: Energia
+                    dias_para_vencer: 3
+                    espaco:
+                      id: 1b4e28ba-2fa1-11d2-883f-0016d3cca427
+                      nome: Família
+                      tipo: grupo
+                    historico:
+                    - acao: criada
+                      automatica: false
+                      autor: Ana
+                      criado_em: '2026-11-15T12:00:00Z'
+                      dados: {}
+                      sou_eu: true
+                    - acao: editada
+                      automatica: false
+                      autor: Ex-membro
+                      criado_em: '2026-11-15T13:00:00Z'
+                      dados:
+                        valor_centavos:
+                        - 25000
+                        - 28743
+                      sou_eu: false
+                    id: 3f2c8d4e-7a1b-4c5d-9e8f-0a1b2c3d4e5f
+                    pagador:
+                      id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Ana
+                      sou_eu: true
+                    pode_editar: true
+                    quem_ve:
+                    - id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
+                      nome: Ana
+                    - id: c4a7d1e2-9b3f-4a6c-8d2e-1f0a9b8c7d6e
+                      nome: Bia
+                    status: pendente
+                    status_exibido: vence
+                    subgrupo:
+                      id: ae779d06-431b-48fc-b75e-66ff8a7a60e7
+                      nome: Casa da praia
+                    valor_centavos: 28743
+                    vencimento: '2026-11-18'
+                    visibilidade: restrita
+              schema:
+                $ref: '#/components/schemas/ContaDetalhe'
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Seu papel vê a conta, mas não pode criar, editar nem cancelar
+            (RN05).
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Espaço ou conta fora do seu acesso; igual para inexistente
+            e invisível (RN06).
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Conta cancelada (editar) ou já paga/cancelada (cancelar).
+      security:
+      - cookieAuth: []
+      summary: Cancelar conta aguardando ou pendente; nada é apagado (RN22, D2)
+      tags:
+      - lancamentos
   /api/me/:
     get:
       operationId: me_retrieve

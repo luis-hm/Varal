@@ -1,7 +1,7 @@
 # Modelo de dados
 
 > **Contém:** entidades, campos, decisões de modelagem e diagrama ER.
-> **Origem:** `docs/especificacao-varal.md`, seção 8 (diagrama ER derivado das entidades), mais as seções de implementação das Etapas 02 e 03.
+> **Origem:** `docs/especificacao-varal.md`, seção 8 (diagrama ER derivado das entidades), mais as seções de implementação das Etapas 02–04 e o ADR 0005 (sem categoria).
 
 ## 8. Modelo de dados
 
@@ -39,6 +39,8 @@ notificacao        id, usuario_id, lancamento_id, tipo, canal, agendada_para,
 - **`chave_idempotencia` única** em `notificacao` garante RN19 e RNF07.
 - **UUID** como chave em tudo; índice em `(espaco_id, vencimento)`.
 
+**Categoria fora** ([ADR 0005](../arquitetura/adr/0005-rf11-sem-categoria.md)): a entidade `categoria` e `lancamento.categoria_id` do bloco acima (cópia da origem) não serão implementados no MVP, nem reservados para depois; categoria é conceito da v3.
+
 ## Implementação da Etapa 02
 
 O bloco acima preserva a especificação. No código, `Usuario` mantém UUID/username legado e acrescenta `nome` (150 caracteres), `telefone` (30) e `prefs_notificacao` (JSON, padrão `{}`). O e-mail é normalizado ao salvar e tem restrição de unicidade sem distinguir maiúsculas.
@@ -54,6 +56,30 @@ Difere do bloco da especificação (RN04, RN31 / [ADR 0004](../arquitetura/adr/0
 - **`convite`:** `token` não existe; guarda **`token_hash`** (SHA-256, único). Mais `expira_em` (criação + 7 dias), `usado_por?`, `usado_em?`, **`revogado_em?`**, `criado_por?`, `criado_em`. Pendente = sem uso, sem revogação e não expirado.
 - **`subgrupo`** (casa): `id`, `espaco`, `nome`, `arquivado` (arquivar não apaga).
 
+## Implementação da Etapa 04
+
+Difere do bloco da especificação (RN30, RN32, ADR 0005–0009). App `api/apps/lancamentos`, migração `0001`; `espacos.0006` restringe `janela_alerta_dias` a 1–7 (RN13). A revisão delegada altera consultas, apresentação e travas, sem migração adicional.
+
+- **`lancamento`:** `id`, `espaco` (`CASCADE`), `subgrupo?` (`RESTRICT`), `criador?` e `pagador?` (`SET_NULL`; criador nulo = "Ex-membro"), `descricao` (150), `valor_centavos` (> 0 no banco, RN11), `vencimento` (data civil), `status` (`aguardando|pendente|paga|confirmada|cancelada`, padrão `pendente`, validado no banco), `visibilidade` (`grupo|restrita`), `criado_em`, `atualizado_em`. Índice `(espaco, vencimento)`. Sem `categoria_id`, `tipo`, `recorrencia_id` nem `origem_id` (etapas futuras ou v3). `vence`/`vencida` não são gravados: `com_status` os calcula sobre `pendente` (RN12).
+- **`lancamento_acesso`:** tabela do `ManyToMany` `acesso` (`lancamento_id`, `usuario_id`): os escolhidos de uma restrita (RN06). Quem vê = criador, pagador e escolhidos atuais; pagador do grupo só por pagador ou acesso explícito (ADR 0008). O campo de API **`quem_ve`** calcula essa audiência efetiva, sem duplicatas, sem criar tabela/campo gravado; `acesso` continua sendo a seleção editável. `quem_ve` é vazio para conta pessoal ou de visibilidade grupo.
+- **`historico`:** `id`, `lancamento` (`CASCADE`), `usuario?` (`SET_NULL`), `acao`, `dados` (JSON), `criado_em`; ordem `criado_em`. Referências a pessoas em `dados` guardam **só ids de usuário**, nunca nome nem e-mail; a leitura resolve nome, "Pessoa sem nome" para membro atual sem nome ou "Ex-membro" para quem saiu/excluiu a conta. A casa vai pelo nome.
+
+**Prazo não é estado gravado:** filtros/contagens de vencidas e da janela abrangem abertas `pendente`/`aguardando` pela data; o selo aguardando não muda ([ADR 0009](../arquitetura/adr/0009-filtro-temporal-contas-abertas.md)). `aguardando` nasce da recorrência variável na 08; o cadastro avulso das Etapas 05/06 não passa a criá-lo por aceitar código/PDF.
+
+**Consistência e privacidade:** criar revalida autorização com travas de admins/membro; sair/remover/trocar papel considera todas as abertas em ordem de chave, inclusive públicas que possam ser convertidas em restritas. Exclusão de usuário trava admins de todos os grupos em que participa. Detalhe mantém a conta travada até serializar relações/histórico e revalida a autorização após adquirir a trava. O admin do Django filtra lançamentos/históricos pelo mesmo acesso, sem privilégio automático de superusuário; sua prévia de exclusão de usuário não expõe contas pessoais/restritas nem suas contagens.
+
+| `acao` | Autor | `dados` |
+| --- | --- | --- |
+| `criada` | quem criou | `{}` |
+| `editada` | quem editou | `{campo: [antes, depois]}` só do que mudou; `pagador` e `acesso` por id; na saída barrada, também `motivo: "saida_rn32"` (ADR 0007) |
+| `cancelada` | quem cancelou | `{}`; na saída barrada, `motivo: "saida_rn32"` |
+| `pagador_removido` | automática | `{pagador: [id, null]}` (RN21) |
+| `acesso_removido` | automática | `{pessoa: id}`: a RN21 tirou alguém de "Quem vê" |
+| `cancelada_automaticamente` | automática | `{motivo: "sem_quem_veja", removido: id}`: remoção pelo admin deixou a restrita sem ninguém (RN32); base do aviso da Etapa 09 |
+| `acesso_preservado` | automática | `{motivo: "papel_pagador"}`: troca para pagador manteve o acesso (ADR 0008) |
+
+Ações automáticas não têm autor e nunca aparecem como "Ex-membro".
+
 ## Diagrama ER
 
 ```mermaid
@@ -63,11 +89,9 @@ erDiagram
     espaco ||--o{ membro : tem
     espaco ||--o{ convite : emite
     espaco ||--o{ subgrupo : tem
-    espaco ||--o{ categoria : tem
     espaco ||--o{ lancamento : contem
     espaco ||--o{ recorrencia : tem
     subgrupo |o--o{ lancamento : agrupa
-    categoria |o--o{ lancamento : classifica
     recorrencia |o--o{ lancamento : gera
     lancamento |o--o| lancamento : "origem (solicitação)"
     lancamento ||--o{ lancamento_acesso : "restrita: quem vê"

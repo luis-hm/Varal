@@ -13,7 +13,7 @@ const keys = {
 const retry = (count: number, error: Error) => !(error instanceof api.ApiError && error.status < 500) && count < 2;
 
 export const useGrupos = () => useQuery({ queryKey: keys.lista, queryFn: api.listarGrupos, retry });
-export const useGrupo = (id: string) => useQuery({ queryKey: keys.grupo(id), queryFn: () => api.verGrupo(id), retry });
+export const useGrupo = (id: string, enabled = true) => useQuery({ queryKey: keys.grupo(id), queryFn: () => api.verGrupo(id), retry, enabled });
 export const useConvitesPendentes = (id: string, enabled: boolean) =>
   useQuery({ queryKey: keys.convites(id), queryFn: () => api.listarConvites(id), enabled, retry });
 
@@ -32,7 +32,8 @@ export function useAcoesGrupo(id: string) {
   const invalidar = useInvalidar();
   const opts = { onSuccess: invalidar };
   return {
-    sair: useMutation({ mutationFn: () => api.sairDoGrupo(id) }),
+    sair: useMutation({ mutationFn: (resolucoes?: api.Resolucao[]) => api.sairDoGrupo(id, resolucoes) }),
+    configurar: useMutation({ mutationFn: (janela: number) => api.configurarGrupo(id, janela), ...opts }),
     alterarPapel: useMutation({ mutationFn: ({ membro, papel }: { membro: string; papel: api.Papel }) => api.alterarPapel(id, membro, papel), ...opts }),
     remover: useMutation({ mutationFn: (membro: string) => api.removerMembro(id, membro), ...opts }),
     criarCasa: useMutation({ mutationFn: (nome: string) => api.criarCasa(id, nome), ...opts }),

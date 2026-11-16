@@ -1,10 +1,12 @@
-// Doop: k0kB5dc-Vo / componentes NavItem e SideNav (>= 1024px). Selector menu has no frame (guide varal-ui).
+// Doop: k0kB5dc-Vo / componentes NavItem e SideNav (>= 1024px); selector pill of 02 · Início (JJvrRugL0_).
+// Selector menu has no frame (guide varal-ui).
 "use client";
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { Logo } from "@/components/ui/logo";
+import type { Papel } from "@/lib/grupos/client";
 import { secoes, type Secao } from "./secoes";
 import styles from "./side-nav.module.css";
 
@@ -32,7 +34,7 @@ export function NavItem({ state = "off", label, icon, href, count }: NavItemProp
 }
 
 type Pessoa = { iniciais: string; nome: string; detalhe: string };
-export type EspacoOpcao = Pessoa & { href: string; atual?: boolean };
+export type EspacoOpcao = Pessoa & { id: string; papel?: Papel; atual?: boolean };
 
 type Props = {
   active?: Secao;
@@ -40,11 +42,21 @@ type Props = {
   espaco?: Pessoa;
   /** Menu options: personal space and each group (from /api/me/). Without them the selector is static. */
   espacos?: EspacoOpcao[];
+  onEscolher?: (opcao: EspacoOpcao) => void;
+  onNovaConta?: () => void;
   usuario?: Pessoa;
   avisos?: number;
 };
 
-function Seletor({ espaco, espacos }: { espaco: Pessoa; espacos?: EspacoOpcao[] }) {
+type SeletorProps = {
+  espaco: Pessoa;
+  espacos?: EspacoOpcao[];
+  onEscolher?: (opcao: EspacoOpcao) => void;
+  /** SideNav card (D02) or the header pill of 02 · Início. */
+  variant?: "card" | "pilula";
+};
+
+export function SeletorEspaco({ espaco, espacos, onEscolher, variant = "card" }: SeletorProps) {
   const [aberto, setAberto] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
   const botao = useRef<HTMLButtonElement>(null);
@@ -70,15 +82,15 @@ function Seletor({ espaco, espacos }: { espaco: Pessoa; espacos?: EspacoOpcao[] 
     <>
       <span className={styles.av}>{espaco.iniciais}</span>
       <span className={styles.tx}>
-        {espaco.nome}
-        <small>{espaco.detalhe}</small>
+        <span className={styles.spaceName} title={espaco.nome}>{espaco.nome}</span>
+        {variant === "card" && <small>{espaco.detalhe}</small>}
       </span>
       <Icon name="chevron" size="sm" className={styles.down} />
     </>
   );
   if (!espacos) return <button type="button" className={styles.sp}>{conteudo}</button>;
   return (
-    <div className={styles.selector} ref={raiz}>
+    <div className={styles.selector} data-variant={variant} ref={raiz}>
       <button
         ref={botao}
         type="button"
@@ -93,14 +105,22 @@ function Seletor({ espaco, espacos }: { espaco: Pessoa; espacos?: EspacoOpcao[] 
       <div id={menuId} className={styles.menu} hidden={!aberto}>
         <ul>
           {espacos.map((e) => (
-            <li key={e.href}>
-              <Link className={styles.opt} href={e.href} onClick={() => setAberto(false)} aria-current={e.atual ? "true" : undefined}>
+            <li key={e.id}>
+              <button
+                type="button"
+                className={styles.opt}
+                aria-current={e.atual ? "true" : undefined}
+                onClick={() => {
+                  setAberto(false);
+                  onEscolher?.(e);
+                }}
+              >
                 <span className={styles.av}>{e.iniciais}</span>
                 <span className={styles.tx}>
-                  {e.nome}
+                  <span className={styles.spaceName} title={e.nome}>{e.nome}</span>
                   <small>{e.detalhe}</small>
                 </span>
-              </Link>
+              </button>
             </li>
           ))}
         </ul>
@@ -113,15 +133,14 @@ function Seletor({ espaco, espacos }: { espaco: Pessoa; espacos?: EspacoOpcao[] 
   );
 }
 
-export function SideNav({ active, espaco, espacos, usuario, avisos }: Props) {
+export function SideNav({ active, espaco, espacos, onEscolher, onNovaConta, usuario, avisos }: Props) {
   return (
     <aside className={styles.sn} aria-label="Menu principal">
       <Link className={styles.logo} href="/" aria-label="Varal, início">
         <Logo />
       </Link>
-      {espaco && <Seletor espaco={espaco} espacos={espacos} />}
-      {/* Nova conta opens in stage 04/06; no action yet. */}
-      <button type="button" className={styles.new}>
+      {espaco && <SeletorEspaco espaco={espaco} espacos={espacos} onEscolher={onEscolher} />}
+      <button type="button" className={styles.new} onClick={onNovaConta} aria-haspopup="dialog">
         <Icon name="mais" size="md" />
         Nova conta
       </button>

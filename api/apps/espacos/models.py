@@ -31,6 +31,10 @@ class Espaco(models.Model):
                 condition=~models.Q(tipo="grupo") | models.Q(dono__isnull=True),
                 name="espaco_grupo_sem_dono",
             ),
+            models.CheckConstraint(  # RN13
+                condition=models.Q(janela_alerta_dias__gte=1, janela_alerta_dias__lte=7),
+                name="espaco_janela_alerta_1_a_7",
+            ),
         ]
 
     def __str__(self):

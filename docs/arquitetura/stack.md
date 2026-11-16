@@ -42,7 +42,7 @@ varal/
 | django-allauth / openapi-spec-validator | 65.22.0 / 0.9.0 | extras `headless-spec,socialaccount`; `api/uv.lock` |
 | Celery / cliente Redis Python | 5.7.0 / 8.1.0 | `api/uv.lock` |
 | PostgreSQL / Redis | 17 / 7 | `infra/docker-compose.yml` |
-| Node / Next.js / React | 22 / 16.4.6 / 19.3.0 | `web/` |
+| Node / Next.js / React | 22 / 16.4.6 / 19.3.0 | `web/.nvmrc` (lido pelo CI e pelo `nvm use`), `engines` em `web/package.json`; `make test-web`/`lint`/`types`/`e2e` param com Node < 22 |
 | TanStack Query / openapi-typescript / Vitest | 5 / 7 / 4 | `web/package.json` |
 | Playwright (`@playwright/test`, Chromium) | 1.65.0 | `web/package.json`, `web/playwright.config.ts`, `make e2e` |
 | Lint | ruff (api), ESLint + `tsc` (web) | `make lint` |
@@ -71,11 +71,15 @@ E-mail: `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_H
 
 `REDIS_URL` atende ao broker e ao cache Django, com prefixo `varal-cache`; os limites de autenticação compartilham estado entre processos. Fora de DEBUG, cookies são Secure e a API força HTTPS. Antes do deploy, configurar a cadeia de proxies confiáveis: o limite por IP ainda vê o Next como origem; não confiar indiscriminadamente nos headers encaminhados enquanto a porta 8000 estiver exposta.
 
+Só E2E/CI: `ACCOUNT_RATE_LIMIT_SIGNUP` sobrescreve o limite de cadastro do allauth (`ACCOUNT_RATE_LIMITS["signup"]`; o allauth mescla o dicionário aos padrões, então login, `login_failed`, `reset_password` etc. seguem os dele). `make e2e` passa `1000/m/ip` ao serviço `api` e o job `e2e` do `web.yml` define o mesmo valor, porque a suíte cria ~40 contas do mesmo IP. Fora disso fica vazia e vale o padrão (20/m/ip). Não vai no `infra/.env.example` (P5).
+
 ## Decisões de implementação
 
 - Modelo de usuário próprio (`contas_usuario.Usuario`, UUID) desde a Etapa 00. Na Etapa 02: campos de domínio, login por e-mail e unicidade sem distinguir maiúsculas; username segue interno para compatibilidade do admin/seed.
 - Allauth usa somente cliente browser, com sessão/CSRF, sem confirmação obrigatória de e-mail ou login automático após recuperação. Google com PKCE, sem armazenar tokens e sem vínculo automático por coincidência de e-mail.
 - Layout protegido do Next consulta `/api/me/` no servidor, sem cache compartilhado; usa Suspense e `instant=false` porque a sessão real é necessária antes de apresentar o shell.
 - `make types` exporta schema composto DRF + allauth por `export_schema`. `make e2e` sobe API/worker e dependências antes dos testes; o Next é iniciado pelo Playwright.
+- CI: `api.yml` e `web.yml` disparam por `push`/`pull_request` com filtro de caminhos, ou à mão com `gh workflow run <arquivo> --ref <branch>` (`workflow_dispatch`, só depois que o arquivo estiver na `main`).
+- `make limpar-dev` (`limpar_dev`, só com DEBUG) mostra e, após confirmação (`SIM=1` pula), apaga do banco de dev o grupo `x`, os grupos `Teste UI …`, os usuários `burst-*`/`e2e-*@varal.test` e os grupos que ficam sem membros; nunca o `dev`.
 - DRF exige autenticação por padrão; rotas públicas (como o health) declaram `AllowAny`.
 - `TIME_ZONE = America/Fortaleza` com `USE_TZ = True`: grava em UTC, exibe em Fortaleza (RNF11).

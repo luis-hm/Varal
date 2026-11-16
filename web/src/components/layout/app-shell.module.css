@@ -12,6 +12,11 @@
   padding-bottom: 84px; /* TabBar height */
 }
 
+/* Ajuste 28: a stacked screen (07) has no TabBar and keeps no room for it. */
+.shell[data-empilhada] .main {
+  padding-bottom: 0;
+}
+
 .bottom {
   position: fixed;
   left: 0;
@@ -33,7 +38,8 @@
     flex: none;
   }
 
-  .main {
+  .main,
+  .shell[data-empilhada] .main {
     flex: 1;
     padding: 28px 40px var(--spacing-8);
   }

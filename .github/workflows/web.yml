@@ -6,6 +6,8 @@ on:
     paths: ["web/**", "api/**", ".github/workflows/web.yml"]
   pull_request:
     paths: ["web/**", "api/**", ".github/workflows/web.yml"]
+  # Manual run: `gh workflow run web.yml --ref <branch>` (path filters do not apply).
+  workflow_dispatch:
 
 jobs:
   check:
@@ -17,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: web/.nvmrc
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
@@ -38,6 +40,8 @@ jobs:
       FRONTEND_URL: http://localhost:3000
       API_PUBLIC_URL: http://localhost:8000
       API_INTERNAL_URL: http://localhost:8000
+      # The suite signs up ~40 accounts from one IP; allauth's default is 20/m/ip (P5).
+      ACCOUNT_RATE_LIMIT_SIGNUP: 1000/m/ip
     services:
       postgres:
         image: postgres:17-alpine
@@ -59,7 +63,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: web/.nvmrc
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci

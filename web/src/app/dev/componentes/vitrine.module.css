@@ -52,6 +52,8 @@
 .fields {
   display: grid;
   gap: var(--spacing-4);
+  /* Without it the column takes the BillCard's nowrap title as its minimum and overflows 360px. */
+  grid-template-columns: minmax(0, 1fr);
   max-width: 380px;
 }
 

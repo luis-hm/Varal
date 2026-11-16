@@ -1,0 +1,101 @@
+/* Doop: k0kB5dc-Vo / 05 + M01 (header, "Onde fica"), 06 + M02 (fields and chips) */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.lb {
+  display: block;
+  margin-bottom: var(--spacing-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--spacing-2);
+}
+
+.g2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-3);
+}
+
+/* Casa and Quem paga stack on a phone: their chips need the width (06). */
+.g2:has(> [role="group"]) {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-4);
+}
+
+.desk {
+  display: none;
+}
+
+.nota {
+  margin-top: var(--spacing-1);
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+/* CA28: the visibility notice. Empty, it stays in the tree as a live region and takes no room. */
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: 10px var(--spacing-3);
+  border-radius: var(--radius-md);
+  background: var(--color-amber-soft);
+  color: var(--color-amber-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.aviso[data-vazio] {
+  padding: 0;
+  margin-top: calc(-1 * var(--spacing-4));
+}
+
+.erro {
+  margin-top: var(--spacing-1);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--color-red-text);
+}
+
+@media (min-width: 1024px) {
+  .onde {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+  }
+
+  .onde .lb {
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .onde .row {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mob {
+    display: none;
+  }
+
+  .desk {
+    display: inline;
+  }
+
+  .g2:has(> [role="group"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-3);
+  }
+
+  .row {
+    column-gap: 6px;
+  }
+}

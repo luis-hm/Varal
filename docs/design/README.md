@@ -1,7 +1,7 @@
 # Design — canvas do Doop
 
 > **Contém:** onde está cada tela e componente no Doop, como lê-los, a regra responsiva e as telas e ícones da especificação.
-> **Origem:** canvas Doop `k0kB5dc-Vo` (autenticação relida em 13/11/2026), guia `varal-ui`, especificação seções 11–12 e código das Etapas 01–03.
+> **Origem:** canvas Doop `k0kB5dc-Vo` (autenticação relida em 13/11/2026), guia `varal-ui`, especificação seções 11–12, código das Etapas 01–04, decisões 27–30 e revisão delegada Q04-35–39 ([decisoes](../etapas/04-contas/decisoes.md)).
 
 ## Regras
 
@@ -73,14 +73,14 @@ Tamanhos: telas mobile 390×844 (06: 390×1090; 07: 390×1220; 10: 390×944); te
 | Icon | `name` (29 nomes), `size: sm\|md\|lg\|xl` | `web/src/components/ui/icon.tsx` | 01 (feito) |
 | StatusBadge | `status: aguardando\|pendente\|vence\|vencida\|paga\|confirmada\|cancelada` | `web/src/components/bills/status-badge.tsx` | 01 (feito) |
 | Button | `tone: primary\|secondary\|ghost\|success\|danger`, `width: auto\|full`, `label`, slot `icon` (52px) | `web/src/components/ui/button.tsx` | 01 (feito) |
-| Chip | `state: off\|on`, `label`, `count` | `web/src/components/ui/chip.tsx` | 01 (feito) |
+| Chip | `state: off\|on`, `label`, `count`; extensão local `wrap` para espaço/casa (Q04-39) | `web/src/components/ui/chip.tsx` | 01 (feito), revisão 04 |
 | Field | `state: default\|placeholder\|filled\|error`, `label`, `value`, `hint`, slot `trailing` | `web/src/components/ui/field.tsx` | 01 (feito) |
 | TopBar | `title`, slot `action` | `web/src/components/layout/top-bar.tsx` | 01 (feito) |
 | TabItem | `state: off\|on`, `label`, slot `icon` | `web/src/components/layout/tab-bar.tsx` | 01 (feito) |
 | TabBar | `active: inicio\|contas\|grupos\|perfil` (< 1024px) | `web/src/components/layout/tab-bar.tsx` | 01 (feito) |
 | NavItem | `state: off\|on`, `label`, `count`, slot `icon` | `web/src/components/layout/side-nav.tsx` | 01 (feito) |
 | SideNav | `active: inicio\|contas\|grupos\|avisos\|perfil` (≥ 1024px) | `web/src/components/layout/side-nav.tsx` | 01 (feito) |
-| BillCard | `title`, `meta`, `value`, slots `icon`, `status` | `web/src/components/bills/bill-card.tsx` | 04 |
+| BillCard | `title`, `meta`, `value`, slots `icon`, `status` | `web/src/components/bills/bill-card.tsx` | 04 (feito) |
 | RadioCard | `state: off\|on`, `title`, `text` | `web/src/components/ui/radio-card.tsx` | 03 (feito) |
 | MemberRow | `role: admin\|membro\|pagador\|observador`, `initials`, `name`, `detail` | `web/src/components/groups/member-row.tsx` | 03 (feito) |
 | HouseCard | `house-link`, `label`, `caption`, `caption-2` | `web/src/components/groups/house-card.tsx` | 03 (feito) |
@@ -104,6 +104,22 @@ O shell recebe usuário/espaço próprios da API. Perfil continua “Em breve”
 - **Convite** `web/src/components/groups/convite-folha.tsx` (11 ↔ M05): RadioCard de papel, link encurtado em JetBrains Mono, `shine` 2×.
 - **Página do grupo** `grupo-pagina.tsx` (10 ↔ D04), **lista** `grupos-lista.tsx`, **aceite** `aceite-convite.tsx` (layout de 01 ↔ D01), **sair** `sair-do-grupo.tsx`; seletor de espaço no SideNav (`side-nav.tsx`, menu sem frame).
 - Diferenças em relação aos frames: [relatório da Etapa 03](../etapas/03-espacos-grupos/relatorio.md#diferenças-visuais-ca18). 10 e 11 seguem draft; D04 e M05 `ready_for_dev`. Canvas não alterado.
+
+### Contas implementadas (Etapa 04)
+
+Mesmas rotas nas duas larguras: `/` (02 ↔ D02), `/contas` (03 ↔ D03), `/contas/[id]` (07 sozinho < 1024px; lista 540px + painel `slide-in` ≥ 1024px). Componentes em `web/src/components/bills/`:
+
+- **Início** `inicio.tsx`: "Total de <mês>" com `count-up`, varal `swing` (sem a conta "pagas" e sem barra até a 07), "Precisa de atenção" com `rise`; D02 com "Por casa". O hero do D02 tem a altura do conteúdo, sem reservar a barra ausente (decisão 27).
+- **Contas e Detalhe** `contas-pagina.tsx`, `conta-detalhe.tsx`: chips com contagem, "Casa" e "Quem paga" no desktop, folha "Filtros" no mobile; histórico com ações automáticas sem autor.
+- **Detalhe mobile é tela empilhada** (decisão 28): `/contas/[id]` abaixo de 1024px não tem TabBar; tem TopBar com voltar, também nos estados de carregando, erro e "Conta não encontrada" (`app-shell.tsx`).
+- **Formulário** `conta-folha.tsx` (partes de 05/06 ↔ M01/M02, sobre `ui/folha.tsx`): só a conta manual; aviso "Quem paga também vê esta conta" em `aria-live`. "Onde fica" começa pelo espaço atual, já selecionado (Pessoal se a pessoa está no pessoal, o grupo se está num grupo); se o atual não aceita conta (observador), mantém a ordem e seleciona o primeiro; na edição fica o espaço da conta (decisão 30, `espacosParaCriar`).
+- **Nomes de pessoas em uma linha** (decisão 29): nomes e e-mails usam `<Nome>` (`web/src/components/ui/nome.tsx`): uma linha, reticências, valor inteiro no `title` e no nome acessível. Usado em BillCard, detalhe e MemberRow; saudação e identificação do usuário no shell seguem o corte pelo CSS.
+- **Quem vê completo** (Q04-38/D04-14): detalhe restrito usa `quem_ve` (audiência efetiva da RN06/RN07, considerando criador, pagador, escolhidos e papéis atuais, sem duplicatas), não só `acesso`. Cada pessoa tem seu próprio `<Nome>` em uma linha; a lista quebra entre pessoas e cresce sem cortar participantes. É exceção de composição motivada pela visibilidade; o canvas não foi alterado nem sua aprovação alegada.
+- **Identificação de espaço/casa** (Q04-39): seletor fechado e Chips `wrap` mostram até duas linhas. Ao abrir o menu, nomes de espaços ficam completos; no formulário, foco de teclado ou seleção por toque expande o nome inteiro antes de salvar. Assim grupos com prefixos iguais podem ser distinguidos sem depender de hover ou pedir confirmação extra no caso comum. Nomes de pessoas continuam em uma linha.
+- **Prazo e selo** (Q04-35/ADR 0009): o filtro Vencidas também inclui aguardando vencida; o card conserva o selo Aguardando. A distinção temporal não altera a paleta ou o componente StatusBadge.
+- **Grupo:** HouseCard com total e "N contas"; "Configurações" (janela 1–7) só para admin; folha de saída barrada pela RN32 em `sair-do-grupo.tsx`; lista do pagador `contas-pagador.tsx` em `/grupos/[id]/simples`.
+- **Espaço atual:** cookie `espaco` (`web/src/lib/espaco.ts`); seletor no SideNav e no cabeçalho do Início mobile.
+- Diferenças em relação aos frames: [relatório da Etapa 04](../etapas/04-contas/relatorio.md#comparação-com-o-doop-ca29). Canvas não alterado.
 
 ### Conta cancelada (D2)
 
