@@ -46,6 +46,12 @@ Monorepo: `api/` (Django + DRF + Celery), `web/` (Next.js), `infra/` (Docker Com
 | `varal-devops` | `infra/`, `Makefile`, `.github/`, variáveis de ambiente, deploy |
 | `varal-qa` | Testes e critérios de aceite, ao fim de cada etapa e quando algo quebra |
 | `varal-seguranca` | Revisão (somente leitura) antes de fechar etapa que toca dados, permissões, arquivos ou auth |
+| `varal-decisor` | Triagem das decisões depois da spec, dúvida que trava um agente, auditoria antes do relatório |
+
+**Política de decisões (vale para todo agente):** o teste é "quanto custa desfazer?". O que se desfaz só no código, sem mudar
+o que alguém vê, o agente decide e registra em `docs/etapas/NN-slug/decisoes.md` (decisão, motivo, como desfazer).
+Regra de negócio, privacidade/visibilidade, segurança, dados gravados, tela (inclusive número, ordem ou texto que muda) e
+conflito entre fontes são sempre do dono: vão ao `varal-decisor` como pergunta. Detalhes em `.claude/agents/varal-decisor.md`.
 
 Codex (GPT) usa as mesmas fontes via `AGENTS.md`: `.codex/agents/` e `.agents/skills/` são gerados destes arquivos
 por `make codex-sync`. Mudou um agente ou comando aqui, rode `make codex-sync`.

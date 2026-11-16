@@ -2,8 +2,9 @@ Execute a PRÓXIMA etapa pendente do Varal, seguindo exatamente este fluxo:
 1. Leia docs/PROGRESSO.md e docs/etapas/README.md; identifique a próxima etapa "pendente". Se houver uma "em andamento", continue ela. Leia AO VIVO, pelo conector claude.ai Claude Docs, o documento "Varal — Ajustes" (doc ce521944-15d6-44a5-b70c-f0790e03de41) e separe os itens não marcados que tocam esta etapa: eles entram na spec.
 2. Se a etapa anterior estiver concluída e ainda fora da main, faça o merge local dela na main (`git merge --no-ff`): rodar /etapa conta como aprovação da etapa anterior. Depois crie a branch etapa/NN-slug a partir da main. Push só quando eu pedir.
 3. Delegue ao varal-docs: spec.md, plano.md e tarefas.md da etapa (lendo só os docs que ela cita), incluindo os itens do documento de ajustes separados no passo 1.
-4. Mostre-me um resumo (escopo, RF/CU/RN, telas do Doop mobile e desktop, ajustes incluídos, riscos) e PARE aguardando meu "ok". Não escreva código antes do ok.
-5. Com o ok, execute tarefas.md em ordem, delegando: varal-boletos → varal-backend → `make types` → varal-frontend → varal-devops (se precisar) → varal-qa → varal-seguranca → varal-docs.
+   Em seguida, delegue ao varal-decisor a triagem: ele decide o que é reversível (registrado em `decisoes.md` da etapa) e devolve só as perguntas que são minhas.
+4. Mostre-me um resumo (escopo, RF/CU/RN, telas do Doop mobile e desktop, ajustes incluídos, riscos e as perguntas do varal-decisor) e PARE aguardando meu "ok". Não escreva código antes do ok. Minhas respostas vão para o `decisoes.md`.
+5. Com o ok, execute tarefas.md em ordem, delegando: varal-boletos → varal-backend → `make types` → varal-frontend → varal-devops (se precisar) → varal-qa → varal-seguranca → varal-decisor (auditoria) → varal-docs. Todo agente registra no `decisoes.md` o que decidiu sozinho. Uma dúvida que trava um agente vai ao varal-decisor; se for pergunta para mim, o resto segue e ela entra no relatório.
 6. Revisão de ajustes (antes do relatório): leia de novo o documento "Varal — Ajustes" e, para cada item não marcado:
    - toca algo já construído → aplique, com commit `fix(ajustes): …`, e marque o item no documento acrescentando " — feito na etapa NN" (nunca apague nem reescreva itens);
    - é de etapa futura → deixe pendente (entra na spec da etapa dele);
