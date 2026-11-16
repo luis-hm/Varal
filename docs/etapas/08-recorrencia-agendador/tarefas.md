@@ -19,6 +19,6 @@ Etapa concluída em 16/11/2026: 448 pytest, 101 Vitest, tipos duas vezes determi
 | 10 | [x] gestão pessoal em Contas e Folha comum, inclusive pausadas/encerradas sem ocorrência; Repete respeita autorização do modelo | frontend/backend | CA09, CA11 |
 | 11 | [x] Repetir todo mês integra conferência inicial e resumo atual/próximas, preserva formulário/PDF nos erros e permite desligar repetição | frontend | CA09, CA12, CA13 |
 | 12 | [x] test/lint/types/E2E e provas reais do agendador verdes; 448 pytest, 101 Vitest, tipos duas vezes e E2E 123 aprovados/3 skips | QA/backend/devops | todos |
-| 13 | [x] Segurança B08-1–4 e auditoria decisória sem bloqueantes; Ajustes finais atestados pelo dono, relatório final e matriz/evidências sob responsabilidade do QA | segurança/decisor/QA/docs | todos |
+| 13 | [x] Segurança B08-1–4 e auditoria decisória sem bloqueantes; Ajustes finais atestados pelo dono, relatório final e matriz/evidências/cleanup confirmados pelo QA | segurança/decisor/QA/docs | todos |
 
 Sem push. P6 externa, P10/Perfil e P11/implantação continuam no PROGRESSO. Não marcar tarefa de implementação concluída com base em pré-leitura ou proposta de contrato.
