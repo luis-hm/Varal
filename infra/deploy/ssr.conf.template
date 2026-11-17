@@ -6,6 +6,9 @@ http {
     access_log off;
     client_body_temp_path /tmp/client;
     proxy_temp_path /tmp/proxy;
+    fastcgi_temp_path /tmp/fastcgi;
+    uwsgi_temp_path /tmp/uwsgi;
+    scgi_temp_path /tmp/scgi;
     server_tokens off;
     map $request_method $method_allowed { default 0; GET 1; }
     map $request_uri $route_allowed {
