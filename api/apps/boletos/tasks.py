@@ -14,6 +14,8 @@ from django.db import connection, transaction
 from django.db.models import F
 from django.utils import timezone
 
+from apps.solicitacoes.coordenacao import barreira
+
 from .models import DocumentoBoleto, LimpezaPDF, PinPDF, TentativaCopiaPDF
 from .storage import armazenamento, chave, spool
 
@@ -171,6 +173,9 @@ def intencao_limpeza(pk):
 
 
 def agendar(task, *args):
+    # During isolated restore, durable cleanup rows remain for recovery after cutover.
+    if settings.VARAL_RESTORE_MODE:
+        return
     # The database remains the source of retry if broker publication fails.
     try:
         task.delay(*args)
@@ -181,6 +186,7 @@ def agendar(task, *args):
 @shared_task(bind=True, max_retries=3, default_retry_delay=30, time_limit=90)
 def processar_pdf(self, documento_id):
     with transaction.atomic():
+        barreira()
         doc = DocumentoBoleto.objects.select_for_update().filter(pk=documento_id).first()
         if not doc or doc.estado != "pendente":
             return
@@ -211,15 +217,18 @@ def processar_pdf(self, documento_id):
                 LimpezaPDF.objects.filter(pk=doc.pk, geracao=previa.geracao).delete()
         result = extrair_isolado(data)
     except Exception:
-        changed = DocumentoBoleto.objects.filter(
-            pk=doc.pk, estado="lendo", tentativa=tentativa
-        ).update(estado="pendente")
+        with transaction.atomic():
+            barreira()
+            changed = DocumentoBoleto.objects.filter(
+                pk=doc.pk, estado="lendo", tentativa=tentativa
+            ).update(estado="pendente")
         if not changed:
             if not DocumentoBoleto.objects.filter(pk=doc.pk).exists():
                 intencao_limpeza(doc.pk)
             return
         raise self.retry(exc=None) from None
     with transaction.atomic():
+        barreira()
         doc = (
             DocumentoBoleto.objects.select_for_update()
             .filter(pk=documento_id, estado="lendo", tentativa=tentativa)
@@ -269,6 +278,7 @@ def recuperar_limpeza():
 @shared_task
 def limpar_pdfs_expirados():
     with transaction.atomic():
+        barreira()
         docs = DocumentoBoleto.objects.select_for_update().filter(
             lancamento__isnull=True,
             vinculado_em__isnull=True,

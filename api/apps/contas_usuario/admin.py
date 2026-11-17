@@ -1,12 +1,10 @@
 from allauth.socialaccount.models import SocialApp
-from django.contrib import admin, messages
+from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.db import transaction
+from django.core.exceptions import PermissionDenied
 
 from apps.espacos.models import Convite, Espaco, Membro, Subgrupo
 from apps.espacos.servicos import (
-    Conflito,
-    ContaRestritaSemQuemVeja,
     grupos_sem_outro_admin,
     restritas_de_quem_sai,
 )
@@ -41,22 +39,10 @@ class UsuarioAdmin(UserAdmin):
 
     # The pre_delete guard still runs at delete time (race after the confirmation page).
     def delete_model(self, request, obj):
-        self._apagar(request, lambda: super(UsuarioAdmin, self).delete_model(request, obj))
+        raise PermissionDenied("A exclusão deve ser feita pelo titular em Perfil.")
 
     def delete_queryset(self, request, queryset):
-        self._apagar(request, lambda: super(UsuarioAdmin, self).delete_queryset(request, queryset))
-
-    def _apagar(self, request, apagar):
-        try:
-            with transaction.atomic():
-                apagar()
-        except Conflito as exc:  # RN04 or RN32 raised by the pre_delete guards
-            texto = (
-                "O titular precisa resolver pendências antes da exclusão."
-                if isinstance(exc, ContaRestritaSemQuemVeja)
-                else str(exc)
-            )
-            messages.error(request, texto)
+        raise PermissionDenied("A exclusão deve ser feita pelo titular em Perfil.")
 
 
 admin.site.unregister(SocialApp)

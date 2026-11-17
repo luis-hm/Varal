@@ -5,7 +5,7 @@ import { ApiError } from "@/lib/grupos/client";
 import { atualizarPreferencias, configuracaoPush, lerAviso, lerTodos, listarAvisos, preferencias, resumoAvisos } from "./client";
 
 export const avisoKey = (user: string) => ["avisos", user] as const;
-export const useAvisosResumo = (user?: string) => useQuery({ queryKey: [...avisoKey(user ?? ""), "resumo"], queryFn: resumoAvisos, enabled: !!user, retry: false });
+export const useAvisosResumo = (user?: string, inicial?: components["schemas"]["ResumoNotificacoes"]) => useQuery({ queryKey: [...avisoKey(user ?? ""), "resumo"], queryFn: resumoAvisos, enabled: !!user, retry: false, initialData: inicial, staleTime: inicial ? 5000 : 0 });
 export const usePushConfig = (user: string) => useQuery({ queryKey: [...avisoKey(user), "push-config"], queryFn: configuracaoPush, retry: false });
 export const useAvisos = (user: string) => useInfiniteQuery({ queryKey: [...avisoKey(user), "lista"], queryFn: ({ pageParam }) => listarAvisos(pageParam), initialPageParam: undefined as string | undefined, getNextPageParam: (page) => page.proximo ?? undefined, retry: false });
 export function useLeituraAvisos(user: string) {

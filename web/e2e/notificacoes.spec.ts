@@ -1,8 +1,9 @@
 // Etapa 09: eventos reais de pagamento e remoção; API, worker e banco reais.
 import path from "node:path";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./rn31-isolation";
 import type { components } from "../src/types/api";
-import { api, criarGrupo, descartarContas, entrarNoGrupo, hoje, logar, me, novaConta, outraAba, semBadge, semRolagemEAlvos44, type Conta } from "./fixtures";
+import { TEST_PASSWORD, api, criarGrupo, descartarContas, entrarNoGrupo, hoje, logar, me, novaConta, outraAba, semBadge, semRolagemEAlvos44, type Conta } from "./fixtures";
 
 type Lista = components["schemas"]["ListaNotificacoes"];
 const SCREENS = path.join(__dirname, "__screens__");
@@ -176,7 +177,12 @@ test("ca10/ca12: preferências e troca de sessão não mostram avisos anteriores
   await page.goto("/perfil");
   await page.getByRole("button", { name: "Sair da conta", exact: true }).click();
   await expect(page).toHaveURL(/\/entrar/);
-  await logar(page, outro);
+  await page.getByLabel("E-mail", { exact: true }).fill(outro.email);
+  await page.getByLabel("Senha", { exact: true }).fill(TEST_PASSWORD);
+  const login = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/auth/browser/v1/auth/login" && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Entrar", exact: true }).click();
+  expect((await login).status()).toBe(200);
+  await expect(page).not.toHaveURL(/\/entrar/);
   await page.goto("/avisos");
   await expect(page.getByText("Você ainda não tem avisos.")).toBeVisible();
   await expect(page.getByText("Aviso privado da primeira sessão")).toHaveCount(0);

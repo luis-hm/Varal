@@ -5,7 +5,8 @@
 // hidden, hence the `visible` filters.
 import path from "node:path";
 import type { APIRequestContext, Locator, Page } from "@playwright/test";
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { test } from "./rn31-isolation";
 import {
   ORIGIN,
   api,
@@ -777,6 +778,9 @@ test("dec23 rn30: quem saiu do grupo aparece como Ex-membro em Criada por e o e-
 
 test("dec27: no desktop o hero do Início tem a altura do conteúdo, sem vazio abaixo do valor e do varal", async ({ page, playwright }, info) => {
   test.skip(!desktop(info), "D02 hero (≥ 1024px)");
+  const errosHidratacao: string[] = [];
+  page.on("pageerror", (error) => { if (/hydrat|server rendered/i.test(error.message)) errosHidratacao.push("pageerror de hidratação"); });
+  page.on("console", (message) => { if (message.type() === "error" && /hydrat|server rendered/i.test(message.text())) errosHidratacao.push("console de hidratação"); });
   const { admin, grupo } = await grupoComContas(playwright);
   await logar(page, admin);
   await usarEspaco(page, grupo.id);
@@ -784,7 +788,15 @@ test("dec27: no desktop o hero do Início tem a altura do conteúdo, sem vazio a
   await page.goto("/");
   await expect(link(atencao(page), /Energia/)).toBeVisible();
 
-  const caixa = async (l: Locator) => (await l.boundingBox())!;
+  const caixa = async (l: Locator) => {
+    await expect(l).toBeVisible();
+    let box: Awaited<ReturnType<Locator["boundingBox"]>> = null;
+    await expect.poll(async () => {
+      box = await l.boundingBox();
+      return box !== null;
+    }).toBe(true);
+    return box!;
+  };
   const h = await caixa(hero(page));
   const valor = await caixa(hero(page).locator("p", { has: page.locator("[aria-hidden=true]") }));
   const varal = await caixa(hero(page).getByRole("img", { name: /Precisa de atenção/ }));
@@ -794,6 +806,7 @@ test("dec27: no desktop o hero do Início tem a altura do conteúdo, sem vazio a
   expect(fimHero - (valor.y + valor.height)).toBeLessThan(varal.height);
   // ...and below the lowest content (value or tags) only the 28px padding (+ rounding).
   expect(fimHero - Math.max(valor.y + valor.height, tags)).toBeLessThanOrEqual(28 + 4);
+  expect(errosHidratacao).toEqual([]);
 });
 
 test("dec38 rn06: Quem vê mostra cada pessoa efetiva da restrita sem cortar a lista nem duplicar quem paga", async ({ page, playwright }, info) => {
@@ -834,7 +847,8 @@ test("dec39 rn01: grupos com prefixos iguais mostram nome completo ao escolher e
   await usarEspaco(page, grupos[0].id);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  const seletor = visivel(page, `Espaço: ${grupos[0].nome}. Trocar de espaço`);
+  const seletor = visivel(page, /Trocar de espaço/);
+  expect(await seletor.getAttribute("aria-label")).toContain(grupos[0].nome);
   await seletor.click();
   const menu = page.locator(`[id="${await seletor.getAttribute("aria-controls")}"]`);
   for (const grupo of grupos) {
@@ -858,7 +872,9 @@ test("dec39 rn01: grupos com prefixos iguais mostram nome completo ao escolher e
   await form.getByLabel("Valor", { exact: true }).fill("42,00");
   await form.getByLabel("Vencimento", { exact: true }).fill(hoje());
   await form.getByLabel("Descrição", { exact: true }).fill("Conta no grupo identificado");
+  const salvo = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/espacos/${grupos[1].id}/lancamentos/` && response.request().method() === "POST");
   await form.getByRole("button", { name: "Salvar conta" }).click();
+  expect((await salvo).status()).toBe(201);
   await expect(page.getByRole("heading", { level: 1, name: "Conta no grupo identificado" })).toBeVisible();
   const id = new URL(page.url()).pathname.split("/").pop()!;
   expect((await json(admin.request, `/api/lancamentos/${id}/`)).espaco.id).toBe(grupos[1].id);

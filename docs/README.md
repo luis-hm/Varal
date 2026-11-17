@@ -14,6 +14,8 @@ Sessão nova começa por [PROGRESSO.md](PROGRESSO.md). Cada agente lê **só** o
 | Quais são as etapas e o que cada uma cobre? | [etapas/README.md](etapas/README.md) |
 | O que a etapa NN entrega e como se aceita? | `etapas/NN-slug/spec.md`, `plano.md`, `tarefas.md`, `relatorio.md` |
 | O que a etapa 10 entregou? | [Solicitação e modo simples](etapas/10-solicitacao-modo-simples/spec.md), [plano](etapas/10-solicitacao-modo-simples/plano.md), [tarefas](etapas/10-solicitacao-modo-simples/tarefas.md), [decisões](etapas/10-solicitacao-modo-simples/decisoes.md) e [ADR0014](arquitetura/adr/0014-solicitacao-e-sincronizacao-privada.md) |
+| O que a etapa 11 deve entregar e qual seu estado? | [Spec](etapas/11-acabamento-deploy/spec.md), [plano](etapas/11-acabamento-deploy/plano.md), [tarefas](etapas/11-acabamento-deploy/tarefas.md), [decisões](etapas/11-acabamento-deploy/decisoes.md) e [relatório](etapas/11-acabamento-deploy/relatorio.md) |
+| Como exportar/excluir e recuperar sem ressuscitar dados? | [ADR0015](arquitetura/adr/0015-exportacao-exclusao-e-prova-local.md) e [protocolo do journal](arquitetura/protocolo-journal.md) |
 | Qual RF vira qual CU, RN, tela, etapa e teste? | [matriz-rastreabilidade.md](matriz-rastreabilidade.md) |
 | Para que serve o produto? O que está no MVP? | [produto/visao-e-escopo.md](produto/visao-e-escopo.md) |
 | Quem usa e com que papel? | [produto/atores-e-personas.md](produto/atores-e-personas.md) |
@@ -24,6 +26,7 @@ Sessão nova começa por [PROGRESSO.md](PROGRESSO.md). Cada agente lê **só** o
 | Quais entidades e campos existem? | [dados/modelo.md](dados/modelo.md) |
 | Como as peças conversam? | [arquitetura/visao-geral.md](arquitetura/visao-geral.md) |
 | Que versões, portas e variáveis de ambiente? | [arquitetura/stack.md](arquitetura/stack.md) |
+| Como operar o laboratório/primário restaurado sem contornar os gates? | [Runbook de operação local](arquitetura/operacao-local.md) (ACTIVE_RESTORE, backup, journal/WAL, ledger/direitos e limites P11) |
 | Por que decidimos X? | [arquitetura/adr/](arquitetura/adr/) |
 | Onde está a tela/componente no Doop? Como fica no desktop? | [design/README.md](design/README.md) (inclui a regra responsiva) |
 | Quais cores, fontes, raios? | [design/tokens.md](design/tokens.md) |

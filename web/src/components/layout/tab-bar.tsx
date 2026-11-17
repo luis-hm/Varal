@@ -25,14 +25,14 @@ const left = ["inicio", "contas"] as const;
 const right = ["grupos", "perfil"] as const;
 type TabBarActive = (typeof left)[number] | (typeof right)[number];
 
-export function TabBar({ active, onNovaConta }: { active?: TabBarActive; onNovaConta?: () => void }) {
+export function TabBar({ active, onNovaConta }: { active?: TabBarActive; onNovaConta?: (origem: HTMLElement) => void }) {
   const item = (s: TabBarActive) => (
     <TabItem key={s} state={s === active ? "on" : "off"} {...secoes[s]} />
   );
   return (
     <nav className={styles.tb} aria-label="Navegação principal">
       {left.map(item)}
-      <button type="button" className={styles.fab} aria-label="Nova conta" aria-haspopup="dialog" onClick={onNovaConta}>
+      <button type="button" className={styles.fab} aria-label="Nova conta" aria-haspopup="dialog" onClick={(event) => onNovaConta?.(event.currentTarget)}>
         <Icon name="mais" />
       </button>
       {right.map(item)}

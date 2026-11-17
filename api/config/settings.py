@@ -23,6 +23,7 @@ DOMAIN_APPS = [
     "apps.recorrencias",
     "apps.notificacoes",
     "apps.solicitacoes",
+    "apps.privacidade",
 ]
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -42,11 +43,14 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "config.restore_guard.RestoreGuardMiddleware",
+    "config.proxy.TrustedProxyMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "config.identity.IdentidadePrivadaMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -106,7 +110,7 @@ HEADLESS_CLIENTS = ["browser"]
 HEADLESS_SERVE_SPECIFICATION = True
 HEADLESS_ADAPTER = "apps.contas_usuario.adapters.HeadlessAdapter"
 HEADLESS_FRONTEND_URLS = {
-    "account_confirm_email": f"{FRONTEND_URL}/entrar",
+    "account_confirm_email": f"{FRONTEND_URL}/confirmar-email/{{key}}",
     "account_reset_password": f"{FRONTEND_URL}/recuperar-senha",
     "account_reset_password_from_key": f"{FRONTEND_URL}/recuperar-senha/{{key}}",
     "account_signup": f"{FRONTEND_URL}/criar-conta",
@@ -119,6 +123,8 @@ ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = False
 ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
+ACCOUNT_REAUTHENTICATION_METHODS = {"password", "code"}
+ACCOUNT_REAUTHENTICATION_TIMEOUT = 300
 ACCOUNT_EMAIL_NOTIFICATIONS = True
 # allauth merges this dict over its defaults. Only `make e2e`/CI set the env (many signups from
 # one IP); unset keeps allauth's signup limit (20/m/ip) and every other limit.
@@ -164,7 +170,7 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 REST_FRAMEWORK = {
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_SCHEMA_CLASS": "config.schema.VaralAutoSchema",
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     # Session only: DRF's default also accepts HTTP Basic, which bypasses allauth's
     # login rate limit and CSRF (security review, stage 03).
@@ -290,3 +296,81 @@ CELERY_BEAT_SCHEDULE["recuperar-solicitacoes"] = {
     "task": "apps.solicitacoes.tasks.recuperar_solicitacoes",
     "schedule": 60.0,
 }
+
+# Journal credentials are file paths, never credential values in URLs or logs.
+JOURNAL_URL = env("JOURNAL_URL", "")
+JOURNAL_EPOCH = env("JOURNAL_EPOCH", "")
+JOURNAL_CLIENT_KEY_ID = env("JOURNAL_CLIENT_KEY_ID", "")
+JOURNAL_CLIENT_KEY_FILE = env("JOURNAL_CLIENT_KEY_FILE", "")
+JOURNAL_RECEIPT_KEY_ID = env("JOURNAL_RECEIPT_KEY_ID", "")
+JOURNAL_RECEIPT_KEY_FILE = env("JOURNAL_RECEIPT_KEY_FILE", "")
+
+# Only one explicitly enumerated proxy hop is supported; the edge overwrites XFF.
+VARAL_TRUSTED_PROXY_COUNT = int(env("VARAL_TRUSTED_PROXY_COUNT", "0"))
+VARAL_TRUSTED_PROXY_CIDRS = tuple(filter(None, env("VARAL_TRUSTED_PROXY_CIDRS", "").split(",")))
+if VARAL_TRUSTED_PROXY_COUNT not in (0, 1) or (
+    VARAL_TRUSTED_PROXY_COUNT and not VARAL_TRUSTED_PROXY_CIDRS
+):
+    raise ImproperlyConfigured("Invalid trusted proxy configuration")
+
+ALLAUTH_TRUSTED_PROXY_COUNT = VARAL_TRUSTED_PROXY_COUNT
+
+CELERY_BEAT_SCHEDULE["recuperar-exportacoes"] = {
+    "task": "apps.privacidade.tasks.recuperar_exportacoes",
+    "schedule": 300.0,
+}
+CELERY_BEAT_SCHEDULE["recuperar-terminais-exclusao"] = {
+    "task": "apps.privacidade.tasks.recuperar_terminais_exclusao",
+    "schedule": 60.0,
+}
+CELERY_BEAT_SCHEDULE["limpar-tickets-google"] = {
+    "task": "apps.contas_usuario.tasks.limpar_tickets_google",
+    "schedule": 300.0,
+}
+
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {"safe": {"()": "config.logging_safe.SafeFilter"}},
+    "formatters": {"safe": {"()": "config.logging_safe.SafeFormatter"}},
+    "handlers": {
+        "safe": {"class": "logging.StreamHandler", "formatter": "safe", "filters": ["safe"]}
+    },
+    "root": {"handlers": ["safe"], "level": "INFO"},
+    "loggers": {
+        "django": {"handlers": ["safe"], "filters": ["safe"], "level": "INFO", "propagate": False},
+        "django.server": {
+            "handlers": ["safe"],
+            "filters": ["safe"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["safe"],
+            "filters": ["safe"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "django.security": {
+            "handlers": ["safe"],
+            "filters": ["safe"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "celery": {"handlers": ["safe"], "filters": ["safe"], "level": "INFO", "propagate": False},
+    },
+}
+
+VARAL_WAL_WITNESS_DIR = env("VARAL_WAL_WITNESS_DIR", "")
+VARAL_WAL_WITNESS_KEY_FILE = env("VARAL_WAL_WITNESS_KEY_FILE", "")
+VARAL_WAL_WITNESS_EPOCH = env("VARAL_WAL_WITNESS_EPOCH", "")
+# Delivery tasks have a 35 s soft limit; reserve time for transport and finalization.
+VARAL_WAL_WITNESS_TIMEOUT = max(1, min(int(env("VARAL_WAL_WITNESS_TIMEOUT", "15")), 20))
+JOURNAL_RESTORE_KEY_ID = env("JOURNAL_RESTORE_KEY_ID", "")
+JOURNAL_RESTORE_KEY_FILE = env("JOURNAL_RESTORE_KEY_FILE", "")
+JOURNAL_CHAIN_KEY_ID = env("JOURNAL_CHAIN_KEY_ID", "")
+JOURNAL_CHAIN_KEY_FILE = env("JOURNAL_CHAIN_KEY_FILE", "")
+JOURNAL_CHECKPOINT_KEY_ID = env("JOURNAL_CHECKPOINT_KEY_ID", "")
+JOURNAL_CHECKPOINT_KEY_FILE = env("JOURNAL_CHECKPOINT_KEY_FILE", "")
+VARAL_RESTORE_MODE = env("VARAL_RESTORE_MODE", "0") == "1"

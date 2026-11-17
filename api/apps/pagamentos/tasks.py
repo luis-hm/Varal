@@ -11,6 +11,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from apps.boletos.tasks import _travar_objeto, agendar
+from apps.solicitacoes.coordenacao import barreira
 
 from .models import DocumentoComprovante, LimpezaComprovante
 from .storage import armazenamento, chave, spool
@@ -48,6 +49,7 @@ def intencao_limpeza(pk):
 @shared_task(bind=True, max_retries=3, default_retry_delay=30, time_limit=90)
 def processar_comprovante(self, documento_id):
     with transaction.atomic():
+        barreira()
         doc = (
             DocumentoComprovante.objects.select_for_update()
             .filter(pk=documento_id, estado="pendente")
@@ -88,19 +90,25 @@ def processar_comprovante(self, documento_id):
                 if not tinha_intencao:
                     LimpezaComprovante.objects.filter(pk=doc.pk, geracao=previa.geracao).delete()
     except Exception:
-        if DocumentoComprovante.objects.filter(
-            pk=doc.pk, estado="lendo", tentativa=tentativa
-        ).update(estado="pendente"):
-            if self.request.retries >= self.max_retries:
+        with transaction.atomic():
+            barreira()
+            changed = DocumentoComprovante.objects.filter(
+                pk=doc.pk, estado="lendo", tentativa=tentativa
+            ).update(estado="pendente")
+            esgotado = self.request.retries >= self.max_retries
+            if changed and esgotado:
                 DocumentoComprovante.objects.filter(
                     pk=doc.pk, estado="pendente", tentativa=tentativa
                 ).update(estado="erro")
+        if changed:
+            if esgotado:
                 return
             raise self.retry(exc=None) from None
         if not DocumentoComprovante.objects.filter(pk=doc.pk).exists():
             intencao_limpeza(doc.pk)
         return
     with transaction.atomic():
+        barreira()
         doc = (
             DocumentoComprovante.objects.select_for_update()
             .filter(pk=documento_id, estado="lendo", tentativa=tentativa)
@@ -135,6 +143,7 @@ def recuperar_limpeza():
 @shared_task
 def limpar_expirados():
     with transaction.atomic():
+        barreira()
         for doc in DocumentoComprovante.objects.select_for_update().filter(
             vinculado_em__isnull=True, criado_em__lt=timezone.now() - timedelta(hours=24)
         ):
@@ -143,9 +152,11 @@ def limpar_expirados():
 
 @shared_task
 def recuperar_comprovantes():
-    DocumentoComprovante.objects.filter(
-        estado="lendo", lido_em__lt=timezone.now() - timedelta(minutes=5)
-    ).update(estado="erro")
+    with transaction.atomic():
+        barreira()
+        DocumentoComprovante.objects.filter(
+            estado="lendo", lido_em__lt=timezone.now() - timedelta(minutes=5)
+        ).update(estado="erro")
     limpar_expirados()
     recuperar_limpeza()
     for pk in DocumentoComprovante.objects.filter(estado="pendente").values_list("pk", flat=True):

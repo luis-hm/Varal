@@ -1,7 +1,7 @@
 # Modelo de dados
 
 > **Contém:** entidades, campos, decisões de modelagem e diagrama ER.
-> **Origem:** `docs/especificacao-varal.md`, seção 8 (diagrama ER derivado das entidades), mais seções de implementação02–10 e ADRs0005/0011–0014; etapa 10 concluída.
+> **Origem:** `docs/especificacao-varal.md`, seção 8 (diagrama ER derivado das entidades), mais seções derivadas de implementação 02–11 e ADRs0005/0011–0015; etapa 11 em validação, sem modificar o trecho literal de origem.
 
 ## 8. Modelo de dados
 
@@ -198,3 +198,27 @@ erDiagram
 - `LimpezaPDF` e `LimpezaComprovante`: acrescentam geração/flag incerta. Intenção renovável antesPUT, cleanup com CAS da geração observada, sem rowlock de intenção/domínio duranteS3. Referência viva, pin ou writer legítimo impede remoção; resultado ambíguo conserva tombstone/reconciliação.
 
 Migrações integradas/aplicadas no desenvolvimento segundo responsáveis: solicitacoes.0001, contas_usuario.0003, notificacoes.0006, boletos.0004 e pagamentos.0002. Prova isoladaORM/S3/Celery demonstrou CASCADE/preservação do compartilhamento aceito, não o fluxoLGPD11, identidade recente, exportação ou telaPerfil. Rodadas dirigidas/prova e limites estão no relatório; integral atual aprovada: 506 pytest, 127 Vitest, lint, tipos determinísticos e 143 E2E/três skips previstos.
+
+## Implementação da Etapa 11
+
+Extensão derivada do código em `api/apps/privacidade/models.py` e `contas_usuario/models.py`, regida pelo [ADR0015](../arquitetura/adr/0015-exportacao-exclusao-e-prova-local.md). O trecho da seção 8 acima continua a cópia de origem; esta seção descreve implementação adicional, sem reexportar ou reescrever a especificação. Categoria continua ausente do produto pelo ADR0005.
+
+| Modelo | Campos e invariantes implementados |
+| --- | --- |
+| `RevisaoExportacao` | Singleton id=1, `epoca` UUID e `valor` inteiro monotônico transacional. Triggers incrementam R na mesma transação das fontes relevantes; rollback reverte incremento. Época muda na restauração reconciliada, invalidando jobs antigos |
+| `Exportacao` | UUID, FK usuário CASCADE, `chave` UUID e hash do corpo, unicidade usuário/chave; criado/expira, estado pendente/processando/pronto/falhou/expirado; geração, tentativa UUID, lease, época/R capturados, objeto UUID, formato interno, SHA256 e manifestos. TTL absoluto 24 h desde o pedido |
+| `ParteExportacao` | FK job CASCADE, tentativa, categoria técnica da projeção, cursor e JSON; unicidade job/tentativa/categoria/cursor. Staging privado por lote de 500; categoria aqui não é categoria financeira do ADR0005 |
+| `IntencaoExclusao` | UUID, FK usuário CASCADE, hashes de segredo e sessão, expiração/consumo. O segredo só é entregue na criação; consumo ocorre no commit bem-sucedido, não no 409 |
+| `OperacaoExclusao` | UUID sem FK CASCADE de usuário, `owner_id` UUID opaco não derivado de e-mail, intenção UUID, estado, fence, recibos PREPARE/terminal e criação. Sobrevive à exclusão para reconciliação; pseudônimo protegido, não dado anônimo |
+| `LimpezaExportacao` | UUID do objeto, geração, flag incerta e criação. Intenção durável independente de job para cleanup após expiração/exclusão e reconciliação de escrita tardia |
+| `MarcaRestauracao` | UUID da operação e criação, marcado exclusivamente no clone após replay/promoção; não é prova física autossuficiente |
+| `ExecucaoRestauracao` | UUID da operação, fence UUID, sequência/MAC journal, target LSN, digest da prova e criação; retry só com a mesma prova, registro junto da reaplicação transacional |
+| `TicketGoogle` | UUID, FK usuário CASCADE, tentativa UUID, expiração e consumo; ticket único de cinco minutos emitido após callback Google nativo validado pelo allauth |
+
+O artefato privado usa **formato interno 2**, com blocos/manifestos/hash, sem alterar o contrato entregue: JSON externo `schema_version: 1`. Download prepara spool fora da barreira e revalida identidade/sessão/prova/TTL/ACL e, por último, R; depois libera a barreira antes da emissão pela rede. Revisão não substitui autorização nem relógio.
+
+A barreira de domínio usa advisory lock transacional PostgreSQL de duas chaves `(0x56415241, 10)`, separado dos mutexes operacionais de objeto de chave bigint. Entra antes de locks de domínio; rede/S3/parser/SMTP/Push/journal não executam dentro dela. Leitores de R não usam row lock; isso isoladamente não elimina deadlock entre writers fora do protocolo. Triggers/inventário e coordenação de writers são partes da garantia, não um marcador universal allauth.
+
+Exclusão valida RN04/RN32 do conjunto antes de efeitos pessoais. Grupo/evidências legítimos permanecem; referências de autoria estruturada tornam-se NULL/Ex-membro, sem promessa de remover menções livres/PDF/EXIF compartilhados. Pins e reservas aceitas 10 conservam somente snapshot/destino autorizados e nunca recriam pessoal. Journal externo PREPARE/COMMIT/ABORT não é tabela de perfil; protocolo e recuperação estão no [journal](../arquitetura/protocolo-journal.md) e [runbook](../arquitetura/operacao-local.md).
+
+Modelos e migrações existentes não constituem aceite dos CAs. A preservação dos direitos de aceites posteriores ao target PITR está sob correção/prova integrada; restore não pode abrir só porque objetos ou ledger conferem.

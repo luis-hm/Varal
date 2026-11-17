@@ -5,7 +5,8 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { Page } from "@playwright/test";
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { test } from "./rn31-isolation";
 import {
   ORIGIN,
   TEST_PASSWORD,
@@ -105,7 +106,9 @@ test("ca01/ca04/ca05/ca17 rf04/rf05/rf07 rn04/rn24/rn31: admin cria grupo e casa
     const email = uniqueEmail();
     await visitante.getByLabel("E-mail", { exact: true }).filter({ visible: true }).fill(email);
     await visitante.getByLabel("Senha", { exact: true }).filter({ visible: true }).fill(TEST_PASSWORD);
+    const cadastro = visitante.waitForResponse((response) => new URL(response.url()).pathname === "/api/auth/browser/v1/auth/signup" && response.request().method() === "POST");
     await visitante.getByRole("button", { name: "Criar conta", exact: true }).click();
+    expect((await cadastro).status()).toBe(200);
     await expect(visitante).toHaveURL(`${ORIGIN}/c/${token}`);
     await visivel(visitante, "Aceitar convite").click();
     // RN07 / decision 6: the payer lands on the simple mode.
@@ -217,9 +220,13 @@ test("ca09/ca11/ca15/ca17 rn01/rn05/rn07 rnf01: admin com ações, membro e obse
 
   // CA17 (desktop): the admin's selector lists Pessoal and the group (full page).
   if (info.project.name === "desktop") {
-    await page.getByRole("button", { name: /Trocar de espaço/ }).click();
-    await expect(visivel(page, /Espaço pessoal/)).toBeVisible();
-    await expect(visivel(page, new RegExp(`${grupo.nome}.*Grupo · Admin`))).toBeVisible();
+    const seletor = page.getByRole("button", { name: /Trocar de espaço/ });
+    await seletor.click();
+    const menuId = await seletor.getAttribute("aria-controls");
+    expect(menuId).toBeTruthy();
+    const menuEspacos = page.locator(`[id=${JSON.stringify(menuId)}]`);
+    await expect(menuEspacos.getByRole("button", { name: /Espaço pessoal/ })).toBeVisible();
+    await expect(menuEspacos.getByRole("button", { name: new RegExp(`${grupo.nome}.*Grupo · Admin`) })).toBeVisible();
   }
 });
 

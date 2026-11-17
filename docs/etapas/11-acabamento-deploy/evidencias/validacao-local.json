@@ -1,0 +1,145 @@
+{
+  "schema": 1,
+  "note": "Cortes distintos; não somar contagens nem atribuir aprovação de desempenho/E2E a estes comandos.",
+  "runs": [
+    {
+      "run": "final-test-supervised-01",
+      "status": "passed",
+      "target": "test",
+      "started_utc": "2026-11-16T20:20:48Z",
+      "finished_utc": "2026-11-16T20:35:45Z",
+      "elapsed_seconds": 897.0943171049876,
+      "exit_code": 0,
+      "source_before": {
+        "api/apps": "7a781c795ac7f95add09c106f31d897bcdfb2e79d032ea5fa774866fe879f151",
+        "api/config": "0ab29068402835784bed0dfd35a0ec392cb55a29386cad6f428166d12666735d",
+        "api/tests": "9bf22120cb2a0851dbbe604670502bf461e5617f0bfcd1d920ee0f90b5f2305a",
+        "web/src": "863bdb06e86942e7566023594d81353b6990d4a43dab81b4c4baffe517a63961"
+      },
+      "source_after": {
+        "api/apps": "7a781c795ac7f95add09c106f31d897bcdfb2e79d032ea5fa774866fe879f151",
+        "api/config": "0ab29068402835784bed0dfd35a0ec392cb55a29386cad6f428166d12666735d",
+        "api/tests": "9bf22120cb2a0851dbbe604670502bf461e5617f0bfcd1d920ee0f90b5f2305a",
+        "web/src": "863bdb06e86942e7566023594d81353b6990d4a43dab81b4c4baffe517a63961"
+      },
+      "source_changed": false
+    },
+    {
+      "run": "final-web-supervised-02",
+      "status": "passed",
+      "target": "test-web",
+      "started_utc": "2026-11-16T21:18:01Z",
+      "finished_utc": "2026-11-16T21:20:39Z",
+      "elapsed_seconds": 157.5731191880186,
+      "exit_code": 0,
+      "source_before": {
+        "api/apps": "7a781c795ac7f95add09c106f31d897bcdfb2e79d032ea5fa774866fe879f151",
+        "api/config": "0ab29068402835784bed0dfd35a0ec392cb55a29386cad6f428166d12666735d",
+        "api/tests": "9bf22120cb2a0851dbbe604670502bf461e5617f0bfcd1d920ee0f90b5f2305a",
+        "web/src": "466fcafa99f066551d4ae036edd7f174f845c622ae6a3a1c993cf4b84f3c292d"
+      },
+      "source_after": {
+        "api/apps": "7a781c795ac7f95add09c106f31d897bcdfb2e79d032ea5fa774866fe879f151",
+        "api/config": "0ab29068402835784bed0dfd35a0ec392cb55a29386cad6f428166d12666735d",
+        "api/tests": "9bf22120cb2a0851dbbe604670502bf461e5617f0bfcd1d920ee0f90b5f2305a",
+        "web/src": "466fcafa99f066551d4ae036edd7f174f845c622ae6a3a1c993cf4b84f3c292d"
+      },
+      "source_changed": false
+    },
+    {
+      "run": "final-web-f2-02",
+      "status": "passed",
+      "target": "test-web",
+      "started_utc": "2026-11-17T00:09:02Z",
+      "finished_utc": "2026-11-17T00:11:44Z",
+      "elapsed_seconds": 162.41791371,
+      "exit_code": 0,
+      "source_before": {
+        "api/apps": "7a781c795ac7f95add09c106f31d897bcdfb2e79d032ea5fa774866fe879f151",
+        "api/config": "0ab29068402835784bed0dfd35a0ec392cb55a29386cad6f428166d12666735d",
+        "api/tests": "9bf22120cb2a0851dbbe604670502bf461e5617f0bfcd1d920ee0f90b5f2305a",
+        "web/src": "7ea2412597c5f15bf58ba65c694b800808e7891f9997f6dc9e3aa6ae8e532eca"
+      },
+      "source_after": {
+        "api/apps": "7a781c795ac7f95add09c106f31d897bcdfb2e79d032ea5fa774866fe879f151",
+        "api/config": "0ab29068402835784bed0dfd35a0ec392cb55a29386cad6f428166d12666735d",
+        "api/tests": "9bf22120cb2a0851dbbe604670502bf461e5617f0bfcd1d920ee0f90b5f2305a",
+        "web/src": "7ea2412597c5f15bf58ba65c694b800808e7891f9997f6dc9e3aa6ae8e532eca"
+      },
+      "source_changed": false
+    },
+    {
+      "run": "final-e2e-f2-02",
+      "status": "interrupted",
+      "target": "e2e",
+      "started_utc": "2026-11-17T00:46:40Z",
+      "finished_utc": "2026-11-17T00:57:09Z",
+      "elapsed_seconds": 628.9304295559996,
+      "exit_code": -15,
+      "source_before": {
+        "api/apps": "7a781c795ac7f95add09c106f31d897bcdfb2e79d032ea5fa774866fe879f151",
+        "api/config": "0ab29068402835784bed0dfd35a0ec392cb55a29386cad6f428166d12666735d",
+        "api/tests": "9bf22120cb2a0851dbbe604670502bf461e5617f0bfcd1d920ee0f90b5f2305a",
+        "web/src": "7ea2412597c5f15bf58ba65c694b800808e7891f9997f6dc9e3aa6ae8e532eca"
+      },
+      "source_after": {
+        "api/apps": "7a781c795ac7f95add09c106f31d897bcdfb2e79d032ea5fa774866fe879f151",
+        "api/config": "0ab29068402835784bed0dfd35a0ec392cb55a29386cad6f428166d12666735d",
+        "api/tests": "9bf22120cb2a0851dbbe604670502bf461e5617f0bfcd1d920ee0f90b5f2305a",
+        "web/src": "7ea2412597c5f15bf58ba65c694b800808e7891f9997f6dc9e3aa6ae8e532eca"
+      },
+      "source_changed": false,
+      "stop_reason": "signal:15"
+    },
+    {
+      "run": "final-e2e-f2-03",
+      "passed": 135,
+      "failed": 8,
+      "skipped": 3,
+      "total": 146,
+      "status": "failed",
+      "target": "e2e",
+      "started_utc": "2026-11-17T00:59:44Z",
+      "finished_utc": "2026-11-17T01:24:38Z",
+      "elapsed_seconds": 1495.2793301779893,
+      "exit_code": 2,
+      "source_before": {
+        "api/apps": "7a781c795ac7f95add09c106f31d897bcdfb2e79d032ea5fa774866fe879f151",
+        "api/config": "0ab29068402835784bed0dfd35a0ec392cb55a29386cad6f428166d12666735d",
+        "api/tests": "9bf22120cb2a0851dbbe604670502bf461e5617f0bfcd1d920ee0f90b5f2305a",
+        "web/src": "7ea2412597c5f15bf58ba65c694b800808e7891f9997f6dc9e3aa6ae8e532eca"
+      },
+      "source_after": {
+        "api/apps": "7a781c795ac7f95add09c106f31d897bcdfb2e79d032ea5fa774866fe879f151",
+        "api/config": "0ab29068402835784bed0dfd35a0ec392cb55a29386cad6f428166d12666735d",
+        "api/tests": "9bf22120cb2a0851dbbe604670502bf461e5617f0bfcd1d920ee0f90b5f2305a",
+        "web/src": "7ea2412597c5f15bf58ba65c694b800808e7891f9997f6dc9e3aa6ae8e532eca"
+      },
+      "source_changed": false
+    },
+    {
+      "run": "final-web-hydration-01",
+      "tests_passed": 156,
+      "files_passed": 44,
+      "status": "passed",
+      "target": "test-web",
+      "started_utc": "2026-11-17T01:36:43Z",
+      "finished_utc": "2026-11-17T01:39:23Z",
+      "elapsed_seconds": 160.24302691101911,
+      "exit_code": 0,
+      "source_before": {
+        "api/apps": "7a781c795ac7f95add09c106f31d897bcdfb2e79d032ea5fa774866fe879f151",
+        "api/config": "0ab29068402835784bed0dfd35a0ec392cb55a29386cad6f428166d12666735d",
+        "api/tests": "9bf22120cb2a0851dbbe604670502bf461e5617f0bfcd1d920ee0f90b5f2305a",
+        "web/src": "1c2b0d3bd2b2273c86a51fde503774266915deb56d9198f164d7dfc737867162"
+      },
+      "source_after": {
+        "api/apps": "7a781c795ac7f95add09c106f31d897bcdfb2e79d032ea5fa774866fe879f151",
+        "api/config": "0ab29068402835784bed0dfd35a0ec392cb55a29386cad6f428166d12666735d",
+        "api/tests": "9bf22120cb2a0851dbbe604670502bf461e5617f0bfcd1d920ee0f90b5f2305a",
+        "web/src": "1c2b0d3bd2b2273c86a51fde503774266915deb56d9198f164d7dfc737867162"
+      },
+      "source_changed": false
+    }
+  ]
+}

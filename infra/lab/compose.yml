@@ -1,0 +1,372 @@
+# Disposable local production-shaped laboratory only. Invoke via lab11 scripts with a unique project.
+x-api: &api
+  image: varal11-api-lab:local
+  build:
+    context: ../..
+    dockerfile: infra/lab/api.Dockerfile
+  env_file: ${LAB_RUNTIME_ENV:?provide synthetic runtime environment}
+  environment:
+    POSTGRES_HOST: postgres
+    REDIS_URL: redis://redis:6379/0
+    S3_ENDPOINT_URL: http://storage:9000
+    PDF_SPOOL_DIR: /varal/staging
+    SSL_CERT_FILE: /run/lab-ca/ca.pem
+    JOURNAL_URL: http://journal:8090
+    JOURNAL_CLIENT_KEY_ID: writer-v1
+    JOURNAL_CLIENT_KEY_FILE: /run/journal-keys/writer
+    JOURNAL_RECEIPT_KEY_ID: receipt-v1
+    JOURNAL_RECEIPT_KEY_FILE: /run/journal-keys/receipt
+    VARAL_WAL_WITNESS_DIR: /run/wal-witness
+    VARAL_WAL_WITNESS_KEY_FILE: /run/wal-keys/witness
+    VARAL_WAL_WITNESS_EPOCH: ${LAB_JOURNAL_EPOCH:?}
+    VARAL_TRUSTED_PROXY_COUNT: '1'
+    VARAL_TRUSTED_PROXY_CIDRS: '${LAB_EDGE_IP:?}/32,${LAB_SSR_IP:?}/32'
+  volumes:
+    - staging:/varal/staging
+    - ${LAB_TLS_DIR:?}/ca.pem:/run/lab-ca/ca.pem:ro
+    - wal_acks:/run/wal-witness:ro
+    - ${LAB_KEYS_DIR:?}/wal-witness:/run/wal-keys/witness:ro
+    - ${LAB_KEYS_DIR:?}/writer:/run/journal-keys/writer:ro
+    - ${LAB_KEYS_DIR:?}/receipt:/run/journal-keys/receipt:ro
+  networks: [application, data, journal]
+  restart: 'no'
+
+services:
+  postgres:
+    image: varal11-postgres-lab:local
+    build:
+      context: ../wal
+      dockerfile: postgres.Dockerfile
+    command: [postgres, -c, wal_level=replica, -c, archive_mode=on, -c, 'archive_command=/usr/local/bin/varal-archive-wal %p %f', -c, archive_timeout=300]
+    environment:
+      POSTGRES_DB: ${LAB_POSTGRES_DB:?}
+      POSTGRES_USER: ${LAB_POSTGRES_ADMIN:?}
+      POSTGRES_PASSWORD: ${LAB_POSTGRES_ADMIN_PASSWORD:?}
+      APP_USER: ${LAB_POSTGRES_USER:?}
+      APP_PASSWORD: ${LAB_POSTGRES_PASSWORD:?}
+      MIGRATE_USER: ${LAB_POSTGRES_MIGRATE_USER:?}
+      MIGRATE_PASSWORD: ${LAB_POSTGRES_MIGRATE_PASSWORD:?}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - wal_spool:/varal/wal-spool
+      - wal_acks:/varal/wal-acks:ro
+    networks: [data]
+    depends_on:
+      wal-archive: {condition: service_healthy}
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  redis:
+    image: redis:7-alpine@sha256:02f2cc4882f8bf87c79a220ac958f58c700bdec0dfb9b9ea61b62fb0e8f1bfcf
+    networks: [data]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  storage:
+    image: pgsty/silo:RELEASE.2026-11-12T00-00-00Z@sha256:c20d112390b9a9ce8c11b8af95ad35bcaa62f4759663c09c936cd8d2b511f329
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${LAB_STORAGE_USER:?}
+      MINIO_ROOT_PASSWORD: ${LAB_STORAGE_PASSWORD:?}
+    volumes: [objects:/data]
+    networks: [data, application]
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, 'http://localhost:9000/minio/health/ready']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  smtp-capture:
+    image: varal11-smtp-lab:local
+    build:
+      context: .
+      dockerfile: smtp.Dockerfile
+    volumes:
+      - '${LAB_TLS_DIR:?}/ca.pem:/run/smtp/ca.pem:ro'
+      - '${LAB_TLS_DIR:?}/smtp.pem:/run/smtp/cert.pem:ro'
+      - '${LAB_TLS_DIR:?}/smtp.key:/run/smtp/key.pem:ro'
+    tmpfs: ['/capture:uid=10002,gid=10002,mode=0700']
+    read_only: true
+    healthcheck:
+      test: [CMD, python, /srv/smtp-health.py]
+      interval: 10s
+      timeout: 30s
+      retries: 6
+      start_period: 60s
+    networks: [data]
+    restart: 'no'
+  wal-init:
+    profiles: [initialize]
+    image: varal11-wal-lab:local
+    build: &wal-build
+      context: ../..
+      dockerfile: infra/wal/archive.Dockerfile
+    command:
+      - --spool
+      - /varal/wal-spool
+      - --archive
+      - /varal/wal-archive
+      - --acks
+      - /varal/wal-acks
+      - --anchor
+      - /varal/wal-anchor
+      - --epoch
+      - ${LAB_JOURNAL_EPOCH:?}
+      - --cipher-key
+      - /run/keys/wal-cipher
+      - --witness-key
+      - /run/keys/wal-witness
+      - --init
+    volumes: &wal-volumes
+      - wal_spool:/varal/wal-spool
+      - wal_archive:/varal/wal-archive
+      - wal_acks:/varal/wal-acks
+      - wal_anchor:/varal/wal-anchor
+      - ${LAB_KEYS_DIR:?}/wal-cipher:/run/keys/wal-cipher:ro
+      - ${LAB_KEYS_DIR:?}/wal-witness:/run/keys/wal-witness:ro
+    network_mode: none
+    restart: 'no'
+  wal-archive:
+    image: varal11-wal-lab:local
+    build: *wal-build
+    command:
+      - --spool
+      - /varal/wal-spool
+      - --archive
+      - /varal/wal-archive
+      - --acks
+      - /varal/wal-acks
+      - --anchor
+      - /varal/wal-anchor
+      - --epoch
+      - ${LAB_JOURNAL_EPOCH:?}
+      - --cipher-key
+      - /run/keys/wal-cipher
+      - --witness-key
+      - /run/keys/wal-witness
+    volumes: *wal-volumes
+    network_mode: none
+    healthcheck:
+      test: [CMD, python, /srv/health.py]
+      interval: 10s
+      timeout: 30s
+      retries: 6
+      start_period: 60s
+    restart: 'no'
+  journal-init:
+    profiles: [initialize]
+    image: varal11-journal-lab:local
+    build: &journal-build
+      context: ../journal
+      dockerfile: Dockerfile
+    command: &journal-command
+      - --directory
+      - /varal/journal
+      - --checkpoint-directory
+      - /varal/checkpoint
+      - --epoch
+      - ${LAB_JOURNAL_EPOCH:?}
+      - --chain-key-file
+      - /run/keys/chain
+      - --receipt-key-file
+      - /run/keys/receipt
+      - --checkpoint-key-file
+      - /run/keys/checkpoint
+      - --writer-key-file
+      - /run/keys/writer
+      - --restore-key-file
+      - /run/keys/restore
+      - --fence-key-file
+      - /run/keys/fence
+      - --init
+    volumes: &journal-volumes
+      - journal_data:/varal/journal
+      - journal_checkpoint:/varal/checkpoint
+      - ${LAB_KEYS_DIR:?}:/run/keys:ro
+    network_mode: none
+    restart: 'no'
+  journal:
+    image: varal11-journal-lab:local
+    build: *journal-build
+    command:
+      - --directory
+      - /varal/journal
+      - --checkpoint-directory
+      - /varal/checkpoint
+      - --epoch
+      - ${LAB_JOURNAL_EPOCH:?}
+      - --chain-key-file
+      - /run/keys/chain
+      - --receipt-key-file
+      - /run/keys/receipt
+      - --checkpoint-key-file
+      - /run/keys/checkpoint
+      - --writer-key-file
+      - /run/keys/writer
+      - --restore-key-file
+      - /run/keys/restore
+      - --fence-key-file
+      - /run/keys/fence
+      - --listen
+      - 0.0.0.0
+    volumes: *journal-volumes
+    networks: [journal]
+    healthcheck:
+      test: [CMD, python, /srv/journal/health.py]
+      interval: 10s
+      timeout: 30s
+      retries: 6
+      start_period: 60s
+    restart: 'no'
+  migrate:
+    <<: *api
+    command: [python, /app/migrate.py]
+    volumes:
+      - migration_lock:/varal/lock
+      - staging:/varal/staging
+      - ${LAB_KEYS_DIR:?}/writer:/run/journal-keys/writer:ro
+      - ${LAB_KEYS_DIR:?}/receipt:/run/journal-keys/receipt:ro
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${LAB_POSTGRES_MIGRATE_USER:?}
+      VARAL_RUNTIME_DB_ROLE: ${LAB_POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${LAB_POSTGRES_MIGRATE_PASSWORD:?}
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT_URL: http://storage:9000
+      PDF_SPOOL_DIR: /varal/staging
+      WEBPUSH_PRIVATE_KEY: ''
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    restart: 'no'
+  storage-init:
+    image: varal11-storage-init-lab:local
+    build:
+      context: .
+      dockerfile: storage-init.Dockerfile
+    environment:
+      STORAGE_ADMIN_USER: ${LAB_STORAGE_USER:?}
+      STORAGE_ADMIN_PASSWORD: ${LAB_STORAGE_PASSWORD:?}
+      STORAGE_APP_USER: ${LAB_STORAGE_APP_USER:?}
+      STORAGE_APP_PASSWORD: ${LAB_STORAGE_APP_PASSWORD:?}
+    tmpfs: ['/tmp:mode=0700']
+    networks: [data]
+    depends_on:
+      storage: {condition: service_healthy}
+    restart: 'no'
+  api:
+    <<: *api
+    healthcheck:
+      test: [CMD, python, /app/api-ready.py]
+      interval: 15s
+      timeout: 30s
+      retries: 4
+      start_period: 60s
+    command: [gunicorn, -c, /app/gunicorn.conf.py, 'config.wsgi:application', --bind, '0.0.0.0:8000']
+    depends_on: &dependencies
+      migrate: {condition: service_completed_successfully}
+      storage-init: {condition: service_completed_successfully}
+      journal: {condition: service_healthy}
+      smtp-capture: {condition: service_healthy}
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT_URL: http://storage:9000
+      PDF_SPOOL_DIR: /varal/staging
+      SSL_CERT_FILE: /run/lab-ca/ca.pem
+      JOURNAL_URL: http://journal:8090
+      JOURNAL_CLIENT_KEY_ID: writer-v1
+      JOURNAL_CLIENT_KEY_FILE: /run/journal-keys/writer
+      JOURNAL_RECEIPT_KEY_ID: receipt-v1
+      JOURNAL_RECEIPT_KEY_FILE: /run/journal-keys/receipt
+      VARAL_WAL_WITNESS_DIR: /run/wal-witness
+      VARAL_WAL_WITNESS_KEY_FILE: /run/wal-keys/witness
+      VARAL_WAL_WITNESS_EPOCH: ${LAB_JOURNAL_EPOCH:?}
+      VARAL_TRUSTED_PROXY_COUNT: '1'
+      VARAL_TRUSTED_PROXY_CIDRS: '${LAB_EDGE_IP:?}/32,${LAB_SSR_IP:?}/32'
+      WEBPUSH_PRIVATE_KEY: ''
+  worker:
+    <<: *api
+    command: [celery, -A, config, worker, -l, warning]
+    depends_on: *dependencies
+  beat:
+    <<: *api
+    command: [celery, -A, config, beat, -l, warning, --schedule, /varal/beat/celerybeat-schedule]
+    volumes:
+      - beat:/varal/beat
+      - staging:/varal/staging
+      - ${LAB_KEYS_DIR:?}/writer:/run/journal-keys/writer:ro
+      - ${LAB_KEYS_DIR:?}/receipt:/run/journal-keys/receipt:ro
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT_URL: http://storage:9000
+      WEBPUSH_PRIVATE_KEY: ''
+      NOTIFICACOES_STORAGE_KEY: ''
+    depends_on: *dependencies
+  web:
+    image: varal11-web-lab:local
+    build:
+      context: ../..
+      dockerfile: infra/lab/web.Dockerfile
+    environment:
+      API_INTERNAL_URL: http://ssr:8080
+      NODE_ENV: production
+    networks:
+      frontend:
+        ipv4_address: ${LAB_WEB_IP:?}
+    depends_on:
+      api: {condition: service_healthy}
+  ssr:
+    image: nginx:1.30.6-alpine@sha256:901e593c95dc85f5a729f5765516321366ef4ac401821431d408897e95287d0a
+    entrypoint: [nginx, -g, 'daemon off;']
+    volumes: ['${LAB_SSR_CONFIG:?}:/etc/nginx/nginx.conf:ro']
+    networks:
+      frontend: {}
+      application:
+        ipv4_address: ${LAB_SSR_IP:?}
+    depends_on:
+      api: {condition: service_healthy}
+  edge:
+    image: nginx:1.30.6-alpine@sha256:901e593c95dc85f5a729f5765516321366ef4ac401821431d408897e95287d0a
+    entrypoint: [nginx, -g, 'daemon off;']
+    ports: ['127.0.0.1:${LAB_PORT:?}:8443']
+    volumes:
+      - '${LAB_EDGE_CONFIG:?}:/etc/nginx/nginx.conf:ro'
+      - '${LAB_TLS_DIR:?}/cert.pem:/run/lab-tls/cert.pem:ro'
+      - '${LAB_TLS_DIR:?}/key.pem:/run/lab-tls/key.pem:ro'
+    networks:
+      frontend:
+        aliases: [varal.local, s3.varal.local]
+      application:
+        ipv4_address: ${LAB_EDGE_IP:?}
+    depends_on:
+      api: {condition: service_healthy}
+      web: {condition: service_started}
+
+networks:
+  frontend:
+    internal: true
+    ipam:
+      config: [{subnet: '${LAB_FRONTEND_SUBNET:?}'}]
+  data: {internal: true}
+  journal: {internal: true}
+  application:
+    internal: true
+    ipam:
+      config: [{subnet: '${LAB_APPLICATION_SUBNET:?}'}]
+volumes:
+  postgres: {}
+  objects: {}
+  staging: {}
+  migration_lock: {}
+  beat: {}
+  journal_data: {}
+  journal_checkpoint: {}
+  wal_spool: {}
+  wal_archive: {}
+  wal_acks: {}
+  wal_anchor: {}

@@ -2,7 +2,20 @@ from copy import deepcopy
 
 from allauth.headless.spec.internal.schema import get_schema as get_headless_schema
 from drf_spectacular.generators import SchemaGenerator
+from drf_spectacular.openapi import AutoSchema
 from openapi_spec_validator import validate
+
+
+class VaralAutoSchema(AutoSchema):
+    def _get_request_body(self, direction="request"):
+        # DRF Spectacular omits DELETE bodies by default; RN30 deliberately requires
+        # a CSRF-protected, typed confirmation in this one operation.
+        if self.method == "DELETE" and self.path == "/api/me/" and direction == "request":
+            from apps.privacidade.views import ConfirmacaoExclusaoSerializer
+
+            component = self.resolve_serializer(ConfirmacaoExclusaoSerializer, direction)
+            return {"required": True, "content": {"application/json": {"schema": component.ref}}}
+        return super()._get_request_body(direction)
 
 
 def namespace_components(value):

@@ -1,0 +1,7 @@
+**
+!web/
+!web/package.json
+!web/package-lock.json
+!infra/
+!infra/lab/
+!infra/lab/browser-start.sh

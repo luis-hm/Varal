@@ -1,0 +1,10 @@
+**
+!api/
+!api/pyproject.toml
+!api/uv.lock
+!infra/
+!infra/wal/
+!infra/wal/archive.py
+!infra/wal/health.py
+!infra/wal/verify.py
+!infra/wal/export.py

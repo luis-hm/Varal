@@ -45,10 +45,10 @@ type Props = {
   /** Menu options: personal space and each group (from /api/me/). Without them the selector is static. */
   espacos?: EspacoOpcao[];
   onEscolher?: (opcao: EspacoOpcao) => void;
-  onNovaConta?: () => void;
+  onNovaConta?: (origem: HTMLElement) => void;
   usuario?: Pessoa;
   avisos?: number;
-  onAvisos?: () => void;
+  onAvisos?: (origem: HTMLElement) => void;
 };
 
 type SeletorProps = {
@@ -83,10 +83,10 @@ export function SeletorEspaco({ espaco, espacos, onEscolher, variant = "card" }:
 
   const conteudo = (
     <>
-      <span className={styles.av}>{espaco.iniciais}</span>
+      <span className={styles.av}>{espaco.iniciais}</span>{" "}
       <span className={styles.tx}>
         <span className={styles.spaceName} title={espaco.nome}>{espaco.nome}</span>
-        {variant === "card" && <small>{espaco.detalhe}</small>}
+        {variant === "card" && <>{" "}<small>{espaco.detalhe}</small></>}
       </span>
       <Icon name="chevron" size="sm" className={styles.down} />
     </>
@@ -100,7 +100,7 @@ export function SeletorEspaco({ espaco, espacos, onEscolher, variant = "card" }:
         className={styles.sp}
         aria-expanded={aberto}
         aria-controls={menuId}
-        aria-label={`Espaço: ${espaco.nome}. Trocar de espaço`}
+        aria-label={`${espaco.iniciais} ${espaco.nome}${variant === "card" ? ` ${espaco.detalhe}` : ""}. Trocar de espaço`}
         onClick={() => setAberto(!aberto)}
       >
         {conteudo}
@@ -143,7 +143,7 @@ export function SideNav({ active, espaco, espacos, onEscolher, onNovaConta, usua
         <Logo />
       </Link>
       {espaco && <SeletorEspaco espaco={espaco} espacos={espacos} onEscolher={onEscolher} />}
-      <button type="button" className={styles.new} onClick={onNovaConta} aria-haspopup="dialog">
+      <button type="button" className={styles.new} onClick={(event) => onNovaConta?.(event.currentTarget)} aria-haspopup="dialog">
         <Icon name="mais" size="md" />
         Nova conta
       </button>
@@ -153,7 +153,7 @@ export function SideNav({ active, espaco, espacos, onEscolher, onNovaConta, usua
             key={s}
             state={s === active ? "on" : "off"}
             count={s === "avisos" ? avisos : undefined}
-            onClick={s === "avisos" && onAvisos ? (event) => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && event.button === 0) { event.preventDefault(); onAvisos(); } } : undefined}
+            onClick={s === "avisos" && onAvisos ? (event) => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && event.button === 0) { event.preventDefault(); onAvisos(event.currentTarget); } } : undefined}
             {...secoes[s]}
           />
         ))}

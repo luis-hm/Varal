@@ -539,9 +539,11 @@ def test_q09_4_erro_no_quit_nao_desfaz_aceite_email(settings):
 @pytest.mark.django_db(transaction=True)
 def test_q09_6_ordem_logout_e_post_mesma_instalacao_sem_deadlock(f, settings):
     import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    from django.db import connection
 
     from apps.notificacoes import sessoes
-    from tests.test_grupos import rodar_em_paralelo
 
     settings.WEBPUSH_ENABLED, settings.WEBPUSH_PUBLIC_KEY = True, "chave-publica"
     settings.WEBPUSH_ALLOWED_HOSTS = {"fcm.googleapis.com"}
@@ -551,12 +553,14 @@ def test_q09_6_ordem_logout_e_post_mesma_instalacao_sem_deadlock(f, settings):
     assert primeira.status_code == 201
     b_travou = threading.Event()
     a_tentou = threading.Event()
+    a_iniciou = threading.Event()
+    liberar = threading.Event()
     original = sessoes.travar_instalacao
 
     def trava_b(usuario, identificador):
         valor = original(usuario, identificador)
         b_travou.set()
-        assert a_tentou.wait(5)
+        assert liberar.wait(15)
         return valor
 
     def trava_a(usuario, identificador):
@@ -564,20 +568,36 @@ def test_q09_6_ordem_logout_e_post_mesma_instalacao_sem_deadlock(f, settings):
         return original(usuario, identificador)
 
     def sair_a():
-        assert b_travou.wait(5)
-        a.logout()
+        try:
+            a_iniciou.set()
+            a.logout()
+        finally:
+            connection.close()
+
+    def postar_b():
+        try:
+            return b.post(
+                "/api/notificacoes/push/inscricoes/", dados, content_type="application/json"
+            )
+        finally:
+            connection.close()
 
     with (
         patch("apps.notificacoes.views.travar_instalacao", side_effect=trava_b),
         patch("apps.notificacoes.signals.travar_instalacao", side_effect=trava_a),
     ):
-        resultados = rodar_em_paralelo(
-            sair_a,
-            lambda: b.post(
-                "/api/notificacoes/push/inscricoes/", dados, content_type="application/json"
-            ),
-        )
-    assert resultados[0] is None and resultados[1].status_code == 409
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futuro_b = executor.submit(postar_b)
+            assert b_travou.wait(15)
+            futuro_a = executor.submit(sair_a)
+            assert a_iniciou.wait(15)
+            try:
+                # A waits at the global barrier while B owns it; no lock inversion.
+                assert not a_tentou.wait(0.2)
+            finally:
+                liberar.set()
+            assert futuro_b.result(timeout=20).status_code == 409
+            assert futuro_a.result(timeout=20) is None
     assert not InscricaoPush.objects.get(pk=primeira.json()["id"]).ativa
 
 

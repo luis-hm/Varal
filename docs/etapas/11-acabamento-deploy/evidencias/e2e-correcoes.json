@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "note": "Retestes distintos, não uma integral E2E verde. Primeiro foco: 10 passaram, 1 falhou, 1 skip; geometria posterior: 1 passou com aviso de hidratação; após correção do hook: 1 passou exigindo ausência de erro de hidratação.",
+  "runs": [
+    {
+      "run": "e2e-correcoes",
+      "status": "failed",
+      "exit_code": 1,
+      "finished": 1794879065.4228537
+    },
+    {
+      "run": "e2e-dec27",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1794879217.6755135
+    },
+    {
+      "run": "e2e-dec27-hydration",
+      "status": "passed",
+      "exit_code": 0,
+      "finished": 1794879364.5194879
+    }
+  ]
+}
