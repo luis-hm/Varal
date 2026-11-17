@@ -181,7 +181,10 @@ test("ca18: navegação entre as seções com um único item ativo", async ({ pa
     await expect(page).toHaveURL(href);
     // Etapa 04: Início greets by name (D02); Contas and Grupos are real screens.
     if (href !== "/") await expect(page.getByRole("heading", { level: 1 })).toHaveText(titulo);
-    if (href === "/perfil") await expect(page.getByText("Em breve", { exact: true }).filter({ visible: true })).toBeVisible();
+    if (href === "/perfil") {
+      await expect(page.getByRole("heading", { name: "Seus dados" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Preparar exportação" })).toBeVisible();
+    }
 
     const ativos = page.locator('[aria-current="page"]:visible');
     await expect(ativos).toHaveCount(1);

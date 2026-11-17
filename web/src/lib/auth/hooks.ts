@@ -9,11 +9,11 @@ export const useLogin = () => useMutation({ mutationFn: login });
 export const useSignup = () => useMutation({ mutationFn: signup });
 export const useRequestPassword = () => useMutation({ mutationFn: requestPassword });
 export const useResetPassword = () => useMutation({ mutationFn: resetPassword });
-export const useLogout = () => useMutation({ mutationFn: async () => {
+export const useLogout = () => useMutation({ mutationFn: async (usuario: string) => {
   // The server also revokes the session's registrations when logout succeeds.
   // Local unsubscribe is attempted even if installation revocation fails.
-  try { await desativarPush(); } catch {
+  try { await desativarPush(usuario); } catch {
     try { sessionStorage.setItem("varal.push.logout-aviso", "1"); } catch { /* storage unavailable */ }
   }
-  return logout();
+  return logout(usuario);
 } });

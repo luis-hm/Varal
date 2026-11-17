@@ -74,3 +74,49 @@ test("ca08: a consumed recovery key keeps the successful password-change message
   expect(screen.queryByLabelText("Nova senha", { selector: "input" })).toBeNull();
   expect(screen.getByRole("link", { name: "Voltar para Entrar" })).toBeTruthy();
 });
+
+test("sessão legada autenticada permite nova entrada explícita após logout cercado", async () => {
+  const anterior = "00000000-0000-4000-8000-000000000001";
+  let logins = 0;
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.endsWith("config")) return reply(config);
+    if (url.endsWith("auth/login")) return ++logins === 1 ? reply({ status: 409 }, 409) : reply({ status: 400, errors: [{ message: "Resposta de teste." }] }, 400);
+    if (url.endsWith("auth/session") && init?.method === "DELETE") return new Response(JSON.stringify({ status: 401, meta: { is_authenticated: false }, data: { flows: [] } }), { status: 401, headers: { "X-Varal-Identidade": anterior } });
+    if (url.endsWith("auth/session")) return reply({ status: 200, meta: { is_authenticated: true }, data: { user: { id: anterior } } });
+    return reply({}, 500);
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  show("login");
+  fireEvent.change(screen.getByLabelText("E-mail"), { target: { value: "nova@example.com" } });
+  fireEvent.change(screen.getByLabelText("Senha"), { target: { value: "senha-teste" } });
+  fireEvent.submit(screen.getByRole("form", { name: "Entrar" }));
+  await screen.findByText("Resposta de teste.");
+  const saida = fetchMock.mock.calls.find(([url, init]) => url.endsWith("auth/session") && init?.method === "DELETE");
+  expect(saida?.[1]?.headers).toMatchObject({ "X-Varal-Identidade-Esperada": anterior });
+  expect(logins).toBe(2);
+  expect(document.cookie).not.toContain(`varal_owner=${anterior}`);
+});
+
+test("tentativa substituída não encerra sessão após consulta legada tardia", async () => {
+  const { iniciarAutenticacao } = await import("@/lib/auth/isolamento");
+  let resolver!: (value: Response) => void;
+  const fetchMock = vi.fn((url: string) => {
+    if (url.endsWith("config")) return Promise.resolve(reply(config));
+    if (url.endsWith("auth/login")) return Promise.resolve(reply({ status: 409 }, 409));
+    if (url.endsWith("auth/session")) return new Promise<Response>((resolve) => { resolver = resolve; });
+    return Promise.resolve(reply({}, 500));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  show("login");
+  fireEvent.change(screen.getByLabelText("E-mail"), { target: { value: "nova@example.com" } });
+  fireEvent.change(screen.getByLabelText("Senha"), { target: { value: "senha-teste" } });
+  fireEvent.submit(screen.getByRole("form", { name: "Entrar" }));
+  await waitFor(() => expect(resolver).toBeDefined());
+  expect(screen.getByRole("form", { name: "Entrar" }).getAttribute("aria-busy")).toBe("true");
+  fireEvent.submit(screen.getByRole("form", { name: "Entrar" }));
+  iniciarAutenticacao();
+  resolver(reply({ status: 200, meta: { is_authenticated: true }, data: { user: { id: "00000000-0000-4000-8000-000000000001" } } }));
+  await waitFor(() => expect(screen.getByRole("form", { name: "Entrar" }).getAttribute("aria-busy")).toBe("false"));
+  expect(fetchMock.mock.calls.filter(([url]) => url.endsWith("auth/login"))).toHaveLength(1);
+  expect(fetchMock.mock.calls.filter(([url]) => url.endsWith("auth/session"))).toHaveLength(1);
+});

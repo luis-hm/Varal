@@ -1,5 +1,6 @@
 import type { components } from "@/types/api";
 import { csrfToken, getAuthConfig } from "@/lib/auth/client";
+import { inicioRequisicao } from "@/lib/auth/isolamento";
 
 type S = components["schemas"];
 export type Papel = S["PapelEnum"];
@@ -42,21 +43,28 @@ export class ApiError extends Error {
   }
 }
 
-export async function call<T>(path: string, method = "GET", body?: unknown): Promise<T> {
+export async function call<T>(path: string, method = "GET", body?: unknown, sistema = false): Promise<T> {
+  const contexto = inicioRequisicao(sistema);
+  try {
   const headers: Record<string, string> = {};
+  if (contexto.dono) headers["X-Varal-Identidade-Esperada"] = contexto.dono;
   if (method !== "GET") {
     if (!csrfToken()) await getAuthConfig();
     headers["X-CSRFToken"] = csrfToken();
   }
+  contexto.verificar();
   if (body !== undefined && !(body instanceof FormData)) headers["Content-Type"] = "application/json";
   const response = await fetch(`/api/${path}`, {
     method,
     headers,
     credentials: "same-origin",
     cache: "no-store",
+    signal: contexto.signal,
     ...(body !== undefined ? { body: body instanceof FormData ? body : JSON.stringify(body) } : {}),
   });
+  contexto.verificar(response);
   const data: unknown = response.status === 204 ? null : await response.json().catch(() => null);
+  contexto.verificar(response);
   if (!response.ok) {
     const detail =
       data && typeof data === "object"
@@ -67,6 +75,7 @@ export async function call<T>(path: string, method = "GET", body?: unknown): Pro
     throw new ApiError(response.status, detail, data);
   }
   return data as T;
+  } finally { contexto.fechar(); }
 }
 
 const g = (id: string, rest = "") => `grupos/${encodeURIComponent(id)}/${rest}`;

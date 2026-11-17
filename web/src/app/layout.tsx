@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
 import "@/styles/globals.css";
 import { Providers } from "./providers";
+import { RegistrarPwa } from "@/components/auth/registrar-pwa";
 
 // Doop: k0kB5dc-Vo / tokens --font-display and --font-sans (frame Paleta e tipografia).
 const bricolage = Bricolage_Grotesque({
@@ -23,7 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt-BR" className={`${bricolage.variable} ${inter.variable} ${mono.variable}`}>
       <body>
-        <Providers>{children}</Providers>
+        <Providers><RegistrarPwa />{children}</Providers>
       </body>
     </html>
   );

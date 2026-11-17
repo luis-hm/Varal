@@ -44,7 +44,8 @@ test("gaveta de avisos preserva contexto e voltar restaura foco", async () => {
   expect(window.location.search).toBe("?mes=2026-11&status=pendente");
   expect((screen.getByRole("textbox", { name: "Filtro local" }) as HTMLInputElement).value).toBe("Energia");
   expect(contexto.scrollTop).toBe(75);
-  expect(screen.getByRole("dialog", { name: "Avisos" })).toBeTruthy();
+  await screen.findByText("Preferências de notificações");
+  expect(await screen.findByRole("dialog", { name: "Avisos" })).toBeTruthy();
   fireEvent.popState(window);
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(window.location.search).toBe("?mes=2026-11&status=pendente");

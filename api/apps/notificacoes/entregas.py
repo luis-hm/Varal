@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from apps.solicitacoes.coordenacao import barreira
 
-from . import push, transportes
+from . import push, transportes, witness
 from .acesso import autorizadas
 from .models import (
     EntregaNotificacao,
@@ -189,6 +189,31 @@ def enviar_email_entrega(pk):
         if not entrega or not _iniciar(entrega, n, "email", token):
             return
         destinatario = n.destinatario.email
+    try:
+        witness.testemunhar()
+    except witness.WitnessIndisponivel:
+        with transaction.atomic():
+            entrega = (
+                EntregaNotificacao.objects.select_for_update()
+                .filter(pk=pk, estado=EstadoEntrega.INICIADA, token=token)
+                .first()
+            )
+            if entrega:
+                _finalizar(entrega, transportes.Resultado("transiente", "witness_indisponivel"))
+        return
+    with transaction.atomic():
+        barreira()
+        n = _contexto(ref["notificacao_id"])
+        entrega = EntregaNotificacao.objects.select_for_update().filter(pk=pk).first()
+        if not entrega or entrega.estado != EstadoEntrega.INICIADA or entrega.token != token:
+            return
+        if not entrega.lease_ate or entrega.lease_ate <= timezone.now():
+            _finalizar(entrega, transportes.Resultado("incerta", "lease_expirado"))
+            return
+        if not _valida(n, "email"):
+            _finalizar(entrega, transportes.Resultado("descartada", "nao_elegivel"))
+            return
+        destinatario = n.destinatario.email
     resultado = transportes.enviar_email(destinatario)
     with transaction.atomic():
         entrega = (
@@ -270,6 +295,46 @@ def enviar_push_dispositivo(pk):
             _concluir_push(entrega)
             return
         if not _iniciar(item, n, "push", token):
+            _concluir_push(entrega)
+            return
+        segredo = bytes(inscricao_atual.segredo)
+    try:
+        witness.testemunhar()
+    except witness.WitnessIndisponivel:
+        with transaction.atomic():
+            entrega = EntregaNotificacao.objects.select_for_update().get(pk=ref["entrega_id"])
+            item = (
+                EntregaPushDispositivo.objects.select_for_update()
+                .filter(pk=pk, estado=EstadoEntrega.INICIADA, token=token)
+                .first()
+            )
+            if item:
+                _finalizar(item, transportes.Resultado("transiente", "witness_indisponivel"))
+                _concluir_push(entrega)
+        return
+    with transaction.atomic():
+        barreira()
+        n = _contexto(ref["entrega__notificacao_id"])
+        entrega = (
+            EntregaNotificacao.objects.select_for_update().filter(pk=ref["entrega_id"]).first()
+        )
+        item = EntregaPushDispositivo.objects.select_for_update().filter(pk=pk).first()
+        if not entrega or not item or item.estado != EstadoEntrega.INICIADA or item.token != token:
+            return
+        if not item.lease_ate or item.lease_ate <= timezone.now():
+            _finalizar(item, transportes.Resultado("incerta", "lease_expirado"))
+            _concluir_push(entrega)
+            return
+        inscricao_atual = (
+            InscricaoPush.objects.select_for_update().filter(pk=item.inscricao_id).first()
+        )
+        if (
+            not _valida(n, "push")
+            or not inscricao_atual
+            or not inscricao_atual.ativa
+            or inscricao_atual.geracao != item.geracao
+        ):
+            _finalizar(item, transportes.Resultado("descartada", "nao_elegivel"))
             _concluir_push(entrega)
             return
         segredo = bytes(inscricao_atual.segredo)

@@ -37,7 +37,9 @@ test("rf01/rf02 rn03 ca01/ca03/ca09/ca10/ca11: cadastro, sessão persistente, is
   await page.goto("/criar-conta");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
   await page.getByLabel("Senha", { exact: true }).fill(TEST_PASSWORD);
+  const cadastro = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/auth/browser/v1/auth/signup" && response.request().method() === "POST");
   await page.getByRole("button", { name: "Criar conta", exact: true }).click();
+  expect((await cadastro).status()).toBe(200);
   await expect(page).toHaveURL(`${ORIGIN}/`);
   await expect(inicio(page, email)).toBeVisible();
 
@@ -48,7 +50,12 @@ test("rf01/rf02 rn03 ca01/ca03/ca09/ca10/ca11: cadastro, sessão persistente, is
   expect(Object.keys(first).sort()).toEqual(["email", "espaco_pessoal", "grupos", "id", "nome"]);
   const session = (await context.cookies()).find((cookie) => cookie.name === "sessionid");
   expect(session).toMatchObject({ httpOnly: true, sameSite: "Lax" });
-  expect(await page.evaluate(() => ({ local: { ...localStorage }, session: { ...sessionStorage } }))).toEqual({ local: {}, session: {} });
+  const armazenamento = await page.evaluate(() => ({ local: { ...localStorage }, session: { ...sessionStorage } }));
+  expect(Object.keys(armazenamento.local).sort()).toEqual(["varal.auth.geracao.v1", "varal.sessao.evento"]);
+  for (const valor of Object.values(armazenamento.local)) {
+    expect(valor).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+  }
+  expect(armazenamento.session).toEqual({});
 
   await page.reload();
   await expect(inicio(page, email)).toBeVisible();
@@ -72,7 +79,7 @@ test("rf01/rf02 rn03 ca01/ca03/ca09/ca10/ca11: cadastro, sessão persistente, is
   await page.goto("/perfil");
   await page.getByRole("button", { name: "Sair da conta", exact: true }).click();
   await expect(page).toHaveURL(`${ORIGIN}/entrar`);
-  expect((await context.request.get("/api/me/")).status()).toBe(403);
+  expect((await context.request.get("/api/me/")).status()).toBe(401);
   await page.goBack();
   await expect(page).toHaveURL(`${ORIGIN}/entrar`);
   await expect(page.getByRole("heading", { name: "Contas", exact: true })).not.toBeVisible();
@@ -81,7 +88,7 @@ test("rf01/rf02 rn03 ca01/ca03/ca09/ca10/ca11: cadastro, sessão persistente, is
   await page.getByLabel("Senha", { exact: true }).fill("Senha-errada!83");
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
   await expect(page.getByRole("region", { name: "Acesso à conta" }).filter({ visible: true }).getByRole("alert")).toBeVisible();
-  expect((await context.request.get("/api/me/")).status()).toBe(403);
+  expect((await context.request.get("/api/me/")).status()).toBe(401);
   await page.getByLabel("Senha", { exact: true }).fill(TEST_PASSWORD);
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
   await expect(page).toHaveURL(`${ORIGIN}/`);

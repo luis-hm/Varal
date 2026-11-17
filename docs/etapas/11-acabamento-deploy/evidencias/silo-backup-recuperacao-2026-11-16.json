@@ -1,0 +1,107 @@
+{
+  "scope": "Silo storage only; no PostgreSQL/Varal application deployment or recovery acceptance",
+  "authorization": "Owner explicitly requested local backup and real isolated restore before connecting Varal",
+  "verified_at_utc": "2026-11-17T01:35:23.217466+00:00",
+  "primary_service_uuid": "wtowjxrirnltc2qcfwrlr5zp",
+  "source_volume": "varal-silo-data",
+  "backup_reference_application_uuid": "3j1xpkufs4zweebhykkmuqpo",
+  "backup_reference_status": "Metadata only, never deployed, scratch image without executable runtime",
+  "storage_uuid": "k8chl2rghzvg3d0mdcpqjkag",
+  "schedule_uuid": "fj05k9m2fnixytakexpw6irt",
+  "schedule": {
+    "enabled": true,
+    "cron": "0 6 * * *",
+    "timezone": "UTC",
+    "local_time": "03:00 America/Fortaleza",
+    "local_only": true,
+    "stop_during_backup": true,
+    "retention_count": 7,
+    "retention_days": 7,
+    "retention_max_gb": 10,
+    "timeout_seconds": 600,
+    "missing_backup_notification_days": 1
+  },
+  "archive_tested": {
+    "filename": "volume-varal-silo-data-1794878142.tar.gz",
+    "bytes": 15772,
+    "sha256": "c292039be0166505f1ebc6349b6cdd39290f4302f7665f69858f4e6d807c9b21",
+    "directory": "/data/coolify/backups/volumes/root-team-0/k8chl2rghzvg3d0mdcpqjkag",
+    "directory_mode": "0700",
+    "archive_mode": "0600",
+    "encrypted": false
+  },
+  "primary_backup_log_timestamps_utc": {
+    "terminated": "2026-11-17T01:15:44.039681612Z",
+    "started": "2026-11-17T01:15:46.066636513Z",
+    "limit": "Log timestamps only, not a measured service outage guarantee"
+  },
+  "restore": {
+    "service_uuid": "95a8ztfrs3gun4d5cktwd1mr",
+    "volume": "varal-silo-restore-20261116-6923a0e5",
+    "source_backup_read_only": true,
+    "generated_compose_mounts_checked_before_start": true,
+    "direct_docker_mount_inspection": false,
+    "network_mode": "none",
+    "host_ports": false,
+    "console_enabled": false,
+    "init_completed_dependency": true,
+    "restored_silo_started_utc": "2026-11-17T01:24:15.948190965Z",
+    "runtime_credential_authentication": "passed",
+    "verification_task_uuid": "owe9ff9rjbeldq4bv7wcldy5",
+    "verification_task_enabled": false,
+    "files_restored": 2,
+    "hashes_match": true,
+    "sizes_mime_cachecontrol_metadata_match": true,
+    "restored_runtime_key_valid": true,
+    "anonymous_get_status": 403,
+    "restored_runtime_get_bucket_acl_status": 403,
+    "restored_runtime_other_bucket_status": 403,
+    "source_hashes_preserved": true,
+    "own_live_probes_removed": true,
+    "live_count_after_cleanup": 0,
+    "live_count_before_test": 0,
+    "source_https_ready": 200,
+    "console_https_status": 200,
+    "tls_verified": true
+  },
+  "checks": {
+    "restore_script_negative_and_positive_cases_reported_by_devops": 15,
+    "security_read_only_review": "No blocking source finding for isolated exercise; mount identity checked in generated Compose, source volume nonempty guard and separate target retained"
+  },
+  "limits": [
+    "Single VPS and disk - no protection against complete disk/server loss",
+    "Native archive is compressed, not encrypted; root-only directory restricts access",
+    "Future native files can be0644 inside existing0700 directory; recheck permissions after directory recreation",
+    "No public API for native volume backup execution status; proof is archive/hash/gzip validation/restored I/O/logs, not internal Coolify DB success assertion",
+    "Future Varal deployment must coordinate PostgreSQL, privacy journal and deletions before application recovery",
+    "No CA16/CA18 global acceptance"
+  ],
+  "temporary_helpers_status": {
+    "source": "running:healthy",
+    "restore": "exited",
+    "inspector": "exited"
+  },
+  "clean_current_backup": {
+    "filename": "volume-varal-silo-data-1794879322.tar.gz",
+    "bytes": 17587,
+    "sha256": "b33ce1dad73a810708bfbab2d728e3ccf5296bcdecfadb7a7de43dc3dbb03b5b",
+    "mode": "0600",
+    "directory_mode_before_permission_fix": "0700",
+    "logical_source_state": "Zero live objects after own probe removal",
+    "verification": "Archive exists, positive size and SHA verified; this second archive was not restored separately"
+  },
+  "archive_count_observed": 2,
+  "schedule_timezone_verified": "Server settings UTC",
+  "scope_checked_source_permissions_persisted_on_second_backup": true,
+  "primary_volume_and_backup_archives_deleted": false,
+  "static_validation": {
+    "shell_syntax": "passed",
+    "compose_config": "passed using dummy env and /dev/null env file",
+    "git_diff_check": "passed",
+    "json_schema_parse": "passed",
+    "credential_scan": "passed",
+    "env_file": "gitignored and mode0600",
+    "runbook_links": "passed"
+  },
+  "completed_at_utc": "2026-11-17T01:44:39.999719+00:00"
+}

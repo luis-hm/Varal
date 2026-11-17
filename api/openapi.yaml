@@ -2381,6 +2381,20 @@ components:
       enum:
       - conta_restrita_orfa
       type: string
+    ConfirmacaoExclusao:
+      properties:
+        confirmar:
+          type: boolean
+        id:
+          format: uuid
+          type: string
+        segredo:
+          type: string
+      required:
+      - confirmar
+      - id
+      - segredo
+      type: object
     Conta:
       properties:
         criado_em:
@@ -3037,6 +3051,71 @@ components:
       - nome
       - tipo
       type: object
+    Exportacao:
+      properties:
+        criado_em:
+          format: date-time
+          readOnly: true
+          type: string
+        estado:
+          $ref: '#/components/schemas/ExportacaoEstadoEnum'
+        expira_em:
+          format: date-time
+          type: string
+        id:
+          format: uuid
+          readOnly: true
+          type: string
+      required:
+      - criado_em
+      - expira_em
+      - id
+      type: object
+    ExportacaoEstadoEnum:
+      description: '* `pendente` - Pendente
+
+        * `processando` - Processando
+
+        * `pronto` - Pronto
+
+        * `falhou` - Falhou
+
+        * `expirado` - Expirado'
+      enum:
+      - pendente
+      - processando
+      - pronto
+      - falhou
+      - expirado
+      type: string
+    ExportacaoPedido:
+      properties:
+        chave:
+          format: uuid
+          type: string
+      required:
+      - chave
+      type: object
+    GoogleTicketEntrada:
+      properties:
+        tentativa:
+          format: uuid
+          type: string
+        ticket:
+          format: uuid
+          type: string
+      required:
+      - tentativa
+      - ticket
+      type: object
+    GoogleTicketSaida:
+      properties:
+        id:
+          format: uuid
+          type: string
+      required:
+      - id
+      type: object
     GrupoDetalhe:
       properties:
         casas:
@@ -3218,6 +3297,24 @@ components:
       - ativo
       - id
       type: object
+    InstalacaoEstado:
+      properties:
+        estado:
+          $ref: '#/components/schemas/InstalacaoEstadoEstadoEnum'
+      required:
+      - estado
+      type: object
+    InstalacaoEstadoEstadoEnum:
+      description: '* `ativa` - ativa
+
+        * `revogada` - revogada
+
+        * `indisponivel` - indisponivel'
+      enum:
+      - ativa
+      - revogada
+      - indisponivel
+      type: string
     Instrumento:
       properties:
         beneficiario:
@@ -3269,6 +3366,21 @@ components:
         codigo:
           maxLength: 4096
           type: string
+      type: object
+    Intencao:
+      properties:
+        expira_em:
+          format: date-time
+          type: string
+        id:
+          format: uuid
+          type: string
+        segredo:
+          type: string
+      required:
+      - expira_em
+      - id
+      - segredo
       type: object
     Leitura:
       properties:
@@ -3813,6 +3925,32 @@ components:
       required:
       - chave_publica
       - habilitado
+      type: object
+    Readiness:
+      properties:
+        status:
+          type: string
+      required:
+      - status
+      type: object
+    ReauthMeta:
+      properties:
+        is_authenticated:
+          type: boolean
+      required:
+      - is_authenticated
+      type: object
+    ReauthResposta:
+      properties:
+        code:
+          type: string
+        meta:
+          $ref: '#/components/schemas/ReauthMeta'
+        status:
+          type: integer
+      required:
+      - meta
+      - status
       type: object
     Recorrencia:
       properties:
@@ -5332,6 +5470,34 @@ paths:
       summary: Get configuration
       tags:
       - Configuration
+  /api/auth/google/tickets/consumir/:
+    post:
+      operationId: auth_google_consumir_ticket
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleTicketEntrada'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GoogleTicketEntrada'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GoogleTicketEntrada'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoogleTicketSaida'
+          description: ''
+        '409':
+          description: No response body
+      security:
+      - cookieAuth: []
+      tags:
+      - auth
   /api/boletos/ler/:
     post:
       operationId: boletos_ler
@@ -7193,6 +7359,27 @@ paths:
       tags:
       - lancamentos
   /api/me/:
+    delete:
+      operationId: privacidade_excluir_conta
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmacaoExclusao'
+        required: true
+      responses:
+        '204':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReauthResposta'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - me
     get:
       operationId: me_retrieve
       responses:
@@ -7216,6 +7403,107 @@ paths:
                     nome: Ana
               schema:
                 $ref: '#/components/schemas/Me'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - me
+  /api/me/exclusao/intencoes/:
+    post:
+      operationId: privacidade_exclusao_intencao
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Intencao'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReauthResposta'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - me
+  /api/me/exportacoes/:
+    post:
+      operationId: privacidade_exportacao_solicitar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportacaoPedido'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ExportacaoPedido'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ExportacaoPedido'
+        required: true
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exportacao'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReauthResposta'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - me
+  /api/me/exportacoes/{exportacao_id}/:
+    get:
+      operationId: privacidade_exportacao_estado
+      parameters:
+      - in: path
+        name: exportacao_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exportacao'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - me
+  /api/me/exportacoes/{exportacao_id}/download/:
+    get:
+      operationId: privacidade_exportacao_baixar
+      parameters:
+      - in: path
+        name: exportacao_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                format: binary
+                type: string
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReauthResposta'
           description: ''
       security:
       - cookieAuth: []
@@ -7359,6 +7647,26 @@ paths:
       - cookieAuth: []
       tags:
       - notificacoes
+    get:
+      operationId: notificacoes_push_estado_instalacao
+      parameters:
+      - in: path
+        name: instalacao_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstalacaoEstado'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - notificacoes
   /api/notificacoes/resumo/:
     get:
       operationId: notificacoes_resumo
@@ -7394,6 +7702,25 @@ paths:
       - cookieAuth: []
       tags:
       - notificacoes
+  /api/ready/:
+    get:
+      description: Fail closed on unavailable primary DB, Redis or private bucket;
+        no domain locks.
+      operationId: readiness
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Readiness'
+          description: ''
+        '503':
+          description: No response body
+      security:
+      - cookieAuth: []
+      - {}
+      tags:
+      - ready
   /api/recorrencias/{recorrencia_id}/:
     get:
       operationId: recorrencias_detalhe

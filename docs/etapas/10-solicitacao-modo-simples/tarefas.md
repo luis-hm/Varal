@@ -28,6 +28,6 @@ Implementação, validação integral, visual e 14 CAs concluídos em 16/11/2026
 - [x] **QA/segurança/decisor:** comparação visual nas duas larguras, processos próprios encerrados e pareceres somente por leitura sem bloqueantes; Q10-15–18/D10-1–2 auditadas. Matriz atualizada pelo QA.
 - [x] **QA/orquestrador:** `make e2e` integral aprovado: 143 testes e três skips previstos (146 casos) em 11,0 min, exit 0. Consolidar os 14 CAs com limites e sem somar focos.
 - [x] **Docs/decisor/orquestrador:** auditoria, Ajustes finais atestados no chat, relatório/matriz/derivados/PROGRESSO consolidados. Nenhum novo item remoto a marcar conhecido. Contrato de arquivo/deleção da etapa 11 e pendências externas preservados.
-- [ ] **Orquestrador:** commit e merge locais conforme o fluxo; registrar hashes reais quando existirem. Sem push, deploy ou envio externo.
+- [x] **Orquestrador:** commit local `062258c` e merge `--no-ff` na main `5cd29ba` realizados na abertura da 11 em 16/11/2026. Sem push, deploy ou envio externo.
 
 Validação final: 506 pytest, 127 Vitest em 33 arquivos, tipos duas vezes determinísticos, lint e `make e2e` com 143 aprovados/três skips previstos, todos com exit 0. Segurança e auditoria de decisões sem bloqueantes. Checkbox de tarefa não elimina os limites de evidência: preparação/cancelamento 202 sem corrida controlada não foi provada em UI; PUT físico remoto tardio não foi demonstrado; LGPD/Perfil/deploy pertencem à etapa 11. A documentação não executou testes, serviços ou operações git.

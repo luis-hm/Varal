@@ -9,8 +9,8 @@ const retry = (count: number, error: Error) => !(error instanceof ApiError && er
 
 export const useContas = (espacoId: string | undefined, filtros: api.Filtros) =>
   useQuery({ queryKey: ["contas", "lista", espacoId, filtros], queryFn: () => api.listarContas(espacoId!, filtros), enabled: !!espacoId, retry });
-export const useResumo = (espacoId: string | undefined) =>
-  useQuery({ queryKey: ["contas", "resumo", espacoId], queryFn: () => api.verResumo(espacoId!), enabled: !!espacoId, retry });
+export const useResumo = (espacoId: string | undefined, inicial?: api.Resumo) =>
+  useQuery({ queryKey: ["contas", "resumo", espacoId], queryFn: () => api.verResumo(espacoId!), enabled: !!espacoId, retry, initialData: inicial, staleTime: inicial ? 5000 : 0 });
 export const useConta = (id: string | undefined) =>
   useQuery({ queryKey: ["contas", "detalhe", id], queryFn: () => api.verConta(id!), enabled: !!id, retry });
 export const useLerInstrumento = () => useMutation({ mutationFn: api.lerInstrumento });

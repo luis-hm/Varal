@@ -1,9 +1,5 @@
-// Doop: k0kB5dc-Vo / no Perfil screen in the Doop (D5); stays "Em breve".
-import { EmBreve } from "@/components/layout/em-breve";
-import { LogoutButton } from "@/components/auth/logout-button";
+// Doop: k0kB5dc-Vo / 02 · Início + D02 · Início shell, Button and Field; Perfil has no frame (Q11-11).
+import { Perfil } from "@/components/perfil/perfil";
 
 export const instant = false;
-
-export default function Perfil() {
-  return <EmBreve title="Perfil"><LogoutButton /></EmBreve>;
-}
+export default function PerfilPagina() { return <Perfil />; }

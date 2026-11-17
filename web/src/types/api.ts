@@ -1377,6 +1377,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/google/tickets/consumir/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["auth_google_consumir_ticket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/boletos/ler/": {
         parameters: {
             query?: never;
@@ -1924,6 +1940,70 @@ export interface paths {
         get: operations["me_retrieve"];
         put?: never;
         post?: never;
+        delete: operations["privacidade_excluir_conta"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/exclusao/intencoes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["privacidade_exclusao_intencao"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/exportacoes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["privacidade_exportacao_solicitar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/exportacoes/{exportacao_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["privacidade_exportacao_estado"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/exportacoes/{exportacao_id}/download/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["privacidade_exportacao_baixar"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2017,7 +2097,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["notificacoes_push_estado_instalacao"];
         put?: never;
         post?: never;
         delete: operations["notificacoes_push_revogar_instalacao"];
@@ -2052,6 +2132,23 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["notificacoes_ler"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ready/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Fail closed on unavailable primary DB, Redis or private bucket; no domain locks. */
+        get: operations["readiness"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2790,6 +2887,12 @@ export interface components {
          * @enum {string}
          */
         CodeEnum: "conta_restrita_orfa";
+        ConfirmacaoExclusao: {
+            confirmar: boolean;
+            /** Format: uuid */
+            id: string;
+            segredo: string;
+        };
         Conta: {
             /** Format: date-time */
             criado_em: string;
@@ -3021,6 +3124,38 @@ export interface components {
             nome: string;
             tipo: components["schemas"]["TipoEspacoEnum"];
         };
+        Exportacao: {
+            /** Format: date-time */
+            readonly criado_em: string;
+            estado?: components["schemas"]["ExportacaoEstadoEnum"];
+            /** Format: date-time */
+            expira_em: string;
+            /** Format: uuid */
+            readonly id: string;
+        };
+        /**
+         * @description * `pendente` - Pendente
+         *     * `processando` - Processando
+         *     * `pronto` - Pronto
+         *     * `falhou` - Falhou
+         *     * `expirado` - Expirado
+         * @enum {string}
+         */
+        ExportacaoEstadoEnum: "pendente" | "processando" | "pronto" | "falhou" | "expirado";
+        ExportacaoPedido: {
+            /** Format: uuid */
+            chave: string;
+        };
+        GoogleTicketEntrada: {
+            /** Format: uuid */
+            tentativa: string;
+            /** Format: uuid */
+            ticket: string;
+        };
+        GoogleTicketSaida: {
+            /** Format: uuid */
+            id: string;
+        };
         GrupoDetalhe: {
             readonly casas: components["schemas"]["Casa"][];
             /** Format: uuid */
@@ -3092,6 +3227,16 @@ export interface components {
             /** Format: uuid */
             id: string;
         };
+        InstalacaoEstado: {
+            estado: components["schemas"]["InstalacaoEstadoEstadoEnum"];
+        };
+        /**
+         * @description * `ativa` - ativa
+         *     * `revogada` - revogada
+         *     * `indisponivel` - indisponivel
+         * @enum {string}
+         */
+        InstalacaoEstadoEstadoEnum: "ativa" | "revogada" | "indisponivel";
         Instrumento: {
             beneficiario: string | null;
             chave_pix: string | null;
@@ -3109,6 +3254,13 @@ export interface components {
         InstrumentoEntrada: {
             chave_pix?: string;
             codigo?: string;
+        };
+        Intencao: {
+            /** Format: date-time */
+            expira_em: string;
+            /** Format: uuid */
+            id: string;
+            segredo: string;
         };
         Leitura: {
             avisos: string[];
@@ -3326,6 +3478,17 @@ export interface components {
         PushConfiguracao: {
             chave_publica: string;
             habilitado: boolean;
+        };
+        Readiness: {
+            status: string;
+        };
+        ReauthMeta: {
+            is_authenticated: boolean;
+        };
+        ReauthResposta: {
+            code?: string;
+            meta: components["schemas"]["ReauthMeta"];
+            status: number;
         };
         Recorrencia: {
             readonly acesso: string[];
@@ -4114,6 +4277,38 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    auth_google_consumir_ticket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleTicketEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["GoogleTicketEntrada"];
+                "multipart/form-data": components["schemas"]["GoogleTicketEntrada"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleTicketSaida"];
+                };
+            };
+            /** @description No response body */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     boletos_ler: {
         parameters: {
             query?: never;
@@ -5487,6 +5682,146 @@ export interface operations {
             };
         };
     };
+    privacidade_excluir_conta: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmacaoExclusao"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReauthResposta"];
+                };
+            };
+        };
+    };
+    privacidade_exclusao_intencao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Intencao"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReauthResposta"];
+                };
+            };
+        };
+    };
+    privacidade_exportacao_solicitar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportacaoPedido"];
+                "application/x-www-form-urlencoded": components["schemas"]["ExportacaoPedido"];
+                "multipart/form-data": components["schemas"]["ExportacaoPedido"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Exportacao"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReauthResposta"];
+                };
+            };
+        };
+    };
+    privacidade_exportacao_estado: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exportacao_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Exportacao"];
+                };
+            };
+        };
+    };
+    privacidade_exportacao_baixar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exportacao_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReauthResposta"];
+                };
+            };
+        };
+    };
     notificacoes_listar: {
         parameters: {
             query?: {
@@ -5624,6 +5959,27 @@ export interface operations {
             };
         };
     };
+    notificacoes_push_estado_instalacao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instalacao_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstalacaoEstado"];
+                };
+            };
+        };
+    };
     notificacoes_push_revogar_instalacao: {
         parameters: {
             query?: never;
@@ -5681,6 +6037,32 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Ler"];
                 };
+            };
+        };
+    };
+    readiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Readiness"];
+                };
+            };
+            /** @description No response body */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

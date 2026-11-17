@@ -1,0 +1,12 @@
+{
+  "frequency": "0 6 * * *",
+  "enabled": true,
+  "save_s3": false,
+  "disable_local_backup": false,
+  "stop_during_backup": true,
+  "retention_amount_locally": 7,
+  "retention_days_locally": 7,
+  "retention_max_storage_locally": 10.0,
+  "timeout": 600,
+  "missing_backup_notification_days": 1
+}
