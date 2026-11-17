@@ -16,6 +16,9 @@ from .sessoes import travar_instalacao
 def revogar_instalacao_sessao(sender, request, user, **kwargs):
     if not request or not user or not request.session.session_key:
         return
+    from apps.solicitacoes.coordenacao import barreira
+
+    barreira()
     fingerprint = salted_hmac(
         "varal.push.sessao", request.session.session_key, algorithm="sha256"
     ).hexdigest()

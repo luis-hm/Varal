@@ -1,0 +1,168 @@
+# Plano — Etapa 11
+
+> **Contém:** ordem, contratos, propriedade de arquivos, migrações e arquitetura ratificada para implementação.
+> **Origem:** spec/decisões 11; planos concretos backend/DevOps/frontend, notas allauth 65.22.0 e T11-A–M ratificadas em 16/11/2026.
+
+Abertura em 16/11/2026 na branch `etapa/11-acabamento-deploy`. Etapas 04–10 concluídas e integradas localmente; a 10 está no commit `062258c`, merge `--no-ff` na main `5cd29ba`. O dono delegou decidir e executar as etapas restantes e atestou no chat: “no varal ajustes n tem nenhum pendente”. Isso não representa leitura/marcação pelo conector nem reexportação. P6 é externa e P11 depende do destino e condições reais. A abertura documental não comprovava execução; implementação e provas parciais posteriores estão no [checkpoint](relatorio.md), sem aceite final dos CAs.
+
+## Ordem e propriedade
+
+| Ordem | Responsável | Entrega e dependência |
+| --- | --- | --- |
+| 1 | Docs + orquestrador | Abertura, Q11-1–11, T11-A–M, ADR0015 e protocolo integrados; libera implementação local sem novo ok genérico |
+| 2 | Backend: `api/` | Inventário FKs/cascades/fontes de R, migrações, exportação/exclusão, cliente journal, guardas, reconciliação e testes API; nunca editar infra/web |
+| 3, paralelo com 2 | DevOps: `infra/`, `Makefile`, `.github/` | Writer journal e laboratório produtivo isolado, proxy/TLS/logs/backups/restore/transporte; cliente e regras de domínio pertencem ao backend |
+| 4 | Orquestrador | Exportar schema composto e gerar tipos reais após estabilizar API; duas execuções determinísticas |
+| 5, parcialmente paralelo com 2–3 | Frontend: `web/`, exceto tipos reservados | PWA/isolamento/SSR dos três GETs estáveis podem começar após leitura atual do Doop. Perfil/exportação/exclusão e novos contratos aguardam tipos reais; allauth segue contrato nativo ratificado |
+| 6 | QA + donos das áreas | Reservar arquivos de testes antes de escrever, matriz CA→teste→resultado, E2E/browser/visual e provas reais |
+| 7 | Segurança somente leitura + decisor | Auditar privacidade/auth/concorrência/restore e escolhas; correções pelos donos, reauditar bloqueantes |
+| 8 | Docs + orquestrador | Relatório final com resultados reais, pendências e Ajustes atuais, commits locais; sem push/deploy inferidos |
+
+Todos preservam alterações concorrentes e não revertem o trabalho alheio. 04–10 já estão integradas; nenhum resultado delas vale como teste da 11.
+
+## Contrato da API e allauth
+
+Contratos a implementar e publicar no OpenAPI composto; ainda não são endpoints comprovados nesta abertura.
+
+| Operação | Contrato |
+| --- | --- |
+| `POST /api/me/exportacoes/` | Sessão/CSRF/reauth `<300 s`, idempotência por chave/hash/dono; 202 com UUID/status/expira_em; mesma intenção retorna mesmo job, divergência 409 |
+| `GET /api/me/exportacoes/{id}/` | Dono atual; estados pendente/processando/pronto/falhou/expirado; alheio 404, sem URL pública |
+| `GET /api/me/exportacoes/{id}/download/` | Sessão/prova fresca/ACL/TTL e R atual; 409/410 seguro quando inválido; JSON privado `no-store`, links pessoais 60 s |
+| Intenção de exclusão | Segredo aleatório em hash no servidor, usuário/sessão/ação, prazo limitado pela prova, uso único no commit; formato final tipado pelo backend |
+| `DELETE /api/me/` | CSRF/reauth/intenção/confirmar; 204 após commit DB com PREPARE externo comprovado, cleanup assíncrono e outbox terminal; RN04/RN32 retornam 409 sem efeitos pessoais |
+
+JSON v1: `schema_version`, `gerado_em`, perfil, contas/recorrências pessoais e instrumentos/pagamentos/históricos próprios necessários, participações atuais, avisos autorizados e documentos pessoais. Metadados de corte explícitos, centavos/UUID/NULL preservados; datas civis não viram instantes artificiais. Participações não incluem lista de membros ou finanças do grupo. P7 conserva apenas projeção excepcional permitida. Documento de grupo não entra por autoria/upload; drafts pessoais precisam ser próprios e válidos. Não expor caminho/chave interna, hash de senha, SocialToken, desafios, sessões ou chaves push.
+
+Allauth browser usa cookie/CSRF em `/api/auth/browser/v1/`, sem barra final nos terminais. Reusar POST `auth/reauthenticate` com `{password}`, ou `auth/reauthenticate/code/request` com `{email}` próprio verificado e `.../confirm` com `{code}`. `did_recently_reauthenticate` direto é a guarda; helper condicional não basta com política global padrão. Login público por código/MFA não são necessários. Confirmar código, não apenas solicitá-lo; default do desafio: 180 s/3 tentativas, distinto da prova `<300 s`. Resend fica indisponível sem configuração nativa explícita.
+
+Sem endereço verificado: GET `account/email`, PUT `account/email` para o endereço próprio existente, confirmação por link POST `auth/email/verify` com `{key}`, depois outro desafio de reauth. Corrigir `HEADLESS_FRONTEND_URLS.account_confirm_email` para conter `{key}` e implementar rota sem logs/Referer/cache/telemetria externa. Verificar e-mail não prova reauth; não adicionar endereço/editar identidade ou habilitar código público por conveniência.
+
+Preservar envelope nativo: 401 com `meta.is_authenticated=true` solicita reauth; false é sessão ausente. DRF precisa adaptação estruturada explícita e schema real. Tratar 400/403 inclusive HTML CSRF/409/429 sem depender de mensagem traduzida. Código solicitado não prova entrega de e-mail. Timestamp vem do servidor; aos 300 s exatos a prova venceu.
+
+Reauth senha/código não rotaciona session_key no allauth instalado. `ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE=True` faz logout e sinal antes de flush; não pressupor que todo reset/rotação chama adapter.login. Testar invalidação, múltiplas sessões, rotação e push; não reformar genericamente identidade. Índice de sessões, se adotado, exige cobertura e backfill; índice incompleto não prova revogação.
+
+## UI, SSR, PWA e baseline
+
+Perfil Q11-11 compõe dados próprios somente leitura, preferências 09, exportar/excluir/reauth/sair; estados reais, bloqueios RN04/RN32 seguros, 360/390/1440, teclado/foco/contraste/reduced-motion. Ler guia/componentes/frames atuais em Doop somente leitura e citar referências reais, sem inventar frame Perfil.
+
+SSR privado T11-G: somente GET `/api/me/`, `/api/espacos/{UUID}/resumo/` e `/api/notificacoes/resumo/`, UUID estrito, cookie no servidor, origem fixa, reautorização backend e `no-store`. Buscar resumos em paralelo após identidade/espaço autorizados; escopo por request/usuário, sem cache compartilhado ou refetch duplicado imediato. Não presumir que SSR garante p95.
+
+Evoluir o mesmo SW 09: allowlist exata de assets públicos versionados e fallback offline genérico; nunca HTML autenticado/RSC/API/auth/JSON/PDF/URLs privadas. Remover só caches antigos próprios. Fronteira identidade+epoch oculta dados antes de logout/troca/pagehide/bfcache, cancela consultas/estados e descarta respostas/mutações tardias; BroadcastChannel/storage só eventos opacos. Abort não desfaz commit servidor. Sem persistência privada, credenciais ou fila de mutações offline.
+
+T11-H: pendência opaca de revogação push offline não bloqueia os dados/ações próprios de B autenticado e isolado; bloqueia apenas rebind até reconciliação autorizada. UUID sozinho não concede a B revogação de A. Preservar marcador 10 opaco por dono para reconciliar POST incerto do mesmo proprietário, sem inventar nonce/replay. Limpeza local não promete revogar servidor sem rede nem recolher notificação do SO.
+
+Fixture RNF05: 100 contas pessoais, 20 grupos × 10 contas visíveis e 20 avisos, incluindo pagas, aguardando NULL e restritas invisíveis fora do payload; sem PDF inline. Pessoal e um grupo, cada qual 20 frio + 20 quente = 80 amostras, sessão já válida fora da medição, build produtivo/TLS, browser/hardware declarados, 9/1,5 Mbps, RTT 150 ms, CPU 4×. Registrar todas as amostras/falhas, TTFB/LCP/tempos API e `inicio_pronto` após dados essenciais/controles utilizáveis; 19ª ordenada de cada série ≤2000 ms. Sem cache privado ou descarte de lentos para passar.
+
+## Laboratório e migrações
+
+Migrações auditam Collector/PROTECT/SET_NULL/CASCADE, allauth/admin/sessões, pins e snapshots estruturados; inventário de tabelas/colunas e filtros ACL acompanha triggers. A constraint `espaco_grupo_sem_dono` já existe: preservar, sem migração redundante. Rollback de imagem/schema depende de compatibilidade comprovada; backup não desfaz exclusão. Journal/operadores/chaves ficam separados de DB+objetos.
+
+DevOps prepara projetos/volumes/bucket novos com guardas, imagens sem segredos/bindmount, proxy único TLS, DEBUG=0, cookie/CSRF/SSR sem loop e migração única bloqueante. Na topologia local de um proxy, validar contagens confiáveis, sobrescrever XFF/Forwarded/host e testar IPv4/IPv6; não copiar configuração para VPS/CDN desconhecidos. RN31 atômico e falha 503 pertencem à API. Sentinelas fictícias verificam access/error/trace/artefatos sem tokens/queries/Referer/URLs assinadas.
+
+Backup DB+objetos criptografado e consistente com manifesto, hashes/corte/watermark, writers/pins/intenções reconciliados; retenção 7 dias, RPO alvo 24 h/RTO alvo 60 min a medir. Restore em recursos novos, sem usuários/escrita/beat/worker/dispatch até validar journal, exclusões, ACL, objetos e ledger independente de entregas. Sem evidência de ledger atual, estados aceitos/enviados/incertos não viram reenvio; manter dispatch bloqueado.
+
+SMTP TLS capturado e WebPush HTTPS local verificam fila/VAPID/criptografia/payload/retries/incerta/SSRF sem egress. Hooks de endpoint/CA locais só em laboratório não implantável; não relaxar proteção 09 global. Prova de protocolo não é recepção real no navegador. Alvos propostos `lab11-config`, `lab11-build`, `lab11-smoke`, `lab11-backup-restore`, `lab11-transport` e `lab11-down` validam recursos próprios antes de operar; nenhum `down -v` em volumes existentes. CI preserva filtros existentes e registra falhas reais, sem verde fictício.
+
+## Arquitetura ratificada
+
+## T11-A — revisão transacional e coordenação delimitada
+
+1. Uma linha permanente de revisão, com inteiro monotônico e época identificadora da instalação/restauração. `UPDATE ... SET valor = valor + 1` na mesma transação da alteração relevante; nunca sequência independente, timestamp, `MAX(id)` ou contador que avance antes de um commit de domínio ainda invisível. Rollback também desfaz o incremento. Restauração muda a época e invalida jobs antigos antes da abertura, evitando igualdade acidental com revisão de outro histórico. Não permitir reset, truncamento ou overflow silencioso.
+2. Triggers de banco para INSERT/UPDATE/DELETE nas tabelas/colunas exportadas ou determinantes da ACL. Podem ser AFTER STATEMENT conservadores, ou AFTER ROW com condição nas colunas necessárias; essa escolha é custo de implementação/medição. Não adquirem barreira, não verificam marcador fictício de segurança e não chamam rede. Atualizam somente a revisão. São a cobertura de bulk/QuerySet/M2M/cascades; não confiar em sinais ORM isolados. Runtime não deve poder desabilitá-los; migrações/manutenção são outra fronteira. TRUNCATE não é operação suportada pelo runtime: negar permissão ou cobrir explicitamente antes de afirmar cobertura.
+3. Inventário mínimo inclui Usuario (campos próprios exportados, prefs, campos que invalidem capacidades), Espaco, Membro, Subgrupo, Lancamento e M2M de audiência, Instrumento, Pagamento, Historico, Recorrencia e sua audiência, documentos/drafts pessoais e referências/estados necessários, Notificacao e conteúdo/estado exportado, e relações de solicitação que alterem projeção/acesso. Inventariar os nomes reais no corte10; uma tabela fonte indireta também conta. Descrever a dependência de cada campo do JSON e de cada filtro ACL na migração/QA.
+4. Não colocar automaticamente EmailAddress, SocialAccount, django_session, eventos de entrega, leases, tentativas, staging, jobs, cleanup e o próprio journal no contador. Excluir somente quando sua alteração não muda conteúdo nem ACL exportados. EmailAddress.verified, por exemplo, não pertence ao JSON v1 planejado; é dependência da reautenticação atual, que tem guarda própria. Se futuramente um campo desses entrar no JSON ou ACL, atualizar cobertura. Um evento que efetivamente produz um aviso incrementa quando modifica a fonte exportada; o heartbeat do dispatcher não invalida todas as exportações. Em Usuario, ignorar last_login se não exportado; incluir alteração de email/nome/telefone/prefs e os campos de capacidade adotados pela guarda, sem exportar senha/hash.
+5. Reusar exatamente `solicitacoes.coordenacao.barreira()` antes de locks de domínio, conforme T10-A; não criar segunda barreira global. Escritas suportadas de Usuario passam a entrar nela antes do primeiro super.save/UPDATE/bulk relevante, inclusive criação automática do espaço pessoal. QuerySet.update/bulk e entradas administrativas precisam do mesmo contrato quando expostas/suportadas. Não é autorização para reimplementar allauth. Os fluxos auth sem escrita de fonte exportada ou domínio não precisam dessa barreira somente para incrementar R.
+6. Fatos locais que delimitam a mudança: Usuario.save hoje faz atomic, super.save e get_or_create do pessoal, sem barreira. EmailAddress.set_as_primary grava endereços e chama user_email(commit=True); verify_email e set_as_primary não contêm atomic/select_for_update. Settings atual não contém ATOMIC_REQUESTS. No caminho nativo autocommit, as escritas anteriores de EmailAddress terminam antes de Usuario.save. Portanto, excluir EmailAddress de R e coordenar Usuario.save resolve esse caminho sem instrumentar todas as views allauth. **Não generalizar:** um caller que abre atomic e já segura linha auth antes de Usuario.save pode inverter a ordem contra exclusão sob barreira, cujo Collector acessa auth. Auditar caminhos reais admin/adapters/social/gerenciamento de e-mail e coordenar a entrada externa que realmente precisar, antes de seu primeiro lock. Não habilitar novos recursos de identidade na UI.
+7. Ler R com SELECT comum, nunca SELECT FOR UPDATE/SHARE. Uma validação/exportação não atualiza R nem escreve tabelas cobertas. Não segurar R e depois esperar linha de domínio. Locks de jobs/staging são terminais, ou ficam numa transação operacional isolada que termina antes de tentar barreira/domínio; evitar job-lock → barreira em um caminho e barreira → job-lock em outro.
+
+**Prova e limite:** a transação que muda domínio só torna domínio e incremento visíveis juntos. Sob READ COMMITTED no primário, R antes e depois de um lote detecta qualquer commit relevante entre as leituras, mesmo se o valor do campo voltou ao original. Writer ainda não commitado fica invisível; se commitar depois da leitura final, será posterior ao ponto de autorização daquele leitor. Um contador único impõe serialização aos writers que o atualizam. Mesmo AFTER STATEMENT pode deadlockar: A trava linha X e R; B trava Y e espera R; A tenta Y. Leitor sem lock de R não elimina esse caso. Barreira na entrada dos writers suportados remove essa inversão entre eles; SQL administrativo fora do protocolo continua sujeito a abort/rollback e precisa manutenção coordenada. Testar deadlocks/timeout e retomar somente unidade idempotente com efeitos externos pós-commit. Não prometer correção de todo SQL arbitrário do administrador.
+
+**Caso contra:** revisão global invalida exportações por atividade de outras pessoas e pode causar starvation. Aceitável como política conservadora inicial somente com retry limitado/estado real e medição; nunca entregar parcial/antigo para esconder a falha. Se inviável na carga definida, evoluir para revisões por escopo com inventário de dependências. Um log append-only ou snapshot longo REPEATABLE READ adiciona retenção/coordenação sem resolver sozinho a revogação no download; não é a primeira opção.
+
+## T11-B — lotes, publicação e autorização do download
+
+1. Job próprio idempotente, TTL absoluto de 24h desde o pedido, JSON schema_version 1 e whitelist. Worker reivindica attempt UUID/geração/lease por CAS. Não renovar TTL com retries. Uma geração captura `(época,R)` e pagina cada tabela por chave estável em lotes de 500, sem alterar fonte exportada.
+2. Cada lote usa transação curta READ COMMITTED no primário e a barreira10 para as fases de domínio; lê R, materializa projeção autorizada e manifesto de IDs/versões, lê R novamente e só grava staging/cursor se ambos forem o R da geração. Divergência aborta toda a geração, inclusive lotes anteriores. Não juntar partes de revisões diferentes. Prever lote final vazio para não omitir inserções concorrentes; qualquer commit relevante posterior ainda será pego na publicação/download. Avaliar querysets dentro dessa janela, sem lazy loading após a validação.
+3. Montagem incremental e armazenamento do artefato privado fora da barreira. Intenção durável antes de PUT; objeto novo por attempt; fencing rejeita worker vencido; sucesso/erro ambíguo vai à reconciliação e cleanup preserva escritores/pins. Não tornar artefato acessível por URL S3 pública/assinada.
+4. Publicação: sob barreira curta, dono atual elegível, job/attempt/lease/TTL ainda válidos, ACL/projeções atuais e última leitura de R igual. CAS do estado pronto somente para a geração atual. Dados operacionais dessa publicação não avançam R. Mutação imediatamente posterior à publicação é permitida, pois download revalida; pronto não é direito permanente de acesso.
+5. Download: obter/preparar spool privado fora da barreira, sem emitir byte ao cliente. Precarregar dependências locais de assinatura para não fazer refresh de credencial por rede na seção crítica. Manifesto grande pode ter revalidação de ACL por lotes sob a mesma R; a checagem final valida que nenhuma fonte mudou entre esses lotes. Sob barreira curta, confirmar usuário/sessão atuais, reauth nativa fresca, TTL, estado/attempt, ACL corrente e por último R. Não confiar apenas em request.user/cache carregado antes de espera, nem tratar a existência do arquivo como autorização. Não fazer leitura em réplica atrasada.
+6. O ponto de autorização é a última validação bem-sucedida sob essa barreira. Só depois liberar e emitir resposta. Revogação commitada antes desse ponto bloqueia; posterior não recolhe a resposta já autorizada. Não segurar transação pela rede e não afirmar que return Response equivale ao primeiro byte físico. Isso concretiza Q11-2, não cria revogação retroativa.
+7. Assinar somente descritores pessoais autorizados, por 60s, no preparo/serialização dessa resposta; assinatura puramente local pode ocorrer após o ponto de autorização usando o manifesto congelado, sem novos joins ou ampliação da audiência. Evitar laço de tamanho ilimitado segurando a barreira. Resposta privada/no-store e staging/spool sem acesso público; expiração elimina capacidade antes da limpeza física, que é durável e retomável. URL já emitida continua limitada a seu TTL, como previsto.
+
+**Cobertura da prova:** R constante garante consistência entre todos os lotes apenas se o inventário de fontes for completo. ACL atual continua obrigatória, inclusive P7 e arquivos pessoais; revisão não substitui filtro de autorização. Trigger de fonte omitida torna a prova falsa. Alterações de tempo (TTL/estado de documento por expiração) não fazem UPDATE automaticamente: conferir relógio/validade diretamente na autorização e não depender só de R.
+
+## T11-C — reautenticação e sessões sem ampliar identidade
+
+Usar did_recently_reauthenticate diretamente com política password/code e `<300 s`, preservando o código allauth instalado. Request de código, verificação de e-mail e login comum não provam reauth. Conta sem senha precisa endereço próprio verificado e desafio de reauth concluído; corrigir URL nativa de confirmação com `{key}` e tela correspondente, sem adicionar edição de identidade. Falta de reauth é resposta estruturada distinguível de sessão ausente; não presumir adaptação automática DRF.
+
+Intenção de exclusão tem segredo aleatório armazenado em hash, usuário, ação, fingerprint da sessão, expiração no máximo 300 s e uso único consumido apenas com o commit bem-sucedido. Guardas revalidam a sessão atual e prova no momento de confirmação, não timestamp do cliente. Rotação de session_key invalida a intenção. Não há necessidade de segundo token de autenticação paralelo.
+
+Exclusão revoga todas as instalações/inscrições/capacidades e sessões do usuário, não apenas a corrente. Para limpeza de sessões DB, um comando que percorra sessões e decodifique usando o backend Django pode servir ao legado; não busca textual em blobs assinados. Se adotar índice durável por usuário para evitar varredura, cobrir criação/rotação/invalidação e backfill verificável: índice incompleto não pode ser a única prova. A remoção do usuário já deve impedir autenticação de qualquer sessão remanescente; dispatcher exige verificação atual independente. Não transformar a11 numa reforma genérica de todos os fluxos auth. Os achados das notas de sessão são limites concretos a testar, não prova de que o marker push atual resolve cycle_key/reset.
+
+## T11-D — exclusão e preservação de grupo
+
+Compartilhar serviço de guardas puras e fase de efeitos. Todos os usuários de um lote administrativo são validados primeiro; remover mais de um admin exige validar o estado resultante do conjunto, não cada usuário isoladamente contra os demais ainda presentes. Alternativa menor: recusar bulk destrutivo e exigir operações individuais elegíveis, sem contornar guardas. Modelo/QuerySet/admin não podem escapar da coordenação e do journal. Sinal por usuário que já chama RN21 antes de validar o próximo não comprova guard-before-effects.
+
+Na transação destrutiva: barreira primeiro; mesma ordem real10 de locks; reconsulta do escopo; intenção/capacidade atual e RN04/RN32 em todos grupos; só então consumo da intenção, estado terminal da operação, tombstone/revogação de capacidades e alterações pessoais/grupo atômicas. Nenhum S3/transporte/journal externo nessa transação. Conflito reverte tudo, preservando sessão/dados e intenção utilizável enquanto válida. Erro seguro não revela restrita invisível. Nunca aplicar a exceção de resolução da saída dentro do DELETE.
+
+Grupo não tem dono: a constraint `espaco_grupo_sem_dono` já existe em `espacos/migrations/0005_espaco_grupo_sem_dono.py`; preservar e verificar, sem propor migração redundante. Auditar Collector/PROTECT/SET_NULL nos modelos efetivos antes de excluir. Grupo mantém contas, pagamentos, históricos, recorrências e evidências; RN21 retira pagador adequadamente; autorias identificadoras estruturadas tornam-se NULL/Ex-membro. Não prometer eliminação de menções livres ou identidade dentro de PDF/EXIF compartilhado integralmente sob Q10-2/8.
+
+Pins e tentativas10 independentes da FK pessoal sobrevivem; reserva aceita conserva somente snapshot/destino confirmados, com autor NULL e audiência/pagador atuais válidos. Não limpar antecipadamente snapshot necessário nem usar reserva para recriar pessoal. Não apagar fonte referenciada/pinada/escrita. Cleanup pós-commit por intenção persistida, CAS/geração e reconciliação de PUT tardio, reutilizando protocolo10.
+
+## T11-E — journal recuperável sem transação distribuída fictícia
+
+Escolha mínima: ledger de operação no DB, sem FK CASCADE de usuário, mais journal append durável independente do conjunto restaurado. Registro externo contém somente UUID opaco de operação/identidade, versão/época, sequência, instante e integridade autenticada; nenhum nome, e-mail, token auth, dado financeiro ou snapshot de grupo. Esse UUID ainda é identificador pseudônimo protegido, não promessa de anonimato. Usar protocolo idempotente e ordenação por operação.
+
+| Fase | Banco e domínio | Journal independente / falha |
+| --- | --- | --- |
+| 1. Preparar operação | Sob barreira curta, validar sessão/prova/intenção e TODAS guardas, sem apagar/revogar. Inserir operação PREPARADA e outbox operacional; commit | Ainda nenhum registro externo; falha não autoriza exclusão |
+| 2. PREPARE durável | Sem locks de domínio; publicar o identificador fixado e registrar o recibo verificável | Append+durabilidade confirmada antes de permitir transação destrutiva. Resposta perdida implica consultar/reconciliar, nunca presumir ausência/sucesso |
+| 3. Transação destrutiva | Sob barreira/lock da operação, exigir PREPARE confirmado, geração válida, reauth/intenção ainda válidas e repetir guardas. Exclusão e estado COMMITADA no mesmo commit | Sem I/O externo. Falha/rollback não vira COMMIT externo |
+| 4. Terminal externo | Após commit, publisher lê resultado durável da operação | Append COMMIT idempotente; crash deixa PREPARE pendente, recuperável pelo ledger autoritativo |
+| Abortar | Primeiro transação marca ABORTADA com fencing que impede qualquer commit tardio; se COMMITADA, não pode abortar | Só então append ABORT. Nunca abortar só porque lease/HTTP expirou. PREPARE atrasado/repetido não reabre terminal |
+
+Preflight que já encontra RN04/RN32 falha antes de intenção operacional/journal. Mudança concorrente entre PREPARE e transação destrutiva pode causar novo 409 e ABORT operacional. Isso deixa **somente registros opacos de uma tentativa abortada**, não dados/sessões/arquivos parcialmente removidos. Exigir absolutamente nenhum registro externo nesse caso, PREPARE durável antes do commit e nenhum I/O sob barreira ao mesmo tempo é incompatível. A precisão a registrar é que guard-before-effects protege efeitos pessoais/destrutivos; bookkeeping mínimo abortado permite provar ausência de commit. A intenção de confirmação do usuário não é consumida num 409.
+
+Resposta 204 pode sair após commit DB se PREPARE externo já era comprovadamente durável; COMMIT externo atrasado não permite ressuscitar conta, pois restore pendente falha fechado. Não aguardar journal segurando barreira. Se escolher aguardar terminal antes da resposta, resposta perdida continua ambígua e retry não repete efeitos. Journal indisponível antes de PREPARE impede exclusão; depois do commit exige reconciliação, nunca rollback fictício da exclusão.
+
+**Restore:** iniciar isolado sem acesso de usuário, escrita de produto ou dispatch. Validar cadeia/seq/época/assinatura e recibos contra checkpoint independente conhecido. MAC sozinho não detecta remoção de um sufixo inteiro válido; é necessário high-watermark durável protegido fora do backup restaurado. Reaplicar COMMIT posteriores ao snapshot; ABORT comprovado não exclui. PREPARE sem terminal exige DB autoritativo atual ou prova recuperada de WAL/ledger posterior suficiente; o DB restaurado antigo não prova aborto, mesmo se o usuário existe e a operação não. Sem essa prova, continuar bloqueado, sem inventar terminal e sem apagar usuário por prudência. Um restore apenas DB+objetos+journal incompleto não tem recuperação automática garantida.
+
+Ao reaplicar exclusões, verificar RN04/RN32/ACL do estado restaurado. Promoção de admin ou outra resolução ocorrida depois do backup pode faltar nele; não contornar regra, inventar promoção nem reabrir grupo inválido para fazer o ensaio passar. Recuperar evidência/estado compatível ou manter restauração bloqueada. Mesmo cuidado com despachos consumidos/incertos09 e pins10. Nunca servir dados pessoais ressuscitados enquanto se reconcilia.
+
+Reter journal no mínimo 8 dias no laboratório de backup 7 dias, e além disso enquanto algum backup restaurável anterior ou pin/job/objeto dependente persistir + 1 dia. Operação ambígua não expira por TTL automático. Segurança da retenção/restore depende também de tornar indisponíveis backups cujo journal já expirou; não restaurar snapshot fora da janela suportada.
+
+## T11-F — fatias com ownership único e provas futuras
+
+| Fatia | Dono de arquivos | Entrega / dependência |
+| --- | --- | --- |
+| A. Modelo e protocolo | Backend: api/apps/privacidade e alterações necessárias em api/apps existentes, migrações, triggers, adapters, testes API | Inventário da revisão, wrappers delimitados, job/staging/cleanup, ledger/guardas, contrato journal. Não editar infra/web |
+| B. Journal cliente e recuperação de domínio | Backend: cliente/API de journal em api e management commands de reconciliação/reaplicação | Cliente recebe recibos; valida estado DB/fencing; comando fail-closed informa razão/exit code; não gerencia volumes/TLS/backup |
+| C. Persistência e laboratório | DevOps: infra/, Makefile, .github/, scripts operacionais fora de api | Único escritor externo serializado/append fsync ou armazenamento equivalente, permissões, high-watermark protegido, retenção, backup/restore isolados; chama comandos backend. Não implementar segunda lógica RN04/RN32 |
+| D. Contrato e interface | Orquestrador: geração OpenAPI/tipos após API estável; frontend: web exceto artefatos gerados reservados | Reauth nativa, Perfil delegado, estados reais e PWA. Canvas só leitura; sem funcionalidade nova de identidade |
+| E. Prova | QA conforme ownership acordado com backend; segurança somente leitura | Falhas/concorrência reais depois da integração. Reservar arquivos antes de escrever para não disputar testes/backend |
+
+O [contrato do journal](../../arquitetura/protocolo-journal.md) fixa mensagem/recibo, idempotência, fsync/commit, CAS de terminal, high-watermark e códigos de falha. DevOps escolhe a persistência mínima verificável; não é necessário novo serviço público ou plataforma distribuída.
+
+Provas que podem refutar este parecer: atualização/rollback de cada fonte no meio de lote; campo voltando ao original; admin/bulk/M2M; contador sem lock em leitores; escritor multilinha e exclusão concorrentes; outer atomic auth→Usuario; revogação antes/depois do ponto final; TTL/validade sem UPDATE; worker antigo após lease; JSON 501+ e carga que cause retries; RN04 do conjunto de exclusão; nenhum efeito pessoal em conflito após PREPARE; crashes em cada fronteira do journal; sufixo truncado; PREPARE sem DB atual; backup anterior a promoção de admin; pins/PUT tardio/Ex-membro; fronteira 299/300 s e rotação/reset/sessões múltiplas. São testes futuros, nenhum executado nesta revisão.
+
+
+## Checkpoint anterior de integração — 16/11/2026
+
+A sequência acima descreve dependências, não o estado atual. API e tipos reais foram integrados; Perfil/exportação/exclusão e T11-I/J já têm implementação, ainda em validação. T11-I/J/K e D11-3 estão nas [decisões](decisoes.md); a restauração usa o [contrato E/K](../../arquitetura/protocolo-journal.md#selo-e-atestado-operacional-de-restauração-t11-ek). A guarda de identidade esperada também alcança SSR e logout; ticket Google só prova o callback nativo quando vinculado à tentativa, não login real no provedor.
+
+O laboratório usa backup físico/PITR, journal drenado/selado e corte autenticado, mas o clone APP ainda precisa de emissor real do atestado, conferência de objetos/pins/ledger e cutover positivo. INICIADA manual e pin criado diretamente não substituem aceite/cópia reais CA08 ou transporte real pela fila CA17. O runtime e a imagem web precisam corresponder ao patch semântico de Perfil antes do próximo QA.
+
+Integral 02 iniciou na sessão 46822, após foco corretivo somente de testes (10/10); test→lint→e2e ainda sem resultado. Tipos herdados da integral 01 após conferência de hashes, sem duas novas execuções. Não executar pytest concorrente nem benchmark enquanto há carga competidora. Preservar as falhas da integral 01 e as imagens intermediárias como cortes distintos. [Relatório](relatorio.md) concentra números, limites e próximas provas.
+
+## Checkpoint vigente — prova operacional e janela QA
+
+POS final ACL/direitos/objetos e ledger passou, com HMACs válidos ligados à mesma operação/época/fence/watermark e acl_sha256. Backup CURRENT `snapshot.T1fmz1pV` e `lab11-active stop/up` passaram: TLS confiável em ready/entrar e relay 200, web b1c9. D ativo fez login nativo novo e recebeu 404 duas vezes. Segurança adendo 21:46 encerrou os bloqueantes específicos de ACL/direitos/opt-out; não é aprovação global CA16/18.
+
+Ferramenta RPO versionada passou exit 0, reproduzindo26,280613 s / 13 COMMITs do exercício anterior delimitado; não é RTO ACL novo, garantia de RPO ou perda zero. Make test546 API/149 web pré-Providers, web pós-delta152/152 e lint/build permanecem válidos nos seus cortes; app API/websrc não mudou.
+
+E2E01 foi interrompido intencionalmente após 516,884 s, SIGTERM do supervisor/143 e comando-15; wrapper não aprovado, fontes iguais. Artefatos privados em `/tmp/varal11-e2e-partial-01-artifacts`. Foco01 não executou casos: webServer 120 s timeout com Next próprio órfão na 3000, depois encerrado com seu pai; preparo Compose com cwd web inválido não é prova e foi corrigido em up-corrected. Foco02 com worker real1 passou 7/8 em 1,6 min; boleto/Pix passaram e signup ainda falhou em URL5 s. Diagnóstico UI separado mediu POST200 em780 ms, raiz1797 ms e heading1955 ms, sem reproduzir causa. CPU disputada foi observada e não houve locks PG na inspeção posterior; não atribuir causalidade às falhas.
+
+Sincronização auth de teste passou 1/1 mobile 28,3 s aguardando POST200 antes de URL; sem alteração de timeout/produto. Harness E2E/CI worker 1 apenas, sem mudar cota. Benchmark80, calibração e RNF10/WebKit têm GO/janela exclusiva agora, sem resultados antecipados. Worker/beat LAB e API/worker/beat padrão estão pausados; nenhum E2E/build/backup/teste disputa a janela. Desempenho vem antes do E2E final se houver necessidade de otimização.
+
+CA01–18 seguem sem fechamento integrado, especialmente CA13/18; as provas específicas da restauração não aprovam todos os requisitos. [Relatório](relatorio.md) concentra cortes, limites e próximos resultados. Nenhum novo gate de autorização genérica; P11 destino remoto ausente, P6 externa e P9 próximo push autorizado. Sem push/deploy/limpar-dev.

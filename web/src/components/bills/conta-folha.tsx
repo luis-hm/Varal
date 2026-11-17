@@ -51,9 +51,10 @@ type Props = {
   onClose: () => void;
   /** Without a bill: create (Q3). With one: edit and cancel (CU07). */
   conta?: ContaDetalhe;
+  returnFocusTo?: HTMLElement | null;
 };
 
-export function ContaFolha({ open, onClose, conta }: Props) {
+export function ContaFolha({ open, onClose, conta, returnFocusTo }: Props) {
   const router = useRouter();
   const { user, espaco: atual } = useSessao();
   const { criar, editar, cancelar } = useAcoesConta();
@@ -331,6 +332,7 @@ export function ContaFolha({ open, onClose, conta }: Props) {
   return (
     <Folha
       open={open}
+      returnFocusTo={returnFocusTo}
       onClose={() => { if (!gravacao.current && !enviando.current && !lendoPdf) onClose(); }}
       busy={ocupado}
       title={conta ? "Editar conta" : "Nova conta"}

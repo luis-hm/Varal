@@ -20,9 +20,9 @@ test("ca11: mutations read the rotated CSRF cookie on every request and keep coo
 
 test("ca09: logout accepts only allauth's confirmed unauthenticated 401 payload", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(reply(unauthenticated, 401)));
-  expect(await logout()).toEqual(unauthenticated);
+  expect(await logout("00000000-0000-4000-8000-000000000001")).toEqual(unauthenticated);
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(reply({ detail: "Unauthorized" }, 401)));
-  await expect(logout()).rejects.toBeInstanceOf(AuthError);
+  await expect(logout("00000000-0000-4000-8000-000000000001")).rejects.toBeInstanceOf(AuthError);
 });
 
 test("ca08: password reset accepts the native success-without-login response and preserves field errors", async () => {

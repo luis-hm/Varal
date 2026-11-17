@@ -26,7 +26,7 @@ test("ativação é explícita e desligar revoga o mesmo ciclo e inscrição loc
   expect(requestPermission).toHaveBeenCalledOnce();
   expect(estadoPush("usuario-1")).toBe(true);
   expect(estadoPush("usuario-2")).toBe(false);
-  await desativarPush();
+  await desativarPush("usuario-1");
   expect(revogarInstalacao).toHaveBeenCalledWith(payload.instalacao);
   expect(unsubscribe).toHaveBeenCalled();
   expect(estadoPush("usuario-1")).toBe(false);
@@ -36,14 +36,14 @@ test("permissão negada não cadastra inscrição", async () => {
   requestPermission.mockResolvedValueOnce("denied");
   await expect(ativarPush("usuario-1", { habilitado: true, chave_publica: "AQ" })).rejects.toThrow("não concedida");
   expect(inscreverPush).not.toHaveBeenCalled();
-  await desativarPush();
+  await desativarPush("usuario-1");
 });
 
 test("logout durante ativação revoga o UUID e impede reativação tardia", async () => {
   let liberar!: (value: string) => void;
   requestPermission.mockReturnValueOnce(new Promise((resolve) => { liberar = resolve; }));
   const pendente = ativarPush("usuario-1", { habilitado: true, chave_publica: "AQ" });
-  await desativarPush();
+  await desativarPush("usuario-1");
   liberar("granted");
   await expect(pendente).rejects.toThrow("interrompida");
   expect(revogarInstalacao).toHaveBeenCalledOnce();
@@ -57,9 +57,24 @@ test("resposta tardia do registro após logout não restaura inscrição", async
   const pendente = ativarPush("usuario-1", { habilitado: true, chave_publica: "AQ" });
   await vi.waitFor(() => expect(inscreverPush).toHaveBeenCalledOnce());
   const id = vi.mocked(inscreverPush).mock.calls[0][0].instalacao;
-  await desativarPush();
+  await desativarPush("usuario-1");
   liberar({ ativo: true, id: "server-id" });
   await expect(pendente).rejects.toThrow("interrompida");
   expect(revogarInstalacao).toHaveBeenCalledWith(id);
   expect(estadoPush("usuario-1")).toBe(false);
+});
+
+test("T11-H: revogação offline conserva ciclo A e B não consegue reativar ou revogar A", async () => {
+  await ativarPush("usuario-1", { habilitado: true, chave_publica: "AQ" });
+  const id = vi.mocked(inscreverPush).mock.calls[0][0].instalacao;
+  vi.mocked(revogarInstalacao).mockRejectedValueOnce(new Error("offline"));
+  await expect(desativarPush("usuario-1")).rejects.toThrow();
+  expect(localStorage.getItem("varal.push.instalacao.v1")).toContain(id);
+  vi.mocked(revogarInstalacao).mockClear();
+  await expect(ativarPush("usuario-2", { habilitado: true, chave_publica: "AQ" })).rejects.toThrow("conta anterior");
+  await expect(desativarPush("usuario-2")).rejects.toThrow();
+  expect(revogarInstalacao).not.toHaveBeenCalled();
+  vi.mocked(revogarInstalacao).mockResolvedValue(null);
+  await desativarPush("usuario-1");
+  expect(revogarInstalacao).toHaveBeenCalledWith(id);
 });

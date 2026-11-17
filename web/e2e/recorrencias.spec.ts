@@ -1,7 +1,8 @@
 // Etapa 08: dados sintéticos, API real; rodar nos projetos mobile e desktop.
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
+import { test } from "./rn31-isolation";
 import type { components } from "../src/types/api";
 import { api, criarGrupo, descartarContas, entrarNoGrupo, hoje, logar, me, novaConta, semBadge } from "./fixtures";
 

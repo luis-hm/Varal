@@ -9,3 +9,12 @@ def enviar_email(subject, body, from_email, recipients, alternatives, headers):
     for content, mimetype in alternatives:
         message.attach_alternative(content, mimetype)
     message.send()
+
+
+@shared_task
+def limpar_tickets_google():
+    from django.utils import timezone
+
+    from .models import TicketGoogle
+
+    TicketGoogle.objects.filter(expira_em__lte=timezone.now()).delete()

@@ -2,11 +2,11 @@ import { randomUUID } from "node:crypto";
 import { expect, test as base, type APIRequestContext, type Browser, type Page, type PlaywrightWorkerArgs } from "@playwright/test";
 import type { components } from "../src/types/api";
 
-export const ORIGIN = "http://localhost:3000";
+export const ORIGIN = process.env.LAB_BASE_URL ?? "http://localhost:3000";
 export const AUTH = "/api/auth/browser/v1/";
 // Public, disposable development accounts. No personal credentials are used by this suite.
 export const TEST_PASSWORD = "Varal-e2e!93-Linha";
-export const uniqueEmail = () => `e2e-${randomUUID()}@varal.test`;
+export const uniqueEmail = () => `e2e-${randomUUID()}@${process.env.LAB_BASE_URL ? "varal.invalid" : "varal.test"}`;
 type StorageState = Awaited<ReturnType<APIRequestContext["storageState"]>>;
 
 export async function csrf(request: APIRequestContext) {
@@ -34,6 +34,17 @@ export async function me(request: APIRequestContext) {
   return (await response.json()) as components["schemas"]["Me"];
 }
 
+/** Prepare SSR's identity hint from the authenticated account, never as authentication. */
+export async function estadoAutenticado(request: APIRequestContext): Promise<StorageState> {
+  const usuario = await me(request);
+  expect(usuario.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+  const estado = await request.storageState();
+  const origin = new URL(ORIGIN);
+  estado.cookies = estado.cookies.filter((cookie) => cookie.name !== "varal_owner");
+  estado.cookies.push({ name: "varal_owner", value: usuario.id, domain: origin.hostname, path: "/", expires: -1, httpOnly: false, secure: origin.protocol === "https:", sameSite: "Lax" });
+  return estado;
+}
+
 // The design-system suite needs a real server session. Create one per worker,
 // then copy its cookies into isolated browser contexts; those tests never log out.
 export const test = base.extend<object, { signedInState: StorageState }>({
@@ -41,7 +52,7 @@ export const test = base.extend<object, { signedInState: StorageState }>({
     const request = await playwright.request.newContext({ baseURL: ORIGIN });
     try {
       await createAccount(request);
-      await provide(await request.storageState());
+      await provide(await estadoAutenticado(request));
     } finally {
       await request.dispose();
     }
@@ -97,7 +108,7 @@ export async function entrarNoGrupo(admin: Conta, grupo: string, papel: Papel, p
 
 /** Copies the API session into the browser page. */
 export async function logar(page: Page, conta: Conta) {
-  await page.context().addCookies((await conta.request.storageState()).cookies);
+  await page.context().addCookies((await estadoAutenticado(conta.request)).cookies);
 }
 
 /** Another browser (same viewport), signed in as `conta` or anonymous. */
@@ -105,7 +116,7 @@ export async function outraAba(browser: Browser, page: Page, conta?: Conta) {
   const context = await browser.newContext({
     baseURL: ORIGIN,
     viewport: page.viewportSize(),
-    storageState: conta ? await conta.request.storageState() : undefined,
+    storageState: conta ? await estadoAutenticado(conta.request) : undefined,
   });
   await context.addInitScript(semBadge);
   const nova = await context.newPage();

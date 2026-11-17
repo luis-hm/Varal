@@ -1,0 +1,3 @@
+import { ConfirmarEmail } from "@/components/auth/confirmar-email";
+export const instant = false;
+export default function ConfirmarEmailLink() { return <ConfirmarEmail />; }

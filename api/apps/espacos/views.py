@@ -482,6 +482,9 @@ class AceitarConviteView(APIView):
         examples=[OpenApiExample("Aceito", value={"grupo_id": GRUPO_ID, "papel": "pagador"})],
     )
     def post(self, request, token):
+        from .limite_convite import verificar
+
+        verificar(request)
         membro = servicos.aceitar_convite(request.user, token)
         return Response(AceiteSerializer(membro).data, status=status.HTTP_201_CREATED)
 

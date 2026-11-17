@@ -1,7 +1,8 @@
 // Etapa 07: usuários e arquivos sintéticos; API, worker e Silo reais, nas duas resoluções.
 import path from "node:path";
 import { readFile } from "node:fs/promises";
-import { expect, test, type APIRequestContext } from "@playwright/test";
+import { expect, type APIRequestContext } from "@playwright/test";
+import { test } from "./rn31-isolation";
 import { ORIGIN, api, criarGrupo, csrf, descartarContas, entrarNoGrupo, hoje, logar, me, mesAtual, novaConta, semBadge, type Conta } from "./fixtures";
 
 const SCREENS = path.join(__dirname, "__screens__");

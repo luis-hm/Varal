@@ -87,9 +87,11 @@ def validar(espaco, dados, conta=None):
 
 
 def resolver_pessoas(historicos, membros):
-    """RN22/RN30: `dados` stores user ids, never names or e-mails (LGPD), so nothing about a
-    person outlives their account. Sets `dados_exibidos` with labels resolved now against the
-    space's current `membros`, in one query; the stored `dados` is left untouched."""
+    """RN22/RN30: `dados` stores user ids, never names or e-mails.
+
+    A retained UUID is pseudonymous, not anonymous. Resolve display labels against the
+    space's current members in one query; leave the stored evidence untouched.
+    """
     from apps.contas_usuario.models import Usuario
 
     ids = set()

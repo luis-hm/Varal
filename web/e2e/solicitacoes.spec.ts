@@ -2,9 +2,10 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
+import { test } from "./rn31-isolation";
 import type { components } from "../src/types/api";
-import { ORIGIN, api, criarGrupo, csrf, descartarContas, entrarNoGrupo, hoje, logar, me, novaConta, semBadge, semRolagemEAlvos44, type Conta } from "./fixtures";
+import { ORIGIN, api, criarGrupo, csrf, descartarContas, entrarNoGrupo, estadoAutenticado, hoje, logar, me, novaConta, semBadge, semRolagemEAlvos44, type Conta } from "./fixtures";
 
 type Entrada = components["schemas"]["Entrada"];
 const FIXTURES = path.join(__dirname, "fixtures");
@@ -125,7 +126,7 @@ test("rn20: pedido com PDF, pagamento no modo simples e undo preservam fronteira
     const anonimo = new URL(url); anonimo.search = "";
     expect((await cliente.get(anonimo.toString())).status()).toBe(403);
   } finally { await cliente.dispose(); }
-  const contexto = await browser.newContext({ baseURL: ORIGIN, viewport: page.viewportSize(), storageState: await pagador.request.storageState(), permissions: ["clipboard-read", "clipboard-write"] });
+  const contexto = await browser.newContext({ baseURL: ORIGIN, viewport: page.viewportSize(), storageState: await estadoAutenticado(pagador.request), permissions: ["clipboard-read", "clipboard-write"] });
   await contexto.addInitScript(semBadge);
   const simples = await contexto.newPage();
   try {

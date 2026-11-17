@@ -1,7 +1,7 @@
 # API e OpenAPI
 
 > **Contém:** endpoints, sessão/CSRF e geração do contrato composto e dos tipos do frontend.
-> **Origem:** RNF12, seção 9 de `docs/especificacao-varal.md` e implementação das Etapas00 e02–09; contrato10 integrado, ainda em validação.
+> **Origem:** RNF12, seção 9 de `docs/especificacao-varal.md` e implementação das Etapas 00 e 02–11; 10 concluída, contratos 11 integrados e ainda em validação.
 
 ## Fluxo
 
@@ -230,3 +230,30 @@ Não há endpoint cliente para disparar avisos. Rotina/dispatcher consomem outbo
 `nonce` é nome público, substituindo a proposta `chave_idempotencia`. Retry com nonce/corpo iguais devolve reserva; corpo divergente ou hash da cobrança desatualizado409. Hash `versao_compartilhamento` cobre campos efetivamente compartilhados e identidade/metadadosPDF; frontend captura resumo/hash juntos. Estado `preparando|ativa|quitada|encerrada|falhou` é da solicitação, não status financeiro novo. `copia_id` só retorna se atualmente visível. Detalhe pessoal inclui `solicitacao_ativa,pode_solicitar,versao_compartilhamento`; grupo recebe `mensagem_solicitacao`, nunca origem/marca pessoal/causa/pin.
 
 Pagamento acrescenta boolean `derivado`; autoria da projeção é Sistema, sem ator do grupo no histórico pessoal. Mesmas rotas07 de pagar/anexar/undo, com par privado e marca exata; derivada pessoal não aceita comprovante. Projeção simples inclui recursos necessários e flags da mesma ACL, sem conceder pagamento por mera leitura. Opções de pagador usam nome ou e-mail atual somente entre candidatos elegíveis do grupo (Q04-23/Q10-15), sem ampliar ACL ou fallback histórico de ex-membro. Contrato presente e tipos gerados não equivalem a QA final; integral e visual da etapa 10 aprovados, com limites no relatório.
+
+## Privacidade e identidade (Etapa 11)
+
+Contratos implementados sob [ADR0015](../arquitetura/adr/0015-exportacao-exclusao-e-prova-local.md), publicados no schema composto. A referência de campos/tipos continua `api/openapi.yaml` → `web/src/types/api.ts`; nenhuma interface manual paralela. Isso não declara aprovação final dos 18 CAs.
+
+| Método e rota | Entrada / resultado e guardas |
+| --- | --- |
+| `POST /api/me/exportacoes/` | JSON exatamente `{chave: UUID}`; sessão/CSRF e prova nativa recente; 202 com `id, estado, criado_em, expira_em`. Idempotência por usuário/chave/hash, divergência 409 |
+| `GET /api/me/exportacoes/{id}/` | Estado do próprio job; alheio 404. Sem URL pública do artefato |
+| `GET /api/me/exportacoes/{id}/download/` | Download privado/no-store com sessão e prova novamente atuais, job pronto/formato interno 2/TTL/ACL/R válidos; conflito 409 ou expiração conforme schema. JSON externo v1, links pessoais assinados 60 s; nunca arquivos de grupo por autoria/upload |
+| `POST /api/me/exclusao/intencoes/` | Sessão/CSRF/prova; retorna `id, segredo, expira_em`. Segredo não é credencial de autenticação e não deve ser persistido/logado |
+| `DELETE /api/me/` | `{id, segredo, confirmar: true}`; intenção vinculada à sessão, prova fresca e RN04/RN32. 204 após commit com PREPARE durável; 409 sem apagar dados/sessões/arquivos ou consumir intenção. Bookkeeping opaco ABORT pode persistir após PREPARE |
+| `POST /api/auth/google/tickets/consumir/` | `{ticket: UUID, tentativa: UUID}`; sessão/CSRF, usuário atual e ticket próprio não expirado/não consumido. Retorna UUID próprio conforme schema; divergência 409. Não adotar identidade de GET genérico de sessão no callback |
+
+Reauth nativa allauth, base `/api/auth/browser/v1/`, sem barra final nos terminais: POST `auth/reauthenticate` com `{password}`, ou `auth/reauthenticate/code/request` com `{email}` próprio verificado e `.../confirm` com `{code}`. Request de código não prova entrega ou reauth. A prova aceita é do servidor e **estritamente menor que 300 s**; aos 300 s venceu. OAuth sem senha usa código nativo, sem criar senha ou habilitar login público por código/MFA. Sem endereço verificado, verificar o próprio endereço existente por GET/PUT `account/email` e POST `auth/email/verify` com `{key}`, depois outro desafio de reauth; verificação simples não prova identidade recente.
+
+Nas ações Varal, 401 `{status, code: "reauth_required", meta: {is_authenticated: true}}` pede prova; 401 com `is_authenticated: false` indica sessão ausente/inválida. Preservar envelope nativo, CSRF e códigos 400/403/409/429; falha CSRF pode ser HTML. Não fazer lógica por texto traduzido. Confirmação de e-mail usa `{key}` na rota frontend protegida por no-store/no-referrer e logs redigidos.
+
+### Precondição de identidade, sem autenticação por UUID
+
+T11-I: `X-Varal-Identidade-Esperada` informa UUID esperado pelo cliente. Backend compara com a identidade autenticada pelo cookie antes da view; inválido/divergente recebe 409 sem efeitos. `X-Varal-Identidade` identifica somente o usuário autenticado atual da resposta. Esses cabeçalhos **não autenticam, não concedem acesso e não substituem sessão/CSRF/ACL**. Cliente confere identidade e geração antes de consumir dados. A pista opaca de SSR também não autentica; sessão legada sem pista válida exige entrada explícita na interface. Não registrar headers/cookies/tickets/chaves em logs.
+
+T11-J: ticket é emitido no post_login Google nativo depois da validação allauth do state, vinculado ao usuário e tentativa, TTL cinco minutos/uso único. Callback fixo `/entrar/retorno` limpa a URL e consome ticket autenticado; código/provas simuladas não comprovam login no provedor público.
+
+SSR privado T11-G aceita somente GET `/api/me/`, `/api/espacos/{UUID}/resumo/` e `/api/notificacoes/resumo/`, UUID validado, origem interna fixa e cookies/precondição somente no servidor. Backend reautoriza e não há cache privado. Não é proxy arbitrário por URL/path/método.
+
+RN31 agora combina usuário e IP normalizado em operação Redis atômica, até 10 aceites/hora por IP; falha do limitador retorna 503 seguro. A cadeia confiável precisa estar declarada/testada; não confiar em XFF direto do cliente. O Redis exclusivo da suíte E2E e seu hook não alteram a cota de produção: removem só contadores IP entre casos serializados e não provam a cota HTTP. [Operação](../arquitetura/operacao-local.md).
