@@ -1,0 +1,136 @@
+{
+  "origin": "https://hmgvaral.codehub.systems",
+  "started_at_utc": "2026-11-17T03:28:14.752504+00:00",
+  "checks": [
+    {
+      "name": "TLS and API health",
+      "passed": true,
+      "status": 200,
+      "tls_verified": true
+    },
+    {
+      "name": "DB Redis private bucket readiness",
+      "passed": true,
+      "status": 200,
+      "tls_verified": true
+    },
+    {
+      "name": "public login HTML",
+      "passed": true,
+      "status": 200,
+      "tls_verified": true
+    },
+    {
+      "name": "anonymous identity and protected SSR denied",
+      "passed": true,
+      "api_status": 401,
+      "ssr_status": 200
+    },
+    {
+      "name": "signup without CSRF rejected",
+      "passed": true,
+      "status": 403
+    },
+    {
+      "name": "two synthetic signups have separate identities and spaces",
+      "passed": true,
+      "users": 2
+    },
+    {
+      "name": "identity precondition rejects mismatch and UUID alone does not authenticate",
+      "passed": true,
+      "mismatch_status": 409
+    },
+    {
+      "name": "session cookie Secure HttpOnly SameSite Lax",
+      "passed": true
+    },
+    {
+      "name": "foreign origin mutation rejected",
+      "passed": true,
+      "status": 403
+    },
+    {
+      "name": "authenticated SSR renders own identity without redirect loop",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "synthetic PDF upload and real Celery extraction",
+      "passed": true,
+      "upload_status": 202,
+      "final_state": "conferencia_manual",
+      "bytes": 1433
+    },
+    {
+      "name": "signed PDF downloaded with matching SHA256 and anonymous denied",
+      "passed": true,
+      "signed_status": 200,
+      "unsigned_status": 403,
+      "other_user_draft_status": 404,
+      "sha256": "81495efac4823b21f8d29ffb9de92592487e1277363b3f952af51b3c62d30fe4"
+    },
+    {
+      "name": "synthetic manual bill and PDF linked transactionally",
+      "passed": true,
+      "status": 201
+    },
+    {
+      "name": "linked PDF signature request denied to other user",
+      "passed": true,
+      "status": 404
+    },
+    {
+      "name": "cross-user bill and personal summary denied",
+      "passed": true,
+      "status": 404
+    },
+    {
+      "name": "second user SSR isolates identity",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "logout revokes session and password login succeeds",
+      "passed": true,
+      "logout_status": 401,
+      "login_status": 200
+    },
+    {
+      "name": "anonymous UUID hint HTML redirects explicitly to login without private identity/bill payload",
+      "passed": true,
+      "status": 200,
+      "transport": "Next streamed refresh plus NEXT_REDIRECT307",
+      "target": "/entrar",
+      "private_payload_markers_absent": true
+    }
+  ],
+  "synthetic_users_created": 2,
+  "synthetic_users_deleted": 2,
+  "limits": [
+    "HTTP smoke only; no browser, Google real, SMTP, push, performance proof; signed URL expiry was not timed.",
+    "RN30 account deletion proved by204 and session401; asynchronous physical S3 cleanup was not polled."
+  ],
+  "cleanup": [
+    {
+      "account": "B",
+      "status": "deleted204_session401"
+    },
+    {
+      "account": "A",
+      "status": "deleted204_session401"
+    }
+  ],
+  "passed": true,
+  "finished_at_utc": "2026-11-17T03:28:34.758737+00:00",
+  "harness_adaptation": {
+    "initial_probe_created_users": 0,
+    "reason": "Next streaming returns200 with explicitrefresh target /entrar and NEXT_REDIRECT307 digest; originalHTTP307-onlyobserver was incorrect.",
+    "accepted_transports": [
+      "HTTP302/303/307/308 with Location /entrar",
+      "HTTP200 with exact refresh target /entrar and NEXT_REDIRECT307 digest"
+    ],
+    "product_code_changed": false,
+    "followup_private_html_check": true
+  }
+}

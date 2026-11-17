@@ -18,7 +18,7 @@
 | 08 | Recorrência e agendador | concluída e integrada localmente à main (`59e0cc5`) | `etapa/08-recorrencia-agendador` | 16/11/2026 | [relatorio](etapas/08-recorrencia-agendador/relatorio.md) |
 | 09 | Notificações | concluída e integrada localmente à main (`56337ed`) | `etapa/09-notificacoes` | 16/11/2026 | [relatorio](etapas/09-notificacoes/relatorio.md) |
 | 10 | Solicitação e modo simples | concluída e integrada localmente à main (`5cd29ba`) | `etapa/10-solicitacao-modo-simples` | 16/11/2026 | [relatório](etapas/10-solicitacao-modo-simples/relatorio.md) |
-| 11 | Acabamento e deploy | integrada à main para teste; CA13/18 e implantação do app pendentes | `etapa/11-acabamento-deploy` | — | [relatório](etapas/11-acabamento-deploy/relatorio.md) |
+| 11 | Acabamento e deploy | HMG publicado; CA13/18 e implantação final em produção pendentes | `etapa/11-acabamento-deploy` | — | [relatório](etapas/11-acabamento-deploy/relatorio.md) |
 
 ## Decisões
 
@@ -35,7 +35,7 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 | P4 | Produção: com `DJANGO_DEBUG=0` a API liga `SECURE_SSL_REDIRECT`, e o Next consulta `/api/me/` pela rede interna em HTTP sem `X-Forwarded-Proto`; provável redirecionamento para https e falha das páginas protegidas. Definir como o Next fala com a API em produção (cabeçalho, exceção de rota ou proxy). Omitir também o token de convite do access log do proxy/servidor de produção (RN31). | Deploy da Etapa 11 |
 | P6 | Claude Code deve reexportar a especificação da origem rev 50 (sem categoria no CU05 e no modelo) e conferir os derivados/ADR 0005. O Codex não faz essa reexportação nem edita a origem à mão; a cópia permanece defasada. O ADR 0005 já aprovado rege a implementação sem categoria. | Pendência administrativa externa; continuidade sem categoria pelo ADR 0005 |
 | P9 | Confirmar que o CI dispara no próximo push: `gh run list`; se nada aparecer, `gh workflow run web.yml --ref main`. Causa provável e correção em "CI mudo" (Resolvidas). | Nada (verificação) |
-| P11 | Armazenamento remoto definido e instalado por autorização posterior expressa: Silo na VPS existente, pelo Coolify, console `silo-admin.codehub.systems`, S3 `arquivos.codehub.systems`; backup local diário e recuperação isolada do Silo comprovados. O deploy da aplicação Varal, seus domínios/configuração, bootstrap e recuperação integrada de PostgreSQL/journal continuam pendentes. Cópia local sem criptografia adicional e disco único não aprovam CA16. Não solicitar segredos no chat. | Implantação efetiva e recuperação integrada da aplicação na 11; não bloqueia implementação e laboratório locais |
+| P11 | Silo instalado na VPS/Coolify, console `silo-admin.codehub.systems`, S3 `arquivos.codehub.systems`, backup local diário e recuperação isolada comprovados. HMG publicado em `hmgvaral.codehub.systems`/develop, com banco/volumes/bucket próprios e18 verificações HTTP aprovadas. Produção/main preparada e parada; implantação final e recuperação integrada de PostgreSQL/journal continuam pendentes. Cópia local sem criptografia adicional e disco único não aprovam CA16. Não solicitar segredos no chat. | Produção e recuperação integrada da aplicação na11; HMG autorizado está disponível para testes |
 
 ### Resolvidas
 
@@ -60,6 +60,14 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 ## Log
 
 Ordem cronológica inversa.
+
+### 17/11/2026 — HMG publicado no Coolify; produção preparada e parada
+
+- Projeto Varal com `hmgvaral`/develop e `varal`/main configurados; branchdevelop criada via gh e infraestrutura publicada nas duas branches. Deploy HMG `hpdxo0th1prppjqtkdcekijy` terminou no SHA `3395d75` pelo webhook HMAC real, com commit explícito. HTTPS válido em entrar/health/ready200 e HTTP redirecionando paraHTTPS. [Runbook](arquitetura/coolify-varal.md), [evidência](etapas/11-acabamento-deploy/evidencias/coolify-hmg-2026-11-17.json).
+- [Smoke HTTP real](etapas/11-acabamento-deploy/evidencias/coolify-hmg-smoke-2026-11-17.json):18 verificações aprovadas; cadastro/login/CSRF/cookies/SSR/isolamento; PDF1433bytes enviado, processado pelo Celery e baixado com SHA idêntico por assinatura, anônimo403/alheio404; dois usuários sintéticos excluídos204/sessão401. Sem browser visual, Google real, SMTP/push, medição de desempenho ou expiração cronometrada. Limpeza física S3 assíncrona não foi polled.
+- Corrigidas colisão de IPs baixos e temporários Nginx fora de/tmp; filesystem somente leitura preservado. Aliases privados por stack evitaram ambiguidade de nomes; não foi capturada resolução DNS antiga para afirmar causa conclusiva do503 anterior. Sete imagens,11 verificações init, cinco grupos de proxy/DNS e cinco grupos HTTP locais aprovados. Coolify raw agregado observado `running:unknown`; saúde funcional comprovada pelas rotas/operações, sem alegar agregadohealthy.
+- Workflows com CI antes do webhook, segredos HMAC exclusivos, ambientes GitHub restritos às próprias branches. Produção: gatefalse, auto-deployfalse, execução porpush44007795245skipped e histórico de implantação vazio. Tokens de API fornecidos tinham leitura cruzada entre recursos e ficaram fora doActions. IA não ativada. SMTP indisponível/push desativado; Google requer origem/callback HMG no Console do provedor.
+- CI não integralmente verde: API inicial aprovada; web/CI reutilizado apresentaram falhas em verificações de navegador/HTTP produtivo e o deploy automático foi bloqueado. Não afrouxar testes nem declarar CA13/16/18 ou etapa11 concluídas. Produção não iniciada. Alterações paralelas de backlog/documentação preservadas.
 
 ### 16/11/2026 — Relato de teste: sessão, contas e organização em grupos
 
