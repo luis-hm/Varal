@@ -18,7 +18,7 @@
 | 08 | Recorrência e agendador | concluída e integrada localmente à main (`59e0cc5`) | `etapa/08-recorrencia-agendador` | 16/11/2026 | [relatorio](etapas/08-recorrencia-agendador/relatorio.md) |
 | 09 | Notificações | concluída e integrada localmente à main (`56337ed`) | `etapa/09-notificacoes` | 16/11/2026 | [relatorio](etapas/09-notificacoes/relatorio.md) |
 | 10 | Solicitação e modo simples | concluída e integrada localmente à main (`5cd29ba`) | `etapa/10-solicitacao-modo-simples` | 16/11/2026 | [relatório](etapas/10-solicitacao-modo-simples/relatorio.md) |
-| 11 | Acabamento e deploy | em implementação e validação; CA01–18 abertos | `etapa/11-acabamento-deploy` | — | [relatório](etapas/11-acabamento-deploy/relatorio.md) |
+| 11 | Acabamento e deploy | integrada à main para teste; CA13/18 e implantação do app pendentes | `etapa/11-acabamento-deploy` | — | [relatório](etapas/11-acabamento-deploy/relatorio.md) |
 
 ## Decisões
 
@@ -60,6 +60,11 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 ## Log
 
 Ordem cronológica inversa.
+
+### 16/11/2026 — Publicação da implementação na `main` para testes do dono
+
+- Pedido explícito posterior do dono autorizou integrar e enviar todo o trabalho local à `main`, mesmo com os aceites finais da Etapa 11 ainda abertos. Merge `--no-ff` feito após commits locais da implementação e do Silo. A implementação está disponível para novo teste; bug futuro será tratado em correção posterior.
+- Resultados conhecidos antes do envio: API546, web156/44, lint e tipos verdes; E2E integral135 aprovados/8 falhas/3 skips, seguido de retestes direcionados dos cenários corrigidos; benchmark oficial RNF05 reprovado. Não declarar CA13/18 ou implantação do app concluídos. CI do novo push será verificado conforme P9.
 
 ### 16/11/2026 — Backup local do Silo e recuperação isolada comprovados
 
