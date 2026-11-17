@@ -25,7 +25,7 @@ http {
         if ($route_allowed = 0) { return 404; }
         add_header Cache-Control "private, no-store" always;
         location / {
-            proxy_pass http://api:8000;
+            proxy_pass http://${VARAL_STACK}-api:8000;
             proxy_pass_request_headers off;
             proxy_set_header Host ${VARAL_DOMAIN};
             proxy_set_header Cookie $http_cookie;

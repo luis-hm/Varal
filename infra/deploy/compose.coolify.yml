@@ -251,6 +251,11 @@ services:
       <<: *runtime-environment
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    networks:
+      application: {aliases: ['${VARAL_STACK:?}-api']}
+      data: {}
+      journal: {}
+      outbound: {}
     depends_on: &application-dependencies
       migrate: {condition: service_completed_successfully}
       journal: {condition: service_healthy}
@@ -298,7 +303,7 @@ services:
       NODE_OPTIONS: --max-old-space-size=512
       NEXT_TELEMETRY_DISABLED: '1'
     networks:
-      frontend: {ipv4_address: '${VARAL_WEB_IP:?}'}
+      frontend: {ipv4_address: '${VARAL_WEB_IP:?}', aliases: ['${VARAL_STACK:?}-web']}
     depends_on: {api: {condition: service_healthy}, ssr: {condition: service_started}}
     healthcheck:
       test: [CMD, node, -e, 'fetch("http://127.0.0.1:3000/entrar").then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))']
@@ -315,6 +320,7 @@ services:
     build: {context: ../.., dockerfile: infra/deploy/proxy.Dockerfile}
     environment:
       VARAL_PROXY_ROLE: ssr
+      VARAL_STACK: ${VARAL_STACK:?}
       VARAL_DOMAIN: ${VARAL_DOMAIN:?}
       VARAL_WEB_IP: ${VARAL_WEB_IP:?}
     networks:
@@ -332,6 +338,7 @@ services:
     build: {context: ../.., dockerfile: infra/deploy/proxy.Dockerfile}
     environment:
       VARAL_PROXY_ROLE: edge
+      VARAL_STACK: ${VARAL_STACK:?}
       VARAL_DOMAIN: ${VARAL_DOMAIN:?}
       COOLIFY_PROXY_TRUST: ${COOLIFY_PROXY_TRUST:-coolify-proxy}
     expose: ['8080']
