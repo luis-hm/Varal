@@ -106,8 +106,8 @@ try:
     run("api", {"staging": "/varal/staging", "beat": "/varal/beat", "migration-lock": "/varal/lock"}, entrypoint="python", command=("-c", "import os; from pathlib import Path; assert os.getuid()==10001; [(Path('/varal')/n/'probe').write_text('synthetic') for n in ('staging','beat','lock')]"))
     record("new staging beat and migration volumes are writable by UID10001")
     for role in ("edge", "ssr"):
-        command = "envsubst '$VARAL_DOMAIN $COOLIFY_PROXY_TRUST $VARAL_WEB_IP' < /etc/varal/" + role + ".conf.template > /tmp/nginx.conf && nginx -t -c /tmp/nginx.conf"
-        docker(["run", "--rm", "--network", "none", "--add-host", "api:127.0.0.1", "--add-host", "web:127.0.0.1", "-e", "VARAL_DOMAIN=hmgvaral.codehub.systems", "-e", "COOLIFY_PROXY_TRUST=172.18.0.2/32", "-e", "VARAL_WEB_IP=172.30.212.10", "--entrypoint", "/bin/sh", image("proxy"), "-c", command])
+        command = "envsubst '$VARAL_DOMAIN $VARAL_STACK $COOLIFY_PROXY_TRUST $VARAL_WEB_IP' < /etc/varal/" + role + ".conf.template > /tmp/nginx.conf && nginx -t -c /tmp/nginx.conf"
+        docker(["run", "--rm", "--network", "none", "--add-host", "hmgvaral-api:127.0.0.1", "--add-host", "hmgvaral-web:127.0.0.1", "-e", "VARAL_STACK=hmgvaral", "-e", "VARAL_DOMAIN=hmgvaral.codehub.systems", "-e", "COOLIFY_PROXY_TRUST=172.18.0.2/32", "-e", "VARAL_WEB_IP=172.30.212.10", "--entrypoint", "/bin/sh", image("proxy"), "-c", command])
     record("edge and restricted SSR nginx configuration validates")
     helper(bootstrap, "from pathlib import Path; Path('/bootstrap/database.ready').write_text('synthetic')")
     run("bootstrap", bootstrap, expected=1)

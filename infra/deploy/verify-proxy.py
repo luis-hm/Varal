@@ -11,7 +11,8 @@ names = []
 base = [
     "docker", "run", "--network", "none",
     "--read-only", "--tmpfs", "/tmp:mode=1777",
-    "--add-host", "api:127.0.0.1", "--add-host", "web:127.0.0.1",
+    "--add-host", "hmgvaral-api:127.0.0.1", "--add-host", "hmgvaral-web:127.0.0.1",
+    "-e", "VARAL_STACK=hmgvaral",
     "-e", "VARAL_DOMAIN=hmgvaral.codehub.systems", "-e", "VARAL_PROXY_ROLE=edge",
 ]
 
@@ -71,7 +72,10 @@ try:
         assert result.returncode != 0
         assert "invalid exact trusted proxy" in result.stderr
     print("PASS broad CIDRs, other hosts and configuration injection are refused")
-    print("Proxy startup/DNS/input guards: 4/4 groups passed; no HTTP spoof proof inferred.")
+    result = run([*base, "--rm", "-e", "VARAL_STACK=other-stack", IMAGE])
+    assert result.returncode != 0 and "invalid stack namespace" in result.stderr
+    print("PASS only explicitly allowed stack namespaces are accepted")
+    print("Proxy startup/DNS/input guards: 5/5 groups passed; no HTTP spoof proof inferred.")
 finally:
     for name in names:
         run(["docker", "rm", "-f", name])
