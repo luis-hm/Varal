@@ -1,0 +1,7 @@
+**
+!infra/
+!infra/wal/
+!infra/wal/archive-command.sh
+!infra/wal/init-db.sh
+!infra/deploy/
+!infra/deploy/bind-database.sh

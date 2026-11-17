@@ -1,0 +1,34 @@
+worker_processes 1;
+error_log /dev/null crit;
+pid /tmp/nginx.pid;
+events { worker_connections 128; }
+http {
+    access_log off;
+    client_body_temp_path /tmp/client;
+    proxy_temp_path /tmp/proxy;
+    server_tokens off;
+    map $request_method $method_allowed { default 0; GET 1; }
+    map $request_uri $route_allowed {
+        default 0;
+        /api/me/ 1;
+        /api/notificacoes/resumo/ 1;
+        "~^/api/espacos/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/resumo/$" 1;
+    }
+    server {
+        listen 8080;
+        allow ${VARAL_WEB_IP};
+        deny all;
+        if ($method_allowed = 0) { return 405; }
+        if ($route_allowed = 0) { return 404; }
+        add_header Cache-Control "private, no-store" always;
+        location / {
+            proxy_pass http://api:8000;
+            proxy_pass_request_headers off;
+            proxy_set_header Host ${VARAL_DOMAIN};
+            proxy_set_header Cookie $http_cookie;
+            proxy_set_header X-Varal-Identidade-Esperada $http_x_varal_identidade_esperada;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-For $remote_addr;
+        }
+    }
+}

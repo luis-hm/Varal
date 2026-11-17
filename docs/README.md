@@ -18,6 +18,7 @@ Sessão nova começa por [PROGRESSO.md](PROGRESSO.md). Cada agente lê **só** o
 | Como exportar/excluir e recuperar sem ressuscitar dados? | [ADR0015](arquitetura/adr/0015-exportacao-exclusao-e-prova-local.md) e [protocolo do journal](arquitetura/protocolo-journal.md) |
 | Qual RF vira qual CU, RN, tela, etapa e teste? | [matriz-rastreabilidade.md](matriz-rastreabilidade.md) |
 | Para que serve o produto? O que está no MVP? | [produto/visao-e-escopo.md](produto/visao-e-escopo.md) |
+| Quais correções e mudanças surgiram no teste inicial do dono? | [Correções de 16/11/2026](produto/correcoes-teste-inicial-2026-11-16.md): retorno à aba, contas sem mês obrigatório, grupos livres e cadastro por destino; análise ainda sem implementação |
 | Quem usa e com que papel? | [produto/atores-e-personas.md](produto/atores-e-personas.md) |
 | Requisitos funcionais (RF01–RF25) | [requisitos/funcionais.md](requisitos/funcionais.md) |
 | Requisitos não funcionais (RNF01–RNF12) | [requisitos/nao-funcionais.md](requisitos/nao-funcionais.md) |
@@ -29,6 +30,8 @@ Sessão nova começa por [PROGRESSO.md](PROGRESSO.md). Cada agente lê **só** o
 | Como operar o laboratório/primário restaurado sem contornar os gates? | [Runbook de operação local](arquitetura/operacao-local.md) (ACTIVE_RESTORE, backup, journal/WAL, ledger/direitos e limites P11) |
 | Como operar o Silo remoto no Coolify e quais são seus limites? | [Silo na VPS](arquitetura/silo-coolify.md) e [Compose](../infra/silo/compose.coolify.yml); separado do laboratório e do desenvolvimento |
 | Como funciona o backup local do Silo e como testar sua recuperação? | [Backup e recuperação do Silo](arquitetura/silo-backup-recuperacao.md), [agenda](../infra/silo/backup-schedule.json) e [template isolado](../infra/silo/compose.restore.yml) |
+| Como planejamos usar IA para ler boletos e evitar erros recorrentes? | [Plano de IA para boletos](arquitetura/ia-boletos.md) e [pesquisa oficial Gemini](arquitetura/pesquisa-gemini-boletos.md); proposta ainda não implementada |
+| Como publicar HMG/develop e preparar produção/main no Coolify? | [Varal no Coolify](arquitetura/coolify-varal.md), [Compose](../infra/deploy/compose.coolify.yml) e workflows `deploy-hmg.yml`/`deploy-prod.yml`; produção permanece bloqueada |
 | Por que decidimos X? | [arquitetura/adr/](arquitetura/adr/) |
 | Onde está a tela/componente no Doop? Como fica no desktop? | [design/README.md](design/README.md) (inclui a regra responsiva) |
 | Quais cores, fontes, raios? | [design/tokens.md](design/tokens.md) |

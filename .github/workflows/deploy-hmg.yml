@@ -1,0 +1,43 @@
+name: deploy hmg
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: varal-deploy-hmg
+  cancel-in-progress: false
+
+jobs:
+  api:
+    if: github.ref == 'refs/heads/develop'
+    uses: ./.github/workflows/api.yml
+
+  web:
+    if: github.ref == 'refs/heads/develop'
+    uses: ./.github/workflows/web.yml
+
+  deploy:
+    if: github.ref == 'refs/heads/develop'
+    needs: [api, web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: hmg
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify signed hook boundaries without credentials
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py' -q
+      - name: Queue the checked commit for homologation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEPLOY_EXPECTED_BRANCH: develop
+          COOLIFY_URL: ${{ vars.COOLIFY_URL }}
+          COOLIFY_RESOURCE_UUID: ${{ vars.COOLIFY_HMG_UUID }}
+          COOLIFY_WEBHOOK_SECRET: ${{ secrets.COOLIFY_HMG_WEBHOOK_SECRET }}
+        run: python3 .github/scripts/deploy-coolify.py

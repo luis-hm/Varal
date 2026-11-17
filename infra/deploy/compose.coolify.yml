@@ -1,0 +1,405 @@
+# Reusable isolated stack. Configure distinct VARAL_STACK, CIDRs, credentials and bucket per environment.
+# Coolify builds from the repository root; only edge joins its external ingress network.
+x-runtime-environment: &runtime-environment
+  DJANGO_DEBUG: '0'
+  DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?}
+  DJANGO_ALLOWED_HOSTS: ${VARAL_DOMAIN:?},api
+  FRONTEND_URL: https://${VARAL_DOMAIN:?}
+  API_PUBLIC_URL: https://${VARAL_DOMAIN:?}
+  POSTGRES_HOST: postgres
+  POSTGRES_DB: ${POSTGRES_DB:?}
+  POSTGRES_USER: ${POSTGRES_USER:?}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+  REDIS_URL: redis://redis:6379/0
+  S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:?}
+  S3_PUBLIC_ENDPOINT_URL: ${S3_PUBLIC_ENDPOINT_URL:?}
+  S3_BUCKET_NAME: ${S3_BUCKET_NAME:?}
+  S3_REGION_NAME: ${S3_REGION_NAME:-us-east-1}
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?}
+  PDF_SPOOL_DIR: /varal/staging
+  PDF_EXTRACAO_TIMEOUT: '20'
+  PDF_EXTRACAO_MEMORIA: '536870912'
+  JOURNAL_URL: http://journal:8090
+  JOURNAL_EPOCH: ${JOURNAL_EPOCH:?}
+  JOURNAL_CLIENT_KEY_ID: writer-v1
+  JOURNAL_CLIENT_KEY_FILE: /run/keys/writer/key
+  JOURNAL_RECEIPT_KEY_ID: receipt-v1
+  JOURNAL_RECEIPT_KEY_FILE: /run/keys/receipt/key
+  VARAL_WAL_WITNESS_DIR: /run/wal-witness
+  VARAL_WAL_WITNESS_KEY_FILE: /run/keys/wal-witness/key
+  VARAL_WAL_WITNESS_EPOCH: ${JOURNAL_EPOCH:?}
+  VARAL_TRUSTED_PROXY_COUNT: '1'
+  VARAL_TRUSTED_PROXY_CIDRS: ${VARAL_EDGE_IP:?}/32,${VARAL_SSR_IP:?}/32
+  EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+  EMAIL_HOST: ${EMAIL_HOST:-127.0.0.1}
+  EMAIL_PORT: ${EMAIL_PORT:-587}
+  EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+  EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+  EMAIL_USE_TLS: ${EMAIL_USE_TLS:-1}
+  EMAIL_TIMEOUT: '5'
+  DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-Varal <nao-responda@codehub.systems>}
+  WEBPUSH_ENABLED: ${WEBPUSH_ENABLED:-0}
+  WEBPUSH_PUBLIC_KEY: ${WEBPUSH_PUBLIC_KEY:-}
+  WEBPUSH_PRIVATE_KEY: ''
+  WEBPUSH_SUBJECT: ${WEBPUSH_SUBJECT:-}
+  NOTIFICACOES_STORAGE_KEY: ${NOTIFICACOES_STORAGE_KEY:?}
+
+x-api: &api
+  image: ${VARAL_STACK:?}-api:deployed
+  build:
+    context: ../..
+    dockerfile: infra/deploy/api.Dockerfile
+  environment: *runtime-environment
+  volumes:
+    - staging:/varal/staging
+    - key_writer:/run/keys/writer:ro
+    - key_receipt:/run/keys/receipt:ro
+    - key_wal_witness:/run/keys/wal-witness:ro
+    - wal_acks:/run/wal-witness:ro
+  networks: [application, data, journal, outbound]
+  restart: unless-stopped
+  logging: &bounded-logging
+    driver: json-file
+    options: {max-size: 10m, max-file: '3'}
+
+x-journal-volumes: &journal-volumes
+  - journal_data:/varal/journal
+  - journal_checkpoint:/varal/checkpoint
+  - key_chain:/run/keys/chain:ro
+  - key_receipt:/run/keys/receipt:ro
+  - key_checkpoint:/run/keys/checkpoint:ro
+  - key_writer:/run/keys/writer:ro
+  - key_restore:/run/keys/restore:ro
+  - key_fence:/run/keys/fence:ro
+
+x-wal-volumes: &wal-volumes
+  - wal_spool:/varal/wal-spool
+  - wal_archive:/varal/wal-archive
+  - wal_acks:/varal/wal-acks
+  - wal_anchor:/varal/wal-anchor
+  - key_wal_cipher:/run/keys/wal-cipher:ro
+  - key_wal_witness:/run/keys/wal-witness:ro
+
+services:
+  bootstrap:
+    image: ${VARAL_STACK:?}-bootstrap:deployed
+    build: {context: ../.., dockerfile: infra/deploy/bootstrap.Dockerfile}
+    environment: {JOURNAL_EPOCH: '${JOURNAL_EPOCH:?}'}
+    volumes:
+      - bootstrap_state:/bootstrap
+      - postgres:/state/postgres:ro
+      - journal_data:/state/journal
+      - journal_checkpoint:/state/checkpoint
+      - wal_spool:/state/wal-spool
+      - wal_archive:/state/wal-archive
+      - wal_acks:/state/wal-acks
+      - wal_anchor:/state/wal-anchor
+      - key_chain:/keys/chain
+      - key_receipt:/keys/receipt
+      - key_checkpoint:/keys/checkpoint
+      - key_writer:/keys/writer
+      - key_restore:/keys/restore
+      - key_fence:/keys/fence
+      - key_wal_cipher:/keys/wal-cipher
+      - key_wal_witness:/keys/wal-witness
+    network_mode: none
+    restart: 'no'
+    mem_limit: 64m
+    logging: *bounded-logging
+
+  journal-init:
+    image: ${VARAL_STACK:?}-journal:deployed
+    build: {context: ../.., dockerfile: infra/deploy/journal.Dockerfile}
+    entrypoint: [python, /srv/journal/journal-init.py]
+    environment: {JOURNAL_EPOCH: '${JOURNAL_EPOCH:?}'}
+    volumes: *journal-volumes
+    depends_on: {bootstrap: {condition: service_completed_successfully}}
+    network_mode: none
+    restart: 'no'
+    mem_limit: 96m
+    logging: *bounded-logging
+
+  wal-init:
+    image: ${VARAL_STACK:?}-wal:deployed
+    build: {context: ../.., dockerfile: infra/deploy/wal.Dockerfile}
+    entrypoint: [python, /srv/wal-init.py]
+    environment: {JOURNAL_EPOCH: '${JOURNAL_EPOCH:?}'}
+    volumes: *wal-volumes
+    depends_on: {bootstrap: {condition: service_completed_successfully}}
+    network_mode: none
+    restart: 'no'
+    mem_limit: 128m
+    logging: *bounded-logging
+
+  state-seal:
+    image: ${VARAL_STACK:?}-bootstrap:deployed
+    build: {context: ../.., dockerfile: infra/deploy/bootstrap.Dockerfile}
+    entrypoint: [python, /srv/seal.py]
+    environment: {JOURNAL_EPOCH: '${JOURNAL_EPOCH:?}'}
+    volumes:
+      - bootstrap_state:/bootstrap
+      - journal_data:/state/journal:ro
+      - journal_checkpoint:/state/checkpoint:ro
+      - wal_archive:/state/wal-archive:ro
+      - wal_anchor:/state/wal-anchor:ro
+    depends_on:
+      journal-init: {condition: service_completed_successfully}
+      wal-init: {condition: service_completed_successfully}
+    network_mode: none
+    restart: 'no'
+    mem_limit: 64m
+    logging: *bounded-logging
+
+  wal-archive:
+    image: ${VARAL_STACK:?}-wal:deployed
+    build: {context: ../.., dockerfile: infra/deploy/wal.Dockerfile}
+    command: [--spool, /varal/wal-spool, --archive, /varal/wal-archive, --acks, /varal/wal-acks, --anchor, /varal/wal-anchor, --epoch, '${JOURNAL_EPOCH:?}', --cipher-key, /run/keys/wal-cipher/key, --witness-key, /run/keys/wal-witness/key]
+    volumes: *wal-volumes
+    depends_on: {state-seal: {condition: service_completed_successfully}}
+    network_mode: none
+    healthcheck:
+      test: [CMD, python, /srv/health.py]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    restart: unless-stopped
+    mem_limit: 192m
+    logging: *bounded-logging
+
+  journal:
+    image: ${VARAL_STACK:?}-journal:deployed
+    build: {context: ../.., dockerfile: infra/deploy/journal.Dockerfile}
+    command: [--directory, /varal/journal, --checkpoint-directory, /varal/checkpoint, --epoch, '${JOURNAL_EPOCH:?}', --chain-key-file, /run/keys/chain/key, --receipt-key-file, /run/keys/receipt/key, --checkpoint-key-file, /run/keys/checkpoint/key, --writer-key-file, /run/keys/writer/key, --restore-key-file, /run/keys/restore/key, --fence-key-file, /run/keys/fence/key, --listen, 0.0.0.0]
+    volumes: *journal-volumes
+    networks: [journal]
+    depends_on: {state-seal: {condition: service_completed_successfully}}
+    healthcheck:
+      test: [CMD, python, /srv/journal/journal-health.py]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    restart: unless-stopped
+    mem_limit: 128m
+    logging: *bounded-logging
+
+  postgres:
+    image: ${VARAL_STACK:?}-postgres:deployed
+    build: {context: ../.., dockerfile: infra/deploy/postgres.Dockerfile}
+    command: [postgres, -c, wal_level=replica, -c, archive_mode=on, -c, 'archive_command=/usr/local/bin/varal-archive-wal %p %f', -c, archive_timeout=300, -c, shared_buffers=128MB, -c, max_connections=50, -c, log_statement=none, -c, log_min_error_statement=panic, -c, log_error_verbosity=terse, -c, log_min_messages=fatal]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?}
+      APP_USER: ${POSTGRES_USER:?}
+      APP_PASSWORD: ${POSTGRES_PASSWORD:?}
+      MIGRATE_USER: ${POSTGRES_MIGRATE_USER:?}
+      MIGRATE_PASSWORD: ${POSTGRES_MIGRATE_PASSWORD:?}
+      JOURNAL_EPOCH: ${JOURNAL_EPOCH:?}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - wal_spool:/varal/wal-spool
+      - wal_acks:/varal/wal-acks:ro
+      - bootstrap_state:/varal/stack-identity
+    networks: [data]
+    depends_on: {wal-archive: {condition: service_healthy}}
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+    mem_limit: 512m
+    shm_size: 128m
+    logging: *bounded-logging
+
+  redis:
+    image: redis:7-alpine@sha256:02f2cc4882f8bf87c79a220ac958f58c700bdec0dfb9b9ea61b62fb0e8f1bfcf
+    command: [redis-server, --appendonly, 'yes', --appendfsync, everysec, --maxmemory, 96mb, --maxmemory-policy, noeviction, --slowlog-log-slower-than, '-1']
+    volumes: [redis:/data]
+    networks: [data]
+    healthcheck: {test: [CMD, redis-cli, ping], interval: 5s, timeout: 3s, retries: 30}
+    restart: unless-stopped
+    mem_limit: 160m
+    logging: *bounded-logging
+
+  migrate:
+    <<: *api
+    command: [python, /app/migrate.py]
+    environment:
+      <<: *runtime-environment
+      POSTGRES_USER: ${POSTGRES_MIGRATE_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_MIGRATE_PASSWORD:?}
+      VARAL_RUNTIME_DB_ROLE: ${POSTGRES_USER:?}
+      NOTIFICACOES_STORAGE_KEY: ''
+    volumes: [migration_lock:/varal/lock]
+    networks: [data]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    restart: 'no'
+    mem_limit: 384m
+
+  api:
+    <<: *api
+    command: [gunicorn, -c, /app/gunicorn.conf.py, 'config.wsgi:application', --bind, '0.0.0.0:8000', --workers, '2', --threads, '2', --timeout, '60']
+    environment:
+      <<: *runtime-environment
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    depends_on: &application-dependencies
+      migrate: {condition: service_completed_successfully}
+      journal: {condition: service_healthy}
+      wal-archive: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, /app/api-ready.py]
+      interval: 20s
+      timeout: 20s
+      retries: 6
+      start_period: 60s
+    mem_limit: 512m
+
+  worker:
+    <<: *api
+    command: [celery, -A, config, worker, -l, warning, --concurrency=1, --prefetch-multiplier=1]
+    environment:
+      <<: *runtime-environment
+      WEBPUSH_PRIVATE_KEY: ${WEBPUSH_PRIVATE_KEY:-}
+    depends_on: *application-dependencies
+    mem_limit: 768m
+
+  beat:
+    <<: *api
+    command: [celery, -A, config, beat, -l, warning, --schedule, /varal/beat/celerybeat-schedule]
+    environment:
+      <<: *runtime-environment
+      NOTIFICACOES_STORAGE_KEY: ''
+      EMAIL_HOST_USER: ''
+      EMAIL_HOST_PASSWORD: ''
+    volumes:
+      - beat:/varal/beat
+      - key_writer:/run/keys/writer:ro
+      - key_receipt:/run/keys/receipt:ro
+      - key_wal_witness:/run/keys/wal-witness:ro
+      - wal_acks:/run/wal-witness:ro
+    depends_on: *application-dependencies
+    mem_limit: 192m
+
+  web:
+    image: ${VARAL_STACK:?}-web:deployed
+    build: {context: ../.., dockerfile: infra/deploy/web.Dockerfile}
+    environment:
+      API_INTERNAL_URL: http://ssr:8080
+      NODE_ENV: production
+      NODE_OPTIONS: --max-old-space-size=512
+      NEXT_TELEMETRY_DISABLED: '1'
+    networks:
+      frontend: {ipv4_address: '${VARAL_WEB_IP:?}'}
+    depends_on: {api: {condition: service_healthy}, ssr: {condition: service_started}}
+    healthcheck:
+      test: [CMD, node, -e, 'fetch("http://127.0.0.1:3000/entrar").then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))']
+      interval: 20s
+      timeout: 10s
+      retries: 6
+      start_period: 60s
+    restart: unless-stopped
+    mem_limit: 768m
+    logging: *bounded-logging
+
+  ssr:
+    image: ${VARAL_STACK:?}-proxy:deployed
+    build: {context: ../.., dockerfile: infra/deploy/proxy.Dockerfile}
+    environment:
+      VARAL_PROXY_ROLE: ssr
+      VARAL_DOMAIN: ${VARAL_DOMAIN:?}
+      VARAL_WEB_IP: ${VARAL_WEB_IP:?}
+    networks:
+      frontend: {}
+      application: {ipv4_address: '${VARAL_SSR_IP:?}'}
+    depends_on: {api: {condition: service_healthy}}
+    read_only: true
+    tmpfs: ['/tmp:mode=1777']
+    restart: unless-stopped
+    mem_limit: 48m
+    logging: *bounded-logging
+
+  edge:
+    image: ${VARAL_STACK:?}-proxy:deployed
+    build: {context: ../.., dockerfile: infra/deploy/proxy.Dockerfile}
+    environment:
+      VARAL_PROXY_ROLE: edge
+      VARAL_DOMAIN: ${VARAL_DOMAIN:?}
+      COOLIFY_PROXY_TRUST: ${COOLIFY_PROXY_TRUST:-coolify-proxy}
+    expose: ['8080']
+    networks:
+      coolify: {}
+      frontend: {}
+      application: {ipv4_address: '${VARAL_EDGE_IP:?}'}
+    depends_on:
+      api: {condition: service_healthy}
+      web: {condition: service_healthy}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=coolify
+      - traefik.http.routers.${VARAL_STACK:?}-http.rule=Host(`${VARAL_DOMAIN:?}`)
+      - traefik.http.routers.${VARAL_STACK:?}-http.entrypoints=http
+      - traefik.http.routers.${VARAL_STACK:?}-http.middlewares=${VARAL_STACK:?}-redirect
+      - traefik.http.routers.${VARAL_STACK:?}-http.service=${VARAL_STACK:?}-edge
+      - traefik.http.middlewares.${VARAL_STACK:?}-redirect.redirectscheme.scheme=https
+      - traefik.http.routers.${VARAL_STACK:?}-http.observability.accesslogs=false
+      - traefik.http.routers.${VARAL_STACK:?}-http.observability.tracing=false
+      - traefik.http.routers.${VARAL_STACK:?}-https.rule=Host(`${VARAL_DOMAIN:?}`)
+      - traefik.http.routers.${VARAL_STACK:?}-https.entrypoints=https
+      - traefik.http.routers.${VARAL_STACK:?}-https.tls=true
+      - traefik.http.routers.${VARAL_STACK:?}-https.tls.certresolver=letsencrypt
+      - traefik.http.routers.${VARAL_STACK:?}-https.service=${VARAL_STACK:?}-edge
+      - traefik.http.routers.${VARAL_STACK:?}-https.observability.accesslogs=false
+      - traefik.http.routers.${VARAL_STACK:?}-https.observability.tracing=false
+      - traefik.http.services.${VARAL_STACK:?}-edge.loadbalancer.server.port=8080
+    healthcheck:
+      test: [CMD-SHELL, 'wget -q -O /dev/null --header="Host: $${VARAL_DOMAIN}" http://127.0.0.1:8080/api/ready/']
+      interval: 20s
+      timeout: 20s
+      retries: 6
+      start_period: 60s
+    read_only: true
+    tmpfs: ['/tmp:mode=1777']
+    restart: unless-stopped
+    mem_limit: 64m
+    logging: *bounded-logging
+
+networks:
+  coolify: {external: true}
+  frontend:
+    internal: true
+    ipam: {config: [{subnet: '${VARAL_FRONTEND_SUBNET:?}'}]}
+  application:
+    internal: true
+    ipam: {config: [{subnet: '${VARAL_APPLICATION_SUBNET:?}'}]}
+  data: {internal: true}
+  journal: {internal: true}
+  outbound: {}
+
+volumes:
+  postgres: {name: '${VARAL_STACK:?}-postgres'}
+  redis: {name: '${VARAL_STACK:?}-redis'}
+  staging: {name: '${VARAL_STACK:?}-staging'}
+  migration_lock: {name: '${VARAL_STACK:?}-migration-lock'}
+  beat: {name: '${VARAL_STACK:?}-beat'}
+  bootstrap_state: {name: '${VARAL_STACK:?}-bootstrap-state'}
+  journal_data: {name: '${VARAL_STACK:?}-journal-data'}
+  journal_checkpoint: {name: '${VARAL_STACK:?}-journal-checkpoint'}
+  wal_spool: {name: '${VARAL_STACK:?}-wal-spool'}
+  wal_archive: {name: '${VARAL_STACK:?}-wal-archive'}
+  wal_acks: {name: '${VARAL_STACK:?}-wal-acks'}
+  wal_anchor: {name: '${VARAL_STACK:?}-wal-anchor'}
+  key_chain: {name: '${VARAL_STACK:?}-key-chain'}
+  key_receipt: {name: '${VARAL_STACK:?}-key-receipt'}
+  key_checkpoint: {name: '${VARAL_STACK:?}-key-checkpoint'}
+  key_writer: {name: '${VARAL_STACK:?}-key-writer'}
+  key_restore: {name: '${VARAL_STACK:?}-key-restore'}
+  key_fence: {name: '${VARAL_STACK:?}-key-fence'}
+  key_wal_cipher: {name: '${VARAL_STACK:?}-key-wal-cipher'}
+  key_wal_witness: {name: '${VARAL_STACK:?}-key-wal-witness'}

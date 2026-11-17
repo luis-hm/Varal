@@ -61,6 +61,26 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 
 Ordem cronológica inversa.
 
+### 16/11/2026 — Relato de teste: sessão, contas e organização em grupos
+
+- A pedido do dono, criado [documento de correções do teste inicial](produto/correcoes-teste-inicial-2026-11-16.md), com COR-01–06, comportamento atual verificado no código, direção solicitada, propostas, decisões abertas e aceites futuros.
+- Capturas mostram carregamento/verificação de sessão após voltar à aba. Guarda atual oculta conteúdo, revalida identidade e recarrega; causa completa do travamento ainda não reproduzida. Contas impõe mês atual na tela e na API. Cadastro já condiciona pagador/visibilidade ao grupo, mas prioriza o espaço atual.
+- Pedido registrado: todos os períodos com filtros combináveis; Contas pessoal por padrão; grupos livres inclusive individuais; destino do cadastro explícito. Relação grupo/categoria/casa, dados existentes e alcance de visibilidade/pagamento permanecem decisões abertas. ADR 0005 e permissões atuais não foram revogados.
+- Trabalho somente documental, sem execução de testes, mudança de produto, leitura/marcação remota de Ajustes ou alteração do Doop. Próxima preparação de implementação deve obter o texto atual de Ajustes e conciliar as fontes. Etapa 11 e seus aceites permanecem no estado anterior; alterações de HMG/deploy já presentes foram preservadas.
+
+### 16/11/2026 — Preparação de HMG/develop e produção/main no Coolify
+
+- Novo pedido explícito do dono autoriza criar branch `develop` via `gh`, configurar projeto Varal com dois recursos e iniciar **somente homologação**. Domínios confirmados: `hmgvaral.codehub.systems` e `varal.codehub.systems`. `develop` criada da main `7eb3e56`; projeto e aplicações criados, sem deploy neste checkpoint.
+- Recursos `hmgvaral`/develop e `varal`/main têm segredos, roles de banco e volumes separados. Bucket privado HMG `varal-hmg-arquivos` com credencial exclusiva testada em PUT/GET/DELETE sintético e negações403 de ACL/bucket de produção. Silo existente preservado.
+- [Runbook](arquitetura/coolify-varal.md), [Compose raw](../infra/deploy/compose.coolify.yml) e workflows foram preparados. Webhooks HMAC exclusivos por aplicação/ambiente GitHub, SHA explícito e CI API/web antes do disparo. Produção: auto-deploy falso, `VARAL_PROD_DEPLOY_ENABLED=false`, nenhum deploy. Nenhum token administrativo no GitHub Actions, nenhuma IA ativada.
+- Raw Compose confirmado no Coolify para impedir injeção global de env_file; build serial por aplicação, image scanning preservado. Sete testes offline do assinador, sete builds seriais e11 testes isolados de inicialização passaram. Confiança no proxy via hostname Docker literal evita acesso ao Docker socket; Docker deve recusar colisões de rede sem remover recursos existentes. Aguardam teste final desse DNS, primeira implantação e smoke. Sem SMTP configurado, e-mail falha controladamente; push desativado. CI integral/CA13/18 continuam pendentes.
+
+### 16/11/2026 — Planejamento de IA para leitura de boletos
+
+- A pedido do dono, documentados [plano de IA para boletos](arquitetura/ia-boletos.md) e [pesquisa Gemini em fontes oficiais](arquitetura/pesquisa-gemini-boletos.md). Proposta híbrida: parser local como autoridade, IA como complemento de extração, conferência humana e melhoria por erros revisados convertidos em fixtures sintéticas/regressões.
+- Dono informou `API_KEY_GOOGLE` no ambiente; valor não foi inspecionado nem enviado. Nenhuma integração ativada, alteração de configuração ou envio de PDF ao provedor. Gratuito proposto somente com documentos fictícios; regime para dados reais, extensão visual da RN28, feedback/retenção e orçamento precisam de decisão antes da implementação. Não há aprendizado automático entre chamadas.
+- Planejamento não modifica a spec original ou as regras05/06 e não fecha a11; CA13/18 e implantação do app continuam pendentes. Nenhum teste de IA foi declarado executado.
+
 ### 16/11/2026 — Publicação da implementação na `main` para testes do dono
 
 - Pedido explícito posterior do dono autorizou integrar e enviar todo o trabalho local à `main`, mesmo com os aceites finais da Etapa 11 ainda abertos. Merge `--no-ff` feito após commits locais da implementação e do Silo. A implementação está disponível para novo teste; bug futuro será tratado em correção posterior.
