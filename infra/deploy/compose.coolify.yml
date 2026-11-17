@@ -1,5 +1,7 @@
 # Reusable isolated stack. Configure distinct VARAL_STACK, CIDRs, credentials and bucket per environment.
 # Coolify builds from the repository root; only edge joins its external ingress network.
+# Keep fixed edge/SSR/web addresses high (.240/.241), away from this small stack's dynamic peers.
+# Existing networks retain their IPAM settings; these addresses are an operational reservation.
 x-runtime-environment: &runtime-environment
   DJANGO_DEBUG: '0'
   DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?}
