@@ -101,3 +101,7 @@ A decisão é preservar a versão funcional validada e concluir regressão, prov
 P10 resolvida por delegação expressa Q11-11; não pelo silêncio à pergunta específica. Ajustes sem pendentes atestados pelo dono no chat, sem conector/marcação remota/reexportação. **Itens a marcar remotamente: nenhum novo conhecido neste checkpoint.** P11 continua sem destino/domínio/condições para implantação remota; concluir trabalho local independente antes de obter essa definição concreta. P6 externa, P9 próximo push autorizado; P3/P4 exigem revisão conforme topologia real.
 
 Sem conclusão CA16/18, push, deploy remoto, envio externo, limpar-dev, exclusão de conta real ou alteração dos volumes de desenvolvimento. Laboratório usa recursos sintéticos próprios.
+
+## Publicação para teste do dono
+
+Por pedido explícito posterior, o conteúdo da branch 11 foi integrado à `main` local com merge `--no-ff` e preparado para push. Isso disponibiliza a implementação para o dono testar sem alterar a classificação de aceite: RNF05/CA13 reprovado e CA18 sem integral E2E verde pós-correções. A aplicação ainda não foi implantada na VPS; apenas o Silo e seu backup isolado possuem a autorização e provas específicas descritas acima. Novos achados serão corrigidos em commits posteriores.
