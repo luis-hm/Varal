@@ -1,0 +1,123 @@
+{
+  "status": "hmg_published_http_smoke_passed_production_parked",
+  "authorization": "Owner requested develop branch, HMG deployment and parked production configuration; production must not start.",
+  "project_uuid": "03o0jp5xl2fdlidxrkox9brb",
+  "hmg": {
+    "application_uuid": "kb87a4pykru44pez1jzre6ru",
+    "branch": "develop",
+    "url": "https://hmgvaral.codehub.systems",
+    "last_deployed_commit": "3395d75791fdf8c79e3737300c367ef059e52da5",
+    "deployments": [
+      {
+        "uuid": "sbsx94ss30rermionsfv8owd",
+        "result": "failed",
+        "cause": "Dynamic allocation occupied low static addresses before SSR startup."
+      },
+      {
+        "uuid": "olfscsntipsn8efkz4xvdhmv",
+        "result": "finished_but_proxies_restarting",
+        "cause": "Nginx attempted to create FastCGI temporary directory on read-only root."
+      },
+      {
+        "uuid": "aitytsummp6ubw0nypobeyte",
+        "result": "finished",
+        "finished_at_utc": "2026-11-17T03:09:05Z",
+        "public_http_result": 503,
+        "public_tls_result": "TRAEFIK DEFAULT CERT, verification fails; authenticated smoke not started"
+      },
+      {
+        "uuid": "hpdxo0th1prppjqtkdcekijy",
+        "result": "finished",
+        "finished_at_utc": "2026-11-17T03:24:45.000000Z",
+        "trigger": "application_scoped_signed_webhook",
+        "public_https_status": {
+          "entrar": 200,
+          "health": 200,
+          "ready": 200
+        },
+        "certificate_validated": true
+      }
+    ],
+    "bucket": "varal-hmg-arquivos",
+    "bucket_checks": {
+      "private_bucket_preprovisioned": true,
+      "synthetic_put_get_delete": "passed",
+      "runtime_get_bucket_acl": 403,
+      "runtime_access_production_bucket": 403
+    },
+    "static_addresses_after_fix": {
+      "edge": "172.30.210.240",
+      "ssr": "172.30.210.241",
+      "web": "172.30.212.240"
+    },
+    "coolify_aggregate_status": "running:unknown",
+    "http_to_https": {
+      "status": 302,
+      "location": "https://hmgvaral.codehub.systems/entrar"
+    },
+    "smoke_report": "coolify-hmg-smoke-2026-11-17.json",
+    "smoke_checks_passed": 18,
+    "synthetic_users_created_and_deleted": [
+      2,
+      2
+    ]
+  },
+  "production": {
+    "application_uuid": "gjixenxlbkz1wbvuoimyl8lu",
+    "branch": "main",
+    "url": "https://varal.codehub.systems",
+    "auto_deploy_enabled": false,
+    "github_gate": "VARAL_PROD_DEPLOY_ENABLED=false",
+    "deployment_history_count": 0,
+    "push_workflow_run": 44007795245,
+    "push_workflow_conclusion": "skipped"
+  },
+  "configuration_checks": {
+    "raw_compose_enabled_both_resources": true,
+    "versioned_raw_source_semantically_matches_deployment_raw_source": true,
+    "raw_source_has_no_env_file_injection": true,
+    "cached_normal_parser_preview_is_not_raw_execution_input": true,
+    "frontend_runtime_environment_verification": "Raw input and execution path reviewed; no global env_file. Container environment snapshot not read.",
+    "only_edge_on_external_ingress": true,
+    "image_scanning_preserved": true,
+    "builds_serial_per_application": true,
+    "admin_coolify_token_in_github_actions": false,
+    "webhooks": "Per-application HMAC, explicit checked commit SHA, CI gates before automatic trigger",
+    "provided_api_tokens_in_github_actions": false,
+    "provided_api_tokens_cross_resource_read_probe": "Both could read both Varal resources; kept out of Actions",
+    "google_ai_enabled": false,
+    "github_environment_branch_restrictions": {
+      "hmg": "develop",
+      "production": "main"
+    },
+    "signed_webhook_real_queue_and_commit_verified": true,
+    "private_upstream_aliases": "hmgvaral-api and hmgvaral-web; equivalent isolated aliases for production"
+  },
+  "local_validation": {
+    "signed_webhook_unit_tests": 7,
+    "images_built_serially": 7,
+    "isolated_initialization_checks": 11,
+    "readonly_proxy_startup_dns_input_test_groups": 5,
+    "dynamic_and_high_static_ip_coexistence": "passed with three disposable containers",
+    "existing_volumes_removed": false,
+    "proxy_http_mock_groups": 5
+  },
+  "ci_on_initial_commit": {
+    "commit": "1ca92846c8145da9747e7a0997ade4c75bb3bfd3",
+    "api_run": 44005930554,
+    "api_result": "success",
+    "web_run": 44005930418,
+    "web_result": "failure in production HTTP verification after browser tests and production build/start passed",
+    "deploy_hmg_run": 44005930387,
+    "deploy_hmg_result": "CI browser test failure; deployment job skipped; no webhook sent"
+  },
+  "limits": [
+    "Operational smoke uses HTTP clients, not a real-browser visual acceptance.",
+    "Google login, SMTP, Web Push and performance are not validated.",
+    "Signed URL expiry was not timed in HMG; physical asynchronous S3 cleanup after RN30 was not polled.",
+    "Coolify raw multi-container aggregate status observed as running:unknown; public endpoints and authenticated operational smoke passed.",
+    "CI has recorded failures and automatic deployment remains gated by CI success.",
+    "No production application started and no CA13, CA16, CA18 or whole-stage acceptance inferred.",
+    "VPS and disk are shared single failure domains; integrated DB/journal recovery remains pending."
+  ]
+}

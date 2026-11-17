@@ -9,7 +9,7 @@ Projeto Coolify **Varal**, UUID `03o0jp5xl2fdlidxrkox9brb`, na VPS existente. A 
 
 | Ambiente | Recurso | Branch | Domínio | Estado neste checkpoint |
 | --- | --- | --- | --- | --- |
-| HMG | `hmgvaral` / `kb87a4pykru44pez1jzre6ru` | `develop` | `https://hmgvaral.codehub.systems` | Configuração criada; primeira implantação e smoke pendentes. |
+| HMG | `hmgvaral` / `kb87a4pykru44pez1jzre6ru` | `develop` | `https://hmgvaral.codehub.systems` | Publicado; HTTPS válido e18 verificações operacionais aprovadas. |
 | Produção | `varal` / `gjixenxlbkz1wbvuoimyl8lu` | `main` | `https://varal.codehub.systems` | Preparado e parado; não implantar agora. |
 
 Ambientes Coolify: `hmg` (`csynpigwvzzsmsgs8ox1muns`) e `production` (`pdc5smdh3nbvwlefqazbhw1e`). Destino Docker `coolify` / `gwp0cxywjlral4fgms3lygoo`, servidor `bg4nlylaxjqyw9izakbwaqfy`. O Silo existente permanece no projeto de armazenamento, sem recriação ou reinício para esta implantação.
@@ -25,7 +25,11 @@ Ambientes Coolify: `hmg` (`csynpigwvzzsmsgs8ox1muns`) e `production` (`pdc5smdh3
 
 O Compose mantém bancos/Redis/journal internos, API sem porta pública e somente o edge na rede externa `coolify`. Traefik termina TLS e encaminha à porta interna8080. Routers próprios têm access logs e tracing desativados para não registrar tokens/URLs. O edge recebe o IP original somente do IP exato do Traefik e sobrescreve cabeçalhos antes de chegar à API. SSR usa proxy separado com três GETs autorizados, preservando a regra da11.
 
+Upstreams dos proxies usam aliases privados exclusivos (`hmgvaral-api`/`hmgvaral-web` ou equivalentes de produção), sem depender de nomes genéricos que possam existir em outros projetos ligados à rede compartilhada. Namespace permitido somente `hmgvaral` ou `varal`; SSR continua sem acesso geral à API.
+
 As redes HMG são application `172.30.210.0/24` e frontend `172.30.212.0/24`; produção usa211 e213. O inventário enviado pelo dono listou as redes existentes em `10.0.0.0/24` a `10.0.9.0/24` e IPv6 `fdcb:6a54:1776::/64`, sem sobreposição com essas subnets. O Docker também deve abortar na criação se surgir conflito, sem remover redes existentes.
+
+IPs estáticos HMG: edge `.210.240`, SSR `.210.241`, web `.212.240`; produção usa `.211.240/.241` e `.213.240`. A faixa alta evita a colisão observada com os poucos containers dinâmicos atuais, mas não é reserva formal do alocador. Uma futura configuração de pool dinâmico baixo exige rede nova/janela planejada, sem apagar a rede em uso ou seus volumes.
 
 `COOLIFY_PROXY_TRUST=coolify-proxy` permite ao Nginx resolver o endereço exato do Traefik pelo DNS Docker ao iniciar, sem confiar em toda a rede compartilhada. Aceitar somente esse hostname literal ou um IP numérico `/32`/`/128`; sem resolução, a inicialização falha. O edge precisa ser recarregado após recriação/mudança de IP do proxy. [Suporte oficial a hostname](https://nginx.org/en/docs/http/ngx_http_realip_module.html#set_real_ip_from).
 
@@ -55,6 +59,8 @@ Configuração GitHub aplicada:
 | Secret do ambiente GitHub `hmg` | `COOLIFY_HMG_WEBHOOK_SECRET` | Segredo HMAC exclusivo de HMG. |
 | Secret do ambiente GitHub `production` | `COOLIFY_PROD_WEBHOOK_SECRET` | Segredo HMAC exclusivo de produção. |
 
+Os ambientes GitHub também restringem branches: `hmg` somente `develop`, `production` somente `main`. Sem aprovação manual adicional configurada. Os tokens de API posteriormente fornecidos pelo dono foram testados e conseguiam ler os dois recursos; não foram enviados ao Actions. O mecanismo implantado usa os segredos HMAC exclusivos acima.
+
 No Coolify, cada aplicação tem seu `manual_webhook_secret_github`. HMG tem `is_auto_deploy_enabled=true` para aceitar somente a chamada manual assinada; não cadastrar um webhook direto de push que contorne o CI. Produção mantém **auto-deploy falso**, previews desativados e nenhuma implantação inicial. No futuro, ativar produção exige decisão do dono e alterar tanto a variável GitHub quanto o auto-deploy desse recurso. Não tratar merge/push na `main` como autorização implícita para remover essas travas.
 
 ## Persistência, chaves e arquivos
@@ -81,6 +87,16 @@ Google OAuth usa as credenciais privadas existentes, mas o Console Google precis
 Não havia configuração SMTP no inventário local. HMG inicia com backend SMTP apontando para conexão indisponível, timeout curto e falha controlada; **e-mails não serão entregues** até configurar um servidor real. Não usar backend console (vaza corpos/códigos) nem dummy (retorna sucesso sem entrega). Push permanece desativado até configurar VAPID/entrega. Essas limitações afetam os testes de recuperação e reautenticação por e-mail, avisos e push.
 
 ## Verificações e operação
+
+Em 17/11/2026, o deploy `hpdxo0th1prppjqtkdcekijy` foi enfileirado pelo webhook assinado real e terminou no SHA explícito `3395d75791fdf8c79e3737300c367ef059e52da5`. Entrar, health e readiness retornaram200 por HTTPS com validação normal do certificado. As tentativas anteriores revelaram colisão de IP baixo e falta de caminhos temporários em `/tmp`; ambas foram corrigidas mantendo volumes e filesystem somente leitura. Após aliases privados, a readiness pública passou; não foi capturada a resolução DNS antiga para atribuir conclusivamente a causa anterior. [Evidência operacional](../etapas/11-acabamento-deploy/evidencias/coolify-hmg-2026-11-17.json).
+
+Validação local adicional: cinco grupos HTTP com mocks exigindo Host/proto/peer corretos, executando o healthcheck exato; isolamento contra nomes externos; SSR/headers; cinco grupos de startup/DNS/namespace com filesystem somente leitura. Esses resultados não substituem os testes HTTP reais de autenticação em HMG.
+
+Smoke real de HMG: **18 verificações aprovadas**, com dois usuários fictícios criados e excluídos por RN30 (204, seguida de sessão401). Inclui cadastro/login/logout, cookies seguros, CSRF, SSR, isolamento, uploadPDF202 → Celery → conferência manual, download assinado com SHA idêntico e negação anônima403/alheia404, vínculo transacional e exclusão. [Relatório sanitizado](../etapas/11-acabamento-deploy/evidencias/coolify-hmg-smoke-2026-11-17.json). O observador foi adaptado para reconhecer o redirect por streaming do Next (HTML200 com destino explícito `/entrar`, digest307 e ausência de dados privados), sem alterar o produto ou afrouxar o isolamento.
+
+O status agregado observado no Coolify para este Compose raw foi `running:unknown`; não o apresentar como `running:healthy`. Rotas e operações acima foram verificadas diretamente por HTTPS válido. Não houve inspeção do snapshot de env de containers; a segregação foi conferida no manifesto raw selecionado e no caminho de execução do Coolify, que não injeta env_file nesse modo. Expiração cronometrada e limpeza física assíncrona do PDF não foram medidas neste smoke.
+
+CI não está integralmente verde: na publicação inicial `1ca9284`, API passou; uma execução web falhou no HTTP produtivo após navegador/build/start passarem, enquanto a execução reutilizada de HMG falhou antes nos testes de navegador. O job de deploy foi ignorado. A implantação manual autorizada é separada; o gate automático continua bloqueando quando o CI falha. Produção teve execução por push `44007795245` inteiramente `skipped`, com variável falsa e histórico de deploy vazio.
 
 Antes da primeira implantação: Compose parse sem erro, Dockerfiles/contextos sem segredos, inicialização idempotente e falha em estado parcial, Nginx válido, rede sem colisão, confiança do proxy exata, Raw Compose/segregação de envs, produção parada/gate falso.
 
