@@ -770,13 +770,16 @@ def test_rn32_exclusao_usuario_admin_django(f):
     request.user = root
     request._messages = CookieStorage(request)
     model_admin = admin.site._registry[Usuario]
-    model_admin.delete_model(request, m)  # race after the confirmation page
-    model_admin.delete_queryset(request, Usuario.objects.filter(pk=m.pk))
+    from django.core.exceptions import PermissionDenied
+
+    with pytest.raises(PermissionDenied, match="Perfil"):
+        model_admin.delete_model(request, m)
+    with pytest.raises(PermissionDenied, match="Perfil"):
+        model_admin.delete_queryset(request, Usuario.objects.filter(pk=m.pk))
     assert Usuario.objects.filter(pk=m.pk).exists()
-    assert "O titular precisa resolver pendências" in str(list(request._messages)[0])
     contas.cancelar(m, orfa.pk)
-    assert client.post(pagina, {"post": "yes"}).status_code == 302
-    assert not Usuario.objects.filter(pk=m.pk).exists()
+    assert client.post(pagina, {"post": "yes"}).status_code == 403
+    assert Usuario.objects.filter(pk=m.pk).exists()
 
 
 @pytest.mark.django_db(transaction=True)
@@ -843,19 +846,24 @@ def test_rn32_concorrencia_editar_e_sair(f, modo):
 
 
 @pytest.mark.django_db(transaction=True)
+@pytest.mark.usefixtures("sem_agendamento_celery_concorrente")
 def test_rn32_concorrencia_excluir_conta_e_remocao_admin(f):
-    """Deleting one's own account while an admin removes the same person: both lock member ->
-    bills, so the removal waits (then 404) instead of deadlocking."""
+    """The destructive-phase barrier makes concurrent removal wait until deletion commits."""
     m = f.u["membro"]
-    restrita(m, f.grupo, acesso=[f.u["observador"].pk])  # an open restricted bill to lock
+    usuario_id = m.pk
+    conta = restrita(m, f.grupo, acesso=[f.u["observador"].pk], pagador=m.pk)
     travou, segue, res = threading.Event(), threading.Event(), {}
     real = contas.restritas_sem_quem_veja
+    chamadas = 0
 
     def segurando(*args, **kwargs):
+        nonlocal chamadas
         resultado = real(*args, **kwargs)
         if threading.current_thread().name == "excluir":
-            travou.set()
-            segue.wait(10)
+            chamadas += 1
+            if chamadas == 2:
+                travou.set()
+                assert segue.wait(10)
         return resultado
 
     def rodar(nome, funcao):
@@ -879,7 +887,11 @@ def test_rn32_concorrencia_excluir_conta_e_remocao_admin(f):
         removendo.join(10)
     assert isinstance(res["excluir"], tuple), res  # Model.delete() returns (count, per model)
     assert type(res["remover"]).__name__ == "Http404", res
-    assert not Usuario.objects.filter(pk=m.pk).exists()
+    assert not Usuario.objects.filter(pk=usuario_id).exists()
+    conta.refresh_from_db()
+    assert conta.criador_id is None and conta.status == "pendente"
+    assert quem_ve(conta) == {f.u["observador"].pk}
+    assert conta.historico.filter(acao=Historico.Acao.PAGADOR_REMOVIDO).count() == 1
 
 
 # ---- CA20 / CA21 / RN32: removal by the admin ----------------------------------------------

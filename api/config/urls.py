@@ -3,14 +3,16 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from apps.contas_usuario.google import callback
-from apps.contas_usuario.views import me
+from apps.contas_usuario.views import ConsumirTicketGoogleView, me
 
-from .views import health
+from .views import health, readiness
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/health/", health, name="health"),
+    path("api/ready/", readiness, name="readiness"),
     path("api/me/", me, name="me"),
+    path("api/", include("apps.privacidade.urls")),
     path("api/", include("apps.espacos.urls")),
     path("api/", include("apps.lancamentos.urls")),
     path("api/", include("apps.boletos.urls")),
@@ -18,6 +20,11 @@ urlpatterns = [
     path("api/", include("apps.recorrencias.urls")),
     path("api/", include("apps.notificacoes.urls")),
     path("api/", include("apps.solicitacoes.urls")),
+    path(
+        "api/auth/google/tickets/consumir/",
+        ConsumirTicketGoogleView.as_view(),
+        name="google_ticket_consumir",
+    ),
     path("api/auth/", include("allauth.headless.urls")),
     path("accounts/google/login/callback/", callback, name="google_callback"),
     path("accounts/", include("allauth.urls")),

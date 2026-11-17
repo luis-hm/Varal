@@ -20,10 +20,13 @@ type Props = {
   busy?: boolean;
   /** Full-screen mobile page when its Doop frame specifies one. */
   mobileFull?: boolean;
+  /** Explicit trigger for sheets that replace an asynchronously loaded placeholder. */
+  returnFocusTo?: HTMLElement | null;
+  restoreFocusOnUnmount?: boolean;
   children: ReactNode;
 };
 
-export function Folha({ open, onClose, title, subtitle, actions, size = "auto", busy = false, mobileFull = false, children }: Props) {
+export function Folha({ open, onClose, title, subtitle, actions, size = "auto", busy = false, mobileFull = false, returnFocusTo, restoreFocusOnUnmount = false, children }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const opener = useRef<Element | null>(null);
   const titleId = useId();
@@ -32,7 +35,7 @@ export function Folha({ open, onClose, title, subtitle, actions, size = "auto", 
     const dialog = ref.current;
     if (!dialog) return;
     if (open && !dialog.open) {
-      opener.current = document.activeElement;
+      opener.current = returnFocusTo ?? document.activeElement;
       // showModal() makes the page inert (focus trap) and gives Esc for free.
       if (typeof dialog.showModal === "function") dialog.showModal();
       else dialog.setAttribute("open", "");
@@ -42,7 +45,11 @@ export function Folha({ open, onClose, title, subtitle, actions, size = "auto", 
       // Give focus back to whatever opened the sheet.
       (opener.current as HTMLElement | null)?.focus?.();
     }
-  }, [open]);
+  }, [open, returnFocusTo]);
+
+  useEffect(() => () => {
+    if (restoreFocusOnUnmount && returnFocusTo?.isConnected) returnFocusTo.focus();
+  }, [restoreFocusOnUnmount, returnFocusTo]);
 
   // Every way out (Esc, backdrop, buttons) asks the parent; the effect above closes the dialog.
   const handleClose = () => { if (!busy) onClose(); };

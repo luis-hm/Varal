@@ -41,9 +41,10 @@ export const mesAtual = (agora = new Date()) => hoje(agora).slice(0, 7);
 // Civil dates have no time zone: format them at UTC noon so no offset can move the day.
 const civil = (data: string) => new Date(`${data}T12:00:00Z`);
 const fmt = (opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC", ...opts });
+const formatoMes = fmt({ month: "long" });
 
 /** "2026-11" → "novembro". */
-export const nomeMes = (mes: string) => fmt({ month: "long" }).format(civil(`${mes}-01`));
+export const nomeMes = (mes: string) => formatoMes.format(civil(`${mes}-01`));
 /** "2026-11" → "Novembro 2026". */
 export function mesAno(mes: string) {
   const nome = nomeMes(mes);

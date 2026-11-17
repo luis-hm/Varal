@@ -19,6 +19,10 @@ body {
   font-family: var(--font-sans);
 }
 
+[data-sessao-status] { display: none; }
+html[data-sessao-oculta] [data-sessao-privada] { display: none !important; }
+html[data-sessao-oculta] [data-sessao-status] { display: block; padding: var(--spacing-6); }
+
 button,
 input {
   font: inherit;

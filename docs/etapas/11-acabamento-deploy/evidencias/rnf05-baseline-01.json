@@ -1,0 +1,1167 @@
+{
+  "status": "failed",
+  "browser_version": "158.0.8127.18",
+  "host_cpu": "AMD Ryzen 7 7735HS with Radeon Graphics",
+  "host_logical_cpus": 4,
+  "host_memory_bytes": 10430435328,
+  "browser_logical_cpus": 4,
+  "cpu_throttle": 4,
+  "download_bps": 9000000,
+  "upload_bps": 1500000,
+  "rtt_ms": 150,
+  "errors": [],
+  "series": [
+    {
+      "scenario": "pessoal",
+      "cache": "cold",
+      "p95_ms": 5215.5,
+      "passed": false,
+      "samples": [
+        {
+          "index": 1,
+          "ready_ms": 4526,
+          "ttfb_ms": 513.8000000119209,
+          "lcp_ms": 2696,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 234.366
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "ready_ms": 4540,
+          "ttfb_ms": 438.09999999403954,
+          "lcp_ms": 2364,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 210.117
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "ready_ms": 4851.699999988079,
+          "ttfb_ms": 647.5,
+          "lcp_ms": 2864,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 366.095
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "ready_ms": 4861.800000011921,
+          "ttfb_ms": 536.8000000119209,
+          "lcp_ms": 2628,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 397.613
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "ready_ms": 4787.9000000059605,
+          "ttfb_ms": 547.2000000178814,
+          "lcp_ms": 2360,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 191.095
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "ready_ms": 5083.699999988079,
+          "ttfb_ms": 434.19999998807907,
+          "lcp_ms": 2872,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 219.98
+            }
+          ]
+        },
+        {
+          "index": 7,
+          "ready_ms": 4954.100000023842,
+          "ttfb_ms": 541.7000000178814,
+          "lcp_ms": 2912,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 218.448
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "ready_ms": 4879.800000011921,
+          "ttfb_ms": 676.9000000059605,
+          "lcp_ms": 2816,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 206.96
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "ready_ms": 4567,
+          "ttfb_ms": 386.2999999821186,
+          "lcp_ms": 2276,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 214.431
+            }
+          ]
+        },
+        {
+          "index": 10,
+          "ready_ms": 4846.9000000059605,
+          "ttfb_ms": 426.90000000596046,
+          "lcp_ms": 2420,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 322.031
+            }
+          ]
+        },
+        {
+          "index": 11,
+          "ready_ms": 5215.5,
+          "ttfb_ms": 581.4000000059605,
+          "lcp_ms": 2804,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 394.755
+            }
+          ]
+        },
+        {
+          "index": 12,
+          "ready_ms": 4692.5,
+          "ttfb_ms": 438,
+          "lcp_ms": 2760,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 190.047
+            }
+          ]
+        },
+        {
+          "index": 13,
+          "ready_ms": 4792.799999982119,
+          "ttfb_ms": 579.9000000059605,
+          "lcp_ms": 2404,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 213.631
+            }
+          ]
+        },
+        {
+          "index": 14,
+          "ready_ms": 4979.699999988079,
+          "ttfb_ms": 500,
+          "lcp_ms": 2916,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 240.19
+            }
+          ]
+        },
+        {
+          "index": 15,
+          "ready_ms": 5313.199999988079,
+          "ttfb_ms": 536.2999999821186,
+          "lcp_ms": 2988,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 205.37
+            }
+          ]
+        },
+        {
+          "index": 16,
+          "ready_ms": 4781.300000011921,
+          "ttfb_ms": 414.80000001192093,
+          "lcp_ms": 2844,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 225.6
+            }
+          ]
+        },
+        {
+          "index": 17,
+          "ready_ms": 5127,
+          "ttfb_ms": 820.1999999880791,
+          "lcp_ms": 1796,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 225.667
+            }
+          ]
+        },
+        {
+          "index": 18,
+          "ready_ms": 4551.300000011921,
+          "ttfb_ms": 511.80000001192093,
+          "lcp_ms": 2192,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 228.819
+            }
+          ]
+        },
+        {
+          "index": 19,
+          "ready_ms": 4950.0999999940395,
+          "ttfb_ms": 602.3999999761581,
+          "lcp_ms": 2660,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 234.958
+            }
+          ]
+        },
+        {
+          "index": 20,
+          "ready_ms": 4720.200000017881,
+          "ttfb_ms": 588.5,
+          "lcp_ms": 2256,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 205.264
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": "pessoal",
+      "cache": "warm",
+      "p95_ms": 5710.199999988079,
+      "passed": false,
+      "samples": [
+        {
+          "index": 1,
+          "ready_ms": 4944.100000023842,
+          "ttfb_ms": 641.3000000119209,
+          "lcp_ms": 2376,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 238.026
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "ready_ms": 4809.4000000059605,
+          "ttfb_ms": 483.09999999403954,
+          "lcp_ms": 2484,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 315.345
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "ready_ms": 4652.899999976158,
+          "ttfb_ms": 437.59999999403954,
+          "lcp_ms": 2404,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 230.427
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "ready_ms": 5298.5999999940395,
+          "ttfb_ms": 581.3999999761581,
+          "lcp_ms": 2760,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 204.708
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "ready_ms": 5016.199999988079,
+          "ttfb_ms": 363.09999999403954,
+          "lcp_ms": 2572,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 327.516
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "ready_ms": 6226,
+          "ttfb_ms": 436.7000000178814,
+          "lcp_ms": 3716,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 324.873
+            }
+          ]
+        },
+        {
+          "index": 7,
+          "ready_ms": 4890.5999999940395,
+          "ttfb_ms": 468.09999999403954,
+          "lcp_ms": 2468,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 319.791
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "ready_ms": 4635.5,
+          "ttfb_ms": 436.5,
+          "lcp_ms": 2376,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 192.344
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "ready_ms": 4322.5,
+          "ttfb_ms": 492.60000002384186,
+          "lcp_ms": 2212,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 365.367
+            }
+          ]
+        },
+        {
+          "index": 10,
+          "ready_ms": 5145.0999999940395,
+          "ttfb_ms": 409.2999999821186,
+          "lcp_ms": 2344,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 565.341
+            }
+          ]
+        },
+        {
+          "index": 11,
+          "ready_ms": 4508.0999999940395,
+          "ttfb_ms": 520.2000000178814,
+          "lcp_ms": 2664,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 183.023
+            }
+          ]
+        },
+        {
+          "index": 12,
+          "ready_ms": 4577.799999982119,
+          "ttfb_ms": 399.19999998807907,
+          "lcp_ms": 2188,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 287.836
+            }
+          ]
+        },
+        {
+          "index": 13,
+          "ready_ms": 4510.299999982119,
+          "ttfb_ms": 559.2999999821186,
+          "lcp_ms": 2716,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 257.446
+            }
+          ]
+        },
+        {
+          "index": 14,
+          "ready_ms": 5710.199999988079,
+          "ttfb_ms": 758.5,
+          "lcp_ms": 3444,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 336.46
+            }
+          ]
+        },
+        {
+          "index": 15,
+          "ready_ms": 4536.9000000059605,
+          "ttfb_ms": 428.90000000596046,
+          "lcp_ms": 2476,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 312.526
+            }
+          ]
+        },
+        {
+          "index": 16,
+          "ready_ms": 4715.700000017881,
+          "ttfb_ms": 437.59999999403954,
+          "lcp_ms": 2432,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 191.55
+            }
+          ]
+        },
+        {
+          "index": 17,
+          "ready_ms": 4813.200000017881,
+          "ttfb_ms": 445.30000001192093,
+          "lcp_ms": 2472,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 166.379
+            }
+          ]
+        },
+        {
+          "index": 18,
+          "ready_ms": 4429.100000023842,
+          "ttfb_ms": 623.8000000119209,
+          "lcp_ms": 2300,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 360.515
+            }
+          ]
+        },
+        {
+          "index": 19,
+          "ready_ms": 4786.5,
+          "ttfb_ms": 519,
+          "lcp_ms": 2832,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 303.925
+            }
+          ]
+        },
+        {
+          "index": 20,
+          "ready_ms": 4372.4000000059605,
+          "ttfb_ms": 384.60000002384186,
+          "lcp_ms": 2272,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 212.757
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": "grupo",
+      "cache": "cold",
+      "p95_ms": 4612.0999999940395,
+      "passed": false,
+      "samples": [
+        {
+          "index": 1,
+          "ready_ms": 4037.199999988079,
+          "ttfb_ms": 413.2999999821186,
+          "lcp_ms": 1944,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 487.918
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "ready_ms": 4584.0999999940395,
+          "ttfb_ms": 529.2999999821186,
+          "lcp_ms": 2360,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 229.236
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "ready_ms": 4146,
+          "ttfb_ms": 439.2999999821186,
+          "lcp_ms": 2140,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 407.907
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "ready_ms": 4470,
+          "ttfb_ms": 505,
+          "lcp_ms": 2500,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 185.66
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "ready_ms": 4058.800000011921,
+          "ttfb_ms": 502.10000002384186,
+          "lcp_ms": 2084,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 203.581
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "ready_ms": 3987.600000023842,
+          "ttfb_ms": 498.7000000178814,
+          "lcp_ms": 1996,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 220.897
+            }
+          ]
+        },
+        {
+          "index": 7,
+          "ready_ms": 4370.300000011921,
+          "ttfb_ms": 607.9000000059605,
+          "lcp_ms": 2124,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 270.442
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "ready_ms": 4437.4000000059605,
+          "ttfb_ms": 519.0999999940395,
+          "lcp_ms": 1300,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 414.74
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "ready_ms": 4411.9000000059605,
+          "ttfb_ms": 417.69999998807907,
+          "lcp_ms": 2052,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 208.125
+            }
+          ]
+        },
+        {
+          "index": 10,
+          "ready_ms": 4612.0999999940395,
+          "ttfb_ms": 483.59999999403954,
+          "lcp_ms": 2208,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 246.916
+            }
+          ]
+        },
+        {
+          "index": 11,
+          "ready_ms": 4046.9000000059605,
+          "ttfb_ms": 460.30000001192093,
+          "lcp_ms": 2068,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 207.99
+            }
+          ]
+        },
+        {
+          "index": 12,
+          "ready_ms": 4632.299999982119,
+          "ttfb_ms": 839.4000000059605,
+          "lcp_ms": 1492,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 185.701
+            }
+          ]
+        },
+        {
+          "index": 13,
+          "ready_ms": 3869.300000011921,
+          "ttfb_ms": 487.40000000596046,
+          "lcp_ms": 1996,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 258.098
+            }
+          ]
+        },
+        {
+          "index": 14,
+          "ready_ms": 4353.5999999940395,
+          "ttfb_ms": 454.7999999821186,
+          "lcp_ms": 2212,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 181.553
+            }
+          ]
+        },
+        {
+          "index": 15,
+          "ready_ms": 4045.2000000178814,
+          "ttfb_ms": 422.2000000178814,
+          "lcp_ms": 2008,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 237.898
+            }
+          ]
+        },
+        {
+          "index": 16,
+          "ready_ms": 4020.0999999940395,
+          "ttfb_ms": 453,
+          "lcp_ms": 1240,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 248.372
+            }
+          ]
+        },
+        {
+          "index": 17,
+          "ready_ms": 4230.700000017881,
+          "ttfb_ms": 592.0999999940395,
+          "lcp_ms": 2152,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 259.052
+            }
+          ]
+        },
+        {
+          "index": 18,
+          "ready_ms": 4027.100000023842,
+          "ttfb_ms": 448.2000000178814,
+          "lcp_ms": 1048,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 290.112
+            }
+          ]
+        },
+        {
+          "index": 19,
+          "ready_ms": 3942,
+          "ttfb_ms": 518,
+          "lcp_ms": 1148,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 180.144
+            }
+          ]
+        },
+        {
+          "index": 20,
+          "ready_ms": 4027.800000011921,
+          "ttfb_ms": 437.40000000596046,
+          "lcp_ms": 2088,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 230.392
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": "grupo",
+      "cache": "warm",
+      "p95_ms": 4706.5,
+      "passed": false,
+      "samples": [
+        {
+          "index": 1,
+          "ready_ms": 4138.300000011921,
+          "ttfb_ms": 455.59999999403954,
+          "lcp_ms": 2160,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 190.199
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "ready_ms": 4094.4000000059605,
+          "ttfb_ms": 619.5,
+          "lcp_ms": 2016,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 176.682
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "ready_ms": 3740.7999999821186,
+          "ttfb_ms": 414.90000000596046,
+          "lcp_ms": 1796,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 329.291
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "ready_ms": 4162.799999982119,
+          "ttfb_ms": 471.19999998807907,
+          "lcp_ms": 2152,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 190.937
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "ready_ms": 4488.4000000059605,
+          "ttfb_ms": 586.7999999821186,
+          "lcp_ms": 2464,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 373.243
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "ready_ms": 6743.199999988079,
+          "ttfb_ms": 652.9000000059605,
+          "lcp_ms": 4624,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 296.08
+            }
+          ]
+        },
+        {
+          "index": 7,
+          "ready_ms": 4401.4000000059605,
+          "ttfb_ms": 381.59999999403954,
+          "lcp_ms": 2092,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 200.77
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "ready_ms": 3933,
+          "ttfb_ms": 422,
+          "lcp_ms": 1944,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 190.536
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "ready_ms": 4706.5,
+          "ttfb_ms": 444.09999999403954,
+          "lcp_ms": 2308,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 280.794
+            }
+          ]
+        },
+        {
+          "index": 10,
+          "ready_ms": 4208.4000000059605,
+          "ttfb_ms": 433.5,
+          "lcp_ms": 2148,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 256.499
+            }
+          ]
+        },
+        {
+          "index": 11,
+          "ready_ms": 3897.4000000059605,
+          "ttfb_ms": 415.7000000178814,
+          "lcp_ms": 1820,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 212.234
+            }
+          ]
+        },
+        {
+          "index": 12,
+          "ready_ms": 3658.300000011921,
+          "ttfb_ms": 348.19999998807907,
+          "lcp_ms": 1660,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 183.468
+            }
+          ]
+        },
+        {
+          "index": 13,
+          "ready_ms": 3766.2000000178814,
+          "ttfb_ms": 390.30000001192093,
+          "lcp_ms": 1676,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 173.051
+            }
+          ]
+        },
+        {
+          "index": 14,
+          "ready_ms": 4305.899999976158,
+          "ttfb_ms": 438.89999997615814,
+          "lcp_ms": 2092,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 296.489
+            }
+          ]
+        },
+        {
+          "index": 15,
+          "ready_ms": 4113.4000000059605,
+          "ttfb_ms": 386.40000000596046,
+          "lcp_ms": 2040,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 331.31
+            }
+          ]
+        },
+        {
+          "index": 16,
+          "ready_ms": 4161.800000011921,
+          "ttfb_ms": 472.60000002384186,
+          "lcp_ms": 2008,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 290.396
+            }
+          ]
+        },
+        {
+          "index": 17,
+          "ready_ms": 4130.299999982119,
+          "ttfb_ms": 486.19999998807907,
+          "lcp_ms": 1972,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 249.036
+            }
+          ]
+        },
+        {
+          "index": 18,
+          "ready_ms": 4007.9000000059605,
+          "ttfb_ms": 408,
+          "lcp_ms": 1892,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 190.838
+            }
+          ]
+        },
+        {
+          "index": 19,
+          "ready_ms": 4575.899999976158,
+          "ttfb_ms": 500.89999997615814,
+          "lcp_ms": 2524,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 541.178
+            }
+          ]
+        },
+        {
+          "index": 20,
+          "ready_ms": 4298,
+          "ttfb_ms": 673.2000000178814,
+          "lcp_ms": 2576,
+          "errors": [],
+          "api": [
+            {
+              "path": "/api/notificacoes/resumo/",
+              "status": 200,
+              "duration_ms": 254.198
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

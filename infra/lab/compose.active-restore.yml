@@ -1,0 +1,28 @@
+# Apply only with lab11-active.sh, after the source and manual clone are stopped.
+# These exact named volumes were created and labelled by restore-stage.
+services:
+  api:
+    image: varal11-api-final:local
+  worker:
+    image: varal11-api-final:local
+  beat:
+    image: varal11-api-final:local
+  migrate:
+    image: varal11-api-final:local
+  web:
+    image: varal11-web-f2-webpack:local
+  edge:
+    ports: !reset []
+
+volumes:
+  postgres:
+    external: true
+    name: ${LAB_ACTIVE_POSTGRES_VOLUME:?}
+  objects:
+    external: true
+    name: ${LAB_ACTIVE_OBJECTS_VOLUME:?}
+  staging:
+    external: true
+    name: ${LAB_ACTIVE_STAGING_VOLUME:?}
+  beat:
+    name: ${LAB_ACTIVE_BEAT_VOLUME:?}

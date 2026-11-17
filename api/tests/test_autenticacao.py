@@ -100,7 +100,8 @@ def test_rf01_ca03_usuario_inativo_nao_entra():
     create_user(is_active=False)
     client = browser()
     assert login(client).status_code != 200
-    assert client.get("/api/me/").status_code == 403
+    resposta = client.get("/api/me/")
+    assert resposta.status_code == 401 and resposta.json()["meta"]["is_authenticated"] is False
 
 
 def test_rn03_ca04_repeticao_e_restricoes_do_banco():
@@ -325,9 +326,10 @@ def test_rf01_ca09_logout_invalida_sessao():
         AUTH + "auth/session", HTTP_X_CSRFTOKEN=client.cookies["csrftoken"].value
     )
     assert response.status_code == 401
-    assert client.get("/api/me/").status_code == 403
+    assert client.get("/api/me/").status_code == 401
     client.cookies["sessionid"] = stale_session
-    assert client.get("/api/me/").status_code == 403
+    resposta = client.get("/api/me/")
+    assert resposta.status_code == 401 and resposta.json()["meta"]["is_authenticated"] is False
 
 
 def test_rnf01_ca10_dados_proprios_sem_vazamento():

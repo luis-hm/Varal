@@ -1,7 +1,8 @@
 // Etapa 06: API, Celery, PostgreSQL e Silo reais; PDFs sintéticos sem dados privados.
 import path from "node:path";
 import { readFile } from "node:fs/promises";
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
+import { test } from "./rn31-isolation";
 import { ORIGIN, api, criarGrupo, descartarContas, entrarNoGrupo, hoje, logar, novaConta, semBadge } from "./fixtures";
 
 const FIXTURES = path.join(__dirname, "fixtures");

@@ -1,0 +1,21 @@
+services:
+  redis-e2e:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    labels:
+      br.varal.e2e.rn31: isolated
+    read_only: true
+    tmpfs: ["/data"]
+
+  api:
+    environment:
+      REDIS_URL: redis://redis-e2e:6379/0
+    depends_on:
+      redis-e2e: { condition: service_started }
+
+  worker:
+    command: celery -A config worker -l info --concurrency=1
+    environment:
+      REDIS_URL: redis://redis-e2e:6379/0
+    depends_on:
+      redis-e2e: { condition: service_started }

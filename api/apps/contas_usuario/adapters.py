@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
-from urllib.parse import urlsplit
+from datetime import timedelta
+from urllib.parse import parse_qsl, urlencode, urlsplit
+from uuid import UUID
 
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.core import context as allauth_context
@@ -10,6 +12,7 @@ from django.conf import settings
 from django.contrib.auth import HASH_SESSION_KEY, SESSION_KEY
 from django.contrib.sites.shortcuts import get_current_site
 from django.db import transaction
+from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -17,6 +20,46 @@ from .tasks import enviar_email
 
 
 class AccountAdapter(DefaultAccountAdapter):
+    def post_login(self, request, user, **kwargs):
+        response = super().post_login(request, user, **kwargs)
+        social = (kwargs.get("signal_kwargs") or {}).get("sociallogin")
+        if not (
+            social
+            and social.is_headless
+            and social.account.provider == "google"
+            and social.state.get("process") == "login"
+            and request.user.is_authenticated
+            and request.user.pk == user.pk
+            and request.session.get(SESSION_KEY) == str(user.pk)
+        ):
+            return response
+        try:
+            next_url = urlsplit(social.state["next"])
+            front = urlsplit(settings.FRONTEND_URL)
+            parametros = parse_qsl(next_url.query, keep_blank_values=True, strict_parsing=True)
+            if (
+                next_url.scheme != front.scheme
+                or next_url.netloc != front.netloc
+                or next_url.path != "/entrar/retorno"
+                or next_url.fragment
+                or len(parametros) != 1
+                or parametros[0][0] != "tentativa"
+            ):
+                return response
+            tentativa = UUID(parametros[0][1])
+            if str(tentativa) != parametros[0][1]:
+                return response
+        except (KeyError, TypeError, ValueError):
+            return response
+        from .models import TicketGoogle
+
+        ticket = TicketGoogle.objects.create(
+            usuario=user, tentativa=tentativa, expira_em=timezone.now() + timedelta(minutes=5)
+        )
+        query = urlencode({"tentativa": str(tentativa), "ticket": str(ticket.pk)})
+        social.state["next"] = f"{settings.FRONTEND_URL}/entrar/retorno?{query}"
+        return response
+
     def login(self, request, user):
         anterior = request.session.get(SESSION_KEY)
         hash_atual = user.get_session_auth_hash()

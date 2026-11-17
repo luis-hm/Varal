@@ -7,21 +7,12 @@ import { Inicio } from "@/components/bills/inicio";
 import { useSessao } from "@/components/layout/app-shell";
 import { TopBar } from "@/components/layout/top-bar";
 import { Icon } from "@/components/ui/icon";
-import { ApiError } from "@/lib/grupos/client";
 import type { Notificacao } from "@/lib/notificacoes/client";
-import { useAvisos, useLeituraAvisos, usePreferencias, usePushConfig } from "@/lib/notificacoes/hooks";
-import { ativarPush, desativarPush, estadoPush, suportePush } from "@/lib/notificacoes/push";
-import { NoticeRow } from "./notice-row";
+import { useAvisos, usePreferencias, usePushConfig } from "@/lib/notificacoes/hooks";
+import { ativarPush, desativarPush, estadoPush, pendenciaPush, suportePush } from "@/lib/notificacoes/push";
+import { AvisoLinha, useAbrirAviso } from "./aviso-acoes";
 import styles from "./avisos.module.css";
 
-function tom(tipo: Notificacao["tipo"]) {
-  if (tipo === "pagamento") return "pago";
-  if (tipo === "venceu_1" || tipo === "cancelada_rn32") return "vencida";
-  if (tipo === "boleto_ausente") return "aguardando";
-  if (tipo === "vence_3" || tipo === "vence_hoje") return "vence";
-  return "info";
-}
-function hora(data: string) { return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Fortaleza", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(data)); }
 function dataGrupo(data: string) {
   const formato = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Fortaleza", day: "2-digit", month: "2-digit", year: "numeric" });
   const dia = formato.format(new Date(data));
@@ -30,44 +21,22 @@ function dataGrupo(data: string) {
   if (dia === formato.format(new Date(agora - 86400000))) return "Ontem";
   return dia;
 }
-export function AvisoLinha({ aviso, onClick, disabled }: { aviso: Notificacao; onClick: () => void; disabled?: boolean }) {
-  const tone = tom(aviso.tipo);
-  return <NoticeRow title={aviso.titulo} text={aviso.texto} time={hora(aviso.criado_em)} unread={aviso.lido_em ? "no" : "yes"} tone={tone} icon={<Icon name={tone === "pago" ? "pago" : tone === "info" ? "sino" : "alerta"} size="md" />} onClick={onClick} disabled={disabled} />;
-}
-export function useAbrirAviso(user: string, onNavigate?: () => void) {
-  const router = useRouter();
-  const leitura = useLeituraAvisos(user);
-  const [erro, setErro] = useState("");
-  const busy = useRef(false);
-  async function abrir(aviso: Notificacao) {
-    if (busy.current) return;
-    busy.current = true;
-    setErro("");
-    try {
-      // Even a read notice is revalidated immediately before navigation.
-      await leitura.um.mutateAsync(aviso.id);
-      if (aviso.destino && /^\/contas\/[0-9a-f-]+\/?$/i.test(aviso.destino)) { onNavigate?.(); router.push(aviso.destino); }
-    } catch (error) {
-      setErro(error instanceof ApiError && error.status === 404 ? "Este aviso não está mais disponível." : "Não foi possível abrir o aviso. Tente novamente.");
-    } finally { busy.current = false; }
-  }
-  return { abrir, erro, leitura };
-}
-function Preferencias({ user }: { user: string }) {
+export function Preferencias({ user }: { user: string }) {
   const { query, salvar } = usePreferencias(user);
   const config = usePushConfig(user);
   const [ativo, setAtivo] = useState(false);
+  const [pendencia, setPendencia] = useState<ReturnType<typeof pendenciaPush>>(null);
   const [supported, setSupported] = useState(false);
   const [busy, setBusy] = useState(false);
   const [erro, setErro] = useState("");
   const latch = useRef(false);
-  useEffect(() => { const timer = window.setTimeout(() => { setSupported(suportePush()); setAtivo(estadoPush(user)); }, 0); return () => window.clearTimeout(timer); }, [user]);
+  useEffect(() => { const timer = window.setTimeout(() => { setSupported(suportePush()); setAtivo(estadoPush(user)); setPendencia(pendenciaPush(user)); }, 0); return () => window.clearTimeout(timer); }, [user]);
   async function dispositivo() {
     if (latch.current) return;
     latch.current = true; setBusy(true); setErro("");
-    try { if (ativo) await desativarPush(); else if (config.data) await ativarPush(user, config.data); }
+    try { if (ativo || pendencia === "propria") await desativarPush(user); else if (config.data) await ativarPush(user, config.data); }
     catch (error) { setErro(error instanceof Error ? error.message : "Não foi possível atualizar este dispositivo."); }
-    finally { setAtivo(estadoPush(user)); setBusy(false); latch.current = false; }
+    finally { setAtivo(estadoPush(user)); setPendencia(pendenciaPush(user)); setBusy(false); latch.current = false; }
   }
   return <details className={styles.preferences}>
     <summary>Preferências de notificações</summary>
@@ -77,8 +46,10 @@ function Preferencias({ user }: { user: string }) {
       {salvar.isError && <p role="alert">Não foi possível salvar as preferências.</p>}
     </>}
     <p>{ativo ? "Inscrição registrada neste dispositivo." : "Notificações não ativadas neste dispositivo."}</p>
+    {pendencia === "outra" && <p>Para ativar notificações aqui, entre na conta anterior e conclua a desativação pendente.</p>}
+    {pendencia === "propria" && <p>Há uma desativação pendente neste dispositivo.</p>}
     {supported && Notification.permission === "denied" && <p>A permissão para notificações está bloqueada nas configurações do navegador.</p>}
-    {!supported ? <p>Este navegador não permite ativar notificações neste dispositivo.</p> : config.isLoading ? <p role="status">Verificando disponibilidade…</p> : !config.data?.habilitado && !ativo ? <p>Notificações indisponíveis no momento.</p> : <button className={styles.action} type="button" onClick={dispositivo} disabled={busy}>{busy ? "Aguarde…" : ativo ? "Desativar notificações neste dispositivo" : "Ativar notificações neste dispositivo"}</button>}
+    {!supported ? <p>Este navegador não permite ativar notificações neste dispositivo.</p> : config.isLoading ? <p role="status">Verificando disponibilidade…</p> : !config.data?.habilitado && !ativo && !pendencia ? <p>Notificações indisponíveis no momento.</p> : <button className={styles.action} type="button" onClick={dispositivo} disabled={busy || pendencia === "outra"}>{busy ? "Aguarde…" : pendencia === "propria" ? "Concluir desativação" : ativo ? "Desativar notificações neste dispositivo" : "Ativar notificações neste dispositivo"}</button>}
     {erro && <p role="alert">{erro}</p>}
   </details>;
 }
@@ -114,16 +85,16 @@ function Conteudo({ onClose, onNavigate }: { onClose?: () => void; onNavigate?: 
     </div>
   </>;
 }
-export function AvisosGaveta({ onClose, onNavigate }: { onClose: () => void; onNavigate?: () => void }) {
+export function AvisosGaveta({ onClose, onNavigate, returnFocusTo }: { onClose: () => void; onNavigate?: () => void; returnFocusTo?: HTMLElement | null }) {
   const ref = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    opener.current = returnFocusTo ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     dialog.showModal();
     return () => { if (dialog.open) dialog.close(); opener.current?.focus(); };
-  }, []);
+  }, [returnFocusTo]);
   return <dialog ref={ref} className={styles.drawer} aria-labelledby="avisos-titulo" onCancel={(event) => { event.preventDefault(); onClose(); }} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}><Conteudo onClose={onClose} onNavigate={onNavigate} /></dialog>;
 }
 export function AvisosPagina() {

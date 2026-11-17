@@ -6,9 +6,33 @@ from django.db.models.functions import Lower
 
 
 class UsuarioQuerySet(models.QuerySet):
-    def delete(self):
+    def bulk_create(self, *args, **kwargs):
         from apps.solicitacoes.coordenacao import barreira
 
+        with transaction.atomic():
+            barreira()
+            return super().bulk_create(*args, **kwargs)
+
+    def update(self, **kwargs):
+        from apps.solicitacoes.coordenacao import barreira
+
+        if not set(kwargs).intersection(
+            {"nome", "email", "telefone", "prefs_notificacao", "is_active", "password"}
+        ):
+            return super().update(**kwargs)
+        with transaction.atomic():
+            barreira()
+            return super().update(**kwargs)
+
+    def delete(self):
+        from apps.privacidade.exclusao import collector_permitido, excluir_privilegiado
+        from apps.solicitacoes.coordenacao import barreira
+
+        if not collector_permitido():
+            usuarios = list(self[:2])
+            if len(usuarios) > 1:
+                raise RuntimeError("Exclusão em lote não é permitida; exclua uma pessoa por vez")
+            return excluir_privilegiado(usuarios[0]) if usuarios else (0, {})
         with transaction.atomic():
             barreira()
             return super().delete()
@@ -29,8 +53,11 @@ class Usuario(AbstractUser):
     objects = UsuarioManager()
 
     def delete(self, *args, **kwargs):
+        from apps.privacidade.exclusao import collector_permitido, excluir_privilegiado
         from apps.solicitacoes.coordenacao import barreira
 
+        if not collector_permitido():
+            return excluir_privilegiado(self)
         with transaction.atomic():
             barreira()
             return super().delete(*args, **kwargs)
@@ -41,10 +68,23 @@ class Usuario(AbstractUser):
     def save(self, *args, **kwargs):
         # The personal space and user must never be committed separately (RN03).
         from apps.espacos.models import Espaco
+        from apps.solicitacoes.coordenacao import barreira
 
         with transaction.atomic():
+            barreira()
             self.email = self.email.lower().strip()
             super().save(*args, **kwargs)
             Espaco.objects.get_or_create(
                 dono=self, tipo=Espaco.Tipo.PESSOAL, defaults={"nome": "Pessoal"}
             )
+
+
+class TicketGoogle(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    tentativa = models.UUIDField()
+    expira_em = models.DateTimeField()
+    consumido_em = models.DateTimeField(null=True)
+
+    def __str__(self):
+        return "Ticket de retorno Google"

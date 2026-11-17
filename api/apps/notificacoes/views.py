@@ -18,7 +18,7 @@ from apps.solicitacoes.coordenacao import coordenado
 
 from . import push
 from .acesso import autorizadas, travar_contexto
-from .models import InscricaoPush, TipoEvento
+from .models import InscricaoPush, InstalacaoPush, TipoEvento
 from .sessoes import travar_instalacao, travar_sessao
 
 
@@ -116,6 +116,10 @@ class InscricaoEntradaSerializer(serializers.Serializer):
 class InscricaoResultadoSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     ativo = serializers.BooleanField(source="ativa")
+
+
+class InstalacaoEstadoSerializer(serializers.Serializer):
+    estado = serializers.ChoiceField(choices=["ativa", "revogada", "indisponivel"])
 
 
 def preferencias(usuario):
@@ -336,7 +340,30 @@ class InscricoesView(APIView):
         )
         criado = inscricao is None
         if inscricao and inscricao.usuario_id != request.user.pk:
-            raise Conflito("Inscrição indisponível.")
+            antiga = InstalacaoPush.objects.filter(
+                usuario_id=inscricao.usuario_id, identificador=inscricao.instalacao
+            ).first()
+            # Only an already terminal old installation allows ownership transfer.
+            # The caller cannot revoke it by presenting its UUID or endpoint.
+            if inscricao.ativa or not antiga or not antiga.revogada:
+                raise Conflito("Inscrição indisponível.")
+            inscricao.usuario = request.user
+            inscricao.instalacao = dados["instalacao"]
+            inscricao.sessao = sessao
+            inscricao.geracao += 1
+            inscricao.segredo = push.cifrar(dados["endpoint"], **dados["keys"])
+            inscricao.ativa = True
+            inscricao.save(
+                update_fields=[
+                    "usuario",
+                    "instalacao",
+                    "sessao",
+                    "geracao",
+                    "segredo",
+                    "ativa",
+                    "atualizado_em",
+                ]
+            )
         if inscricao:
             if inscricao.instalacao == dados["instalacao"]:
                 if (
@@ -386,6 +413,33 @@ class InscricoesView(APIView):
 
 
 class InstalacaoView(APIView):
+    @extend_schema(
+        operation_id="notificacoes_push_estado_instalacao",
+        responses={200: InstalacaoEstadoSerializer},
+    )
+    @transaction.atomic
+    @coordenado
+    def get(self, request, instalacao_id):
+        # A UUID alone never reveals or changes another user's installation. An active
+        # registration is reported only when it belongs to the current live session.
+        sessao = travar_sessao(request)
+        instalacao = InstalacaoPush.objects.filter(
+            usuario=request.user, identificador=instalacao_id
+        ).first()
+        estado = "indisponivel"
+        if instalacao and instalacao.revogada:
+            estado = "revogada"
+        elif (
+            instalacao
+            and InscricaoPush.objects.filter(
+                usuario=request.user, instalacao=instalacao_id, sessao=sessao, ativa=True
+            ).exists()
+        ):
+            estado = "ativa"
+        response = Response({"estado": estado})
+        response["Cache-Control"] = "private, no-store"
+        return response
+
     @extend_schema(operation_id="notificacoes_push_revogar_instalacao", responses={204: None})
     @transaction.atomic
     @coordenado

@@ -1,0 +1,72 @@
+# Isolated recovery exercise only. Never apply this over compose.coolify.yml.
+# The operator must inspect the deployed mounts before starting:
+#   /backup -> the directory of one chosen backup, read-only;
+#   /restore and /data -> the SAME NEW volume, never varal-silo-data.
+# Example new volume name: varal-silo-restore-20261116-test01.
+# Supply the original Silo administrator credentials through secret environment
+# variables: restored IAM/configuration may depend on the original credentials.
+services:
+  restore-init:
+    image: python:3.14-alpine
+    restart: "no"
+    command: ["/bin/sh", "/opt/varal/restore-archive.sh"]
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      SILO_RESTORE_VOLUME_NAME: ${SILO_RESTORE_VOLUME_NAME:?}
+      SILO_BACKUP_FILENAME: ${SILO_BACKUP_FILENAME:?}
+      SILO_BACKUP_EXPECTED_SHA256: ${SILO_BACKUP_EXPECTED_SHA256:?}
+      SILO_RESTORE_MAX_MEMBERS: ${SILO_RESTORE_MAX_MEMBERS:-100000}
+      SILO_RESTORE_MAX_BYTES: ${SILO_RESTORE_MAX_BYTES:-42949672960}
+      SILO_RESTORE_MIN_FREE_BYTES: ${SILO_RESTORE_MIN_FREE_BYTES:-1073741824}
+    volumes:
+      - type: bind
+        source: ${SILO_BACKUP_DIRECTORY:?}
+        target: /backup
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SILO_RESTORE_SCRIPT_PATH:?}
+        target: /opt/varal/restore-archive.sh
+        read_only: true
+        bind:
+          create_host_path: false
+      - restore-data:/restore
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+    cpus: 0.5
+    networks: [recovery]
+
+  silo-restored:
+    image: pgsty/silo:RELEASE.2026-11-12T00-00-00Z
+    restart: "no"
+    command: server /data --address ":9000"
+    environment:
+      MINIO_ROOT_USER: ${SILO_RESTORE_ADMIN_USER:?}
+      MINIO_ROOT_PASSWORD: ${SILO_RESTORE_ADMIN_PASSWORD:?}
+      MINIO_BROWSER: "off"
+    depends_on:
+      restore-init:
+        condition: service_completed_successfully
+    volumes:
+      - restore-data:/data
+    expose: ["9000"]
+    healthcheck:
+      test: ["CMD", "silo", "healthcheck", "ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks: [recovery]
+
+volumes:
+  restore-data:
+    name: ${SILO_RESTORE_VOLUME_NAME:?}
+
+networks:
+  recovery:
+    internal: true

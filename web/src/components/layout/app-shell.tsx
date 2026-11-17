@@ -2,24 +2,26 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { ContaFolha } from "@/components/bills/conta-folha";
+import { createContext, lazy, Suspense, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Me } from "@/lib/auth/types";
 import { gravarEspaco, type EspacoAtual } from "@/lib/espaco";
 import { iniciais, papeis } from "@/lib/grupos/papeis";
 import { useAvisosResumo } from "@/lib/notificacoes/hooks";
-import { AvisosGaveta } from "@/components/notifications/avisos";
+import { Folha } from "@/components/ui/folha";
 import { secaoAtiva } from "./secoes";
 import { SideNav, type EspacoOpcao } from "./side-nav";
 import { TabBar } from "./tab-bar";
 import styles from "./app-shell.module.css";
 
+const ContaFolha = lazy(() => import("@/components/bills/conta-folha").then((modulo) => ({ default: modulo.ContaFolha })));
+const AvisosGaveta = lazy(() => import("@/components/notifications/avisos").then((modulo) => ({ default: modulo.AvisosGaveta })));
+
 type SessaoValor = {
   user: Me;
   espaco: EspacoAtual;
   /** FAB "+" and SideNav "Nova conta" (Q3): the bill form opens straight away. */
-  novaConta: () => void;
-  abrirAvisos: () => void;
+  novaConta: (origem?: HTMLElement) => void;
+  abrirAvisos: (origem?: HTMLElement) => void;
   escolherEspaco: (opcao: EspacoOpcao) => void;
 };
 export const Sessao = createContext<SessaoValor | null>(null);
@@ -53,6 +55,8 @@ export function AppShell({ children, user, espaco }: { children: ReactNode; user
   const [nova, setNova] = useState(false);
   const [gaveta, setGaveta] = useState(false);
   const [chave, setChave] = useState(0); // a fresh form on every opening
+  const [origemConta, setOrigemConta] = useState<HTMLElement | null>(null);
+  const [origemAvisos, setOrigemAvisos] = useState<HTMLElement | null>(null);
   const active = secaoAtiva(pathname);
   // Ajuste 28: the bill detail is a stacked screen below 1024px (07 has TopBar with Back, no TabBar).
   const empilhada = /^\/contas\/[^/]+/.test(pathname) || pathname === "/avisos";
@@ -66,9 +70,10 @@ export function AppShell({ children, user, espaco }: { children: ReactNode; user
     window.addEventListener("popstate", voltar);
     return () => window.removeEventListener("popstate", voltar);
   }, []);
-  function abrirAvisos() {
+  function abrirAvisos(origem?: HTMLElement) {
     if (!window.matchMedia("(min-width: 1024px)").matches) { router.push("/avisos"); return; }
     if (gaveta) return;
+    setOrigemAvisos(origem ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null));
     window.history.pushState({ varalAvisos: true }, "", window.location.href);
     setGaveta(true);
   }
@@ -88,7 +93,8 @@ export function AppShell({ children, user, espaco }: { children: ReactNode; user
     if (pathname !== "/" && pathname !== "/contas") router.push(pathname.startsWith("/contas") ? "/contas" : "/");
     router.refresh(); // the shell reads the cookie on the server
   }
-  const novaConta = () => {
+  const novaConta = (origem?: HTMLElement) => {
+    setOrigemConta(origem ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null));
     setChave((k) => k + 1);
     setNova(true);
   };
@@ -119,8 +125,8 @@ export function AppShell({ children, user, espaco }: { children: ReactNode; user
   return (
     <Sessao.Provider value={{ user, espaco, novaConta, escolherEspaco, abrirAvisos }}>
       {shell}
-      {gaveta && <AvisosGaveta onClose={fecharAvisos} onNavigate={navegarAviso} />}
-      {chave > 0 && <ContaFolha key={chave} open={nova} onClose={() => setNova(false)} />}
+      {gaveta && <Suspense fallback={<Folha open title="Avisos" onClose={fecharAvisos} returnFocusTo={origemAvisos} restoreFocusOnUnmount><p role="status">Carregando avisos…</p></Folha>}><AvisosGaveta onClose={fecharAvisos} onNavigate={navegarAviso} returnFocusTo={origemAvisos} /></Suspense>}
+      {chave > 0 && <Suspense fallback={nova ? <Folha open title="Nova conta" onClose={() => setNova(false)} returnFocusTo={origemConta} restoreFocusOnUnmount><p role="status">Carregando formulário…</p></Folha> : null}><ContaFolha key={chave} open={nova} onClose={() => setNova(false)} returnFocusTo={origemConta} /></Suspense>}
     </Sessao.Provider>
   );
 }

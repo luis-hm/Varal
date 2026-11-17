@@ -5,6 +5,7 @@ export default defineConfig({
   resolve: { alias: { "@": path.resolve(__dirname, "src") } },
   test: {
     environment: "jsdom",
+    maxWorkers: 1,
     setupFiles: ["./vitest.setup.ts"],
     exclude: [...configDefaults.exclude, "e2e/**"], // Playwright specs
   },

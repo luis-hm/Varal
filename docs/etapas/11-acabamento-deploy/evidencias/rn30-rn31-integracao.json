@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "registered_at_utc": "2026-11-17T00:55:38Z",
+  "scope": "provas sintéticas focais no laboratório local; não é fechamento integrado da etapa",
+  "environment": {
+    "frontend_image": "sha256:326229fbc146bd1ed717a32c77524ecf434389b2ecaa11b66c65826be26e0eb5",
+    "lab": "primário restaurado isolado, PostgreSQL, S3 privado, journal, Redis, API e proxy TLS; worker e beat globais parados",
+    "source": "API estável, 546 testes API previamente aprovados; não repetidos nesta prova",
+    "worker": "Celery real temporário em fila exclusiva, encerrado após a exportação"
+  },
+  "results": [
+    {
+      "name": "rn31_seed",
+      "exit_code": 0,
+      "method": "11 contas, sessões e convites sintéticos distintos"
+    },
+    {
+      "name": "rn31_http",
+      "exit_code": 0,
+      "method": "11 POST HTTPS concorrentes de aceite através do relay e proxy, com mesmo IP",
+      "statuses": {
+        "201": 10,
+        "429": 1
+      }
+    },
+    {
+      "name": "rn31_postgresql_check",
+      "exit_code": 0,
+      "result": "dez membros e convites consumidos; um convite intacto e sem membro"
+    },
+    {
+      "name": "rn30_seed",
+      "exit_code": 0,
+      "method": "duas requisições in-process autenticadas e reautenticadas com CSRF e mesma chave",
+      "result": "duas respostas 202, mesmo job e uma linha no banco"
+    },
+    {
+      "name": "rn30_worker",
+      "exit_code": 0,
+      "result": "worker real em fila exclusiva gerou job pronto"
+    },
+    {
+      "name": "rn30_check",
+      "exit_code": 0,
+      "method": "download in-process autenticado; fonte dos documentos no S3 local",
+      "result": "schema v1, nove categorias, registros representativos pessoais, NULL e centavos, PDF e comprovante pessoais; documentos e conta de grupo de mesma autoria ausentes; job alheio 404"
+    },
+    {
+      "name": "rn30_urls",
+      "exit_code": 0,
+      "method": "usar links efetivamente emitidos no JSON via TLS/S3 local",
+      "result": "PDF e comprovante 200 com hash esperado; anônimos 403; prazo assinado 60 s; ambos 403 após expiração"
+    },
+    {
+      "name": "rn30_delete",
+      "exit_code": 0,
+      "method": "DELETE autenticado/CSRF in-process, journal e storage reais; inventário posterior e checagem ACL",
+      "result": "204; grupo preservou conta, pagamento, histórico, recorrência pausada, PDF, comprovante e aviso; autoria NULL e pagador mantido; bytes preservados; admin 200 e terceiro 404; recibos PREPARE e COMMIT vinculados e HMAC validado"
+    }
+  ],
+  "commands": {
+    "runner": "/tmp/varal11-provas-api/run.sh",
+    "phases": [
+      "rn31-seed",
+      "rn31-http",
+      "rn31-check",
+      "rn30-seed",
+      "rn30-start",
+      "rn30-wait",
+      "rn30-stop",
+      "rn30-check",
+      "rn30-urls",
+      "rn30-delete"
+    ],
+    "private_artifacts": "fixtures e URLs ficam em /tmp/varal11-provas-api com acesso restrito; não incluídas neste arquivo"
+  },
+  "method_notes": [
+    "Primeira execução rn31-http saiu 1 antes de abrir HTTP por prefixo do shell Django no JSON; fixture preservada e prefixo removido, repetição saiu 0.",
+    "A prova RN30 usa Django Client in-process para requisições; RN31 usa rede real via relay e proxy, não mede desempenho.",
+    "Os asserts verificaram chaves sensíveis comuns no perfil, não um inventário exaustivo de segredos em todos os campos."
+  ],
+  "limits": [
+    "Corridas RN32 com journal físico e PUT físico tardio não foram executadas neste recorte; testes anteriores usam journal ou S3 simulados nessas partes.",
+    "Preservação de grupo e audiência refere-se aos registros sintéticos exercitados, não a toda a matriz de casos.",
+    "A topologia remota e seus proxies ainda requerem verificação; laboratório não equivale a deploy.",
+    "Nenhum critério de aceite da etapa é fechado automaticamente por esta prova."
+  ],
+  "script_sha256": {
+    "rn30-chain.py": "451233092a1f4c7e395c0361d29f55a0e60a6cc4a0d6fd9f79fb52f12b338cf5",
+    "rn30-urls.py": "51a6242259bfa62093b7e44418ce5a81ac58dd114a4f17be0cd1021b54e21496",
+    "rn31-seed.py": "796c9e2f7bf971b4bb3089ccf8e24049260a7582a61c74cf5f14c11cd525b7b5",
+    "rn31-http.py": "ad49277f0b3d21c27192bc11afa61b5a2ab1f3d8b26ea442f38bc5bd8f94fc49",
+    "rn31-check.py": "10695f1973bee9238b3c141b81748cef73d6e4f0660d61e886bb5210b317c983"
+  }
+}
