@@ -27,6 +27,8 @@ Sessão nova começa por [PROGRESSO.md](PROGRESSO.md). Cada agente lê **só** o
 | Como as peças conversam? | [arquitetura/visao-geral.md](arquitetura/visao-geral.md) |
 | Que versões, portas e variáveis de ambiente? | [arquitetura/stack.md](arquitetura/stack.md) |
 | Como operar o laboratório/primário restaurado sem contornar os gates? | [Runbook de operação local](arquitetura/operacao-local.md) (ACTIVE_RESTORE, backup, journal/WAL, ledger/direitos e limites P11) |
+| Como operar o Silo remoto no Coolify e quais são seus limites? | [Silo na VPS](arquitetura/silo-coolify.md) e [Compose](../infra/silo/compose.coolify.yml); separado do laboratório e do desenvolvimento |
+| Como funciona o backup local do Silo e como testar sua recuperação? | [Backup e recuperação do Silo](arquitetura/silo-backup-recuperacao.md), [agenda](../infra/silo/backup-schedule.json) e [template isolado](../infra/silo/compose.restore.yml) |
 | Por que decidimos X? | [arquitetura/adr/](arquitetura/adr/) |
 | Onde está a tela/componente no Doop? Como fica no desktop? | [design/README.md](design/README.md) (inclui a regra responsiva) |
 | Quais cores, fontes, raios? | [design/tokens.md](design/tokens.md) |

@@ -1,0 +1,72 @@
+services:
+  silo:
+    image: pgsty/silo:RELEASE.2026-11-12T00-00-00Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${SILO_ADMIN_USER:?}
+      MINIO_ROOT_PASSWORD: ${SILO_ADMIN_PASSWORD:?}
+      MINIO_BROWSER_REDIRECT_URL: ${SILO_CONSOLE_URL:?}
+    expose:
+    - '9000'
+    - '9001'
+    volumes:
+    - silo-data:/data
+    healthcheck:
+      test:
+      - CMD
+      - silo
+      - healthcheck
+      - ready
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    labels:
+    - traefik.enable=true
+    - traefik.docker.network=coolify
+    - traefik.http.middlewares.varal-silo-https.redirectscheme.scheme=https
+    - traefik.http.middlewares.varal-silo-https.redirectscheme.permanent=true
+    - traefik.http.services.varal-silo-console.loadbalancer.server.port=9001
+    - traefik.http.routers.varal-silo-console.rule=Host(`silo-admin.codehub.systems`)
+    - traefik.http.routers.varal-silo-console.entrypoints=https
+    - traefik.http.routers.varal-silo-console.tls=true
+    - traefik.http.routers.varal-silo-console.tls.certresolver=letsencrypt
+    - traefik.http.routers.varal-silo-console.service=varal-silo-console
+    - traefik.http.routers.varal-silo-console-http.rule=Host(`silo-admin.codehub.systems`)
+    - traefik.http.routers.varal-silo-console-http.entrypoints=http
+    - traefik.http.routers.varal-silo-console-http.middlewares=varal-silo-https
+    - traefik.http.routers.varal-silo-console-http.service=varal-silo-console
+    - traefik.http.services.varal-silo-s3.loadbalancer.server.port=9000
+    - traefik.http.routers.varal-silo-s3.rule=Host(`arquivos.codehub.systems`)
+    - traefik.http.routers.varal-silo-s3.entrypoints=https
+    - traefik.http.routers.varal-silo-s3.tls=true
+    - traefik.http.routers.varal-silo-s3.tls.certresolver=letsencrypt
+    - traefik.http.routers.varal-silo-s3.service=varal-silo-s3
+    - traefik.http.routers.varal-silo-s3-http.rule=Host(`arquivos.codehub.systems`)
+    - traefik.http.routers.varal-silo-s3-http.entrypoints=http
+    - traefik.http.routers.varal-silo-s3-http.middlewares=varal-silo-https
+    - traefik.http.routers.varal-silo-s3-http.service=varal-silo-s3
+    - traefik.http.routers.varal-silo-console.observability.accesslogs=false
+    - traefik.http.routers.varal-silo-console.observability.tracing=false
+    - traefik.http.routers.varal-silo-console-http.observability.accesslogs=false
+    - traefik.http.routers.varal-silo-console-http.observability.tracing=false
+    - traefik.http.routers.varal-silo-s3.observability.accesslogs=false
+    - traefik.http.routers.varal-silo-s3.observability.tracing=false
+    - traefik.http.routers.varal-silo-s3-http.observability.accesslogs=false
+    - traefik.http.routers.varal-silo-s3-http.observability.tracing=false
+    networks:
+    - coolify
+volumes:
+  silo-data:
+    external: true
+    name: varal-silo-data
+networks:
+  coolify:
+    external: true
+    name: coolify
