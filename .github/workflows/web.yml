@@ -8,6 +8,7 @@ on:
     paths: ["web/**", "api/**", "infra/**", "Makefile", ".github/workflows/web.yml"]
   # Manual run: `gh workflow run web.yml --ref <branch>` (path filters do not apply).
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   check:

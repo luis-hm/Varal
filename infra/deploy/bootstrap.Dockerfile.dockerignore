@@ -1,0 +1,5 @@
+**
+!infra/
+!infra/deploy/
+!infra/deploy/bootstrap.py
+!infra/deploy/seal.py

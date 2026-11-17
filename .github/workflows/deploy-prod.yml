@@ -1,0 +1,46 @@
+name: deploy production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: varal-deploy-production
+  cancel-in-progress: false
+
+# Production is intentionally parked. The owner must explicitly enable this
+# repository variable AND the Coolify auto-deploy switch later.
+# Creating this workflow does not deploy production.
+jobs:
+  api:
+    if: github.ref == 'refs/heads/main' && vars.VARAL_PROD_DEPLOY_ENABLED == 'true'
+    uses: ./.github/workflows/api.yml
+
+  web:
+    if: github.ref == 'refs/heads/main' && vars.VARAL_PROD_DEPLOY_ENABLED == 'true'
+    uses: ./.github/workflows/web.yml
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && vars.VARAL_PROD_DEPLOY_ENABLED == 'true'
+    needs: [api, web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify signed hook boundaries without credentials
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py' -q
+      - name: Queue the checked commit for production
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEPLOY_EXPECTED_BRANCH: main
+          COOLIFY_URL: ${{ vars.COOLIFY_URL }}
+          COOLIFY_RESOURCE_UUID: ${{ vars.COOLIFY_PROD_UUID }}
+          COOLIFY_WEBHOOK_SECRET: ${{ secrets.COOLIFY_PROD_WEBHOOK_SECRET }}
+        run: python3 .github/scripts/deploy-coolify.py

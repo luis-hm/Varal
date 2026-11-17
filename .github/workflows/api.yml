@@ -7,6 +7,7 @@ on:
     paths: ["api/**", "web/src/types/**", "infra/**", "Makefile", ".github/workflows/api.yml"]
   # Manual run: `gh workflow run api.yml --ref <branch>` (path filters do not apply).
   workflow_dispatch:
+  workflow_call:
 
 env:
   DJANGO_DEBUG: "1"

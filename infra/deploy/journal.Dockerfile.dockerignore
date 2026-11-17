@@ -1,0 +1,7 @@
+**
+!infra/
+!infra/journal/
+!infra/journal/server.py
+!infra/deploy/
+!infra/deploy/journal-init.py
+!infra/deploy/journal-health.py
