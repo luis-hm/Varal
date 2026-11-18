@@ -1,4 +1,5 @@
 """Avoid logging request-derived text and exception tracebacks in deployed environments."""
+
 import logging
 
 from gunicorn.glogging import Logger

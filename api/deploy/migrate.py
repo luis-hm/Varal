@@ -35,9 +35,7 @@ with open("/varal/lock/migrate.lock", "a+b") as lock:
         ):
             for table in ("privacidade_revisaoexportacao", "django_migrations"):
                 cursor.execute(
-                    sql.SQL(
-                        "REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE {} FROM {}"
-                    ).format(
+                    sql.SQL("REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE {} FROM {}").format(
                         sql.Identifier("public", table),
                         sql.Identifier(os.environ["VARAL_RUNTIME_DB_ROLE"]),
                     )
