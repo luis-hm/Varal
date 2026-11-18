@@ -1,5 +1,5 @@
 /* Doop: k0kB5dc-Vo / NoticeRow */
-.row { display: flex; position: relative; width: 100%; min-height: 68px; gap: 12px; padding: 14px 16px; border: 0; border-radius: var(--radius-lg); background: transparent; font-family: var(--font-sans); color: var(--color-ink); text-align: left; cursor: pointer; }
+.row { display: flex; position: relative; width: 100%; min-height: 68px; gap: var(--spacing-3); padding: 14px var(--spacing-4); border: 0; border-radius: var(--radius-lg); background: transparent; font-family: var(--font-sans); color: var(--color-ink); text-align: left; cursor: pointer; }
 .row[data-unread="yes"] { background: var(--color-surface); }
 .row:focus-visible { outline: 3px solid var(--color-amber); outline-offset: 2px; }
 .row:disabled { cursor: wait; }

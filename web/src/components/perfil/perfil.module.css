@@ -34,8 +34,9 @@
   font-weight: 800;
 }
 
+/* 160px basis: on a phone the logout button drops below instead of squeezing the name to "Seu…". */
 .quem {
-  flex: 1;
+  flex: 1 1 160px;
   min-width: 0;
 }
 
@@ -190,6 +191,12 @@
   gap: var(--spacing-2);
   min-height: 44px;
   font-weight: 600;
+}
+
+/* The preferences block (shared with Avisos) brings its own margin and padding; the card already has them. */
+.cartao > details {
+  margin: 0;
+  padding: 0;
 }
 
 @media (min-width: 1024px) {

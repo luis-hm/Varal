@@ -93,7 +93,7 @@ a.house:focus-visible,
 .bar {
   align-self: stretch;
   height: 6px;
-  margin-top: 4px;
+  margin-top: var(--spacing-1);
   border-radius: var(--radius-full);
   background: var(--color-neutral-soft);
   overflow: hidden;
