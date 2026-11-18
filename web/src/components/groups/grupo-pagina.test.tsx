@@ -14,6 +14,7 @@ type Chamada = { method: string; url: string; body?: unknown };
 let chamadas: Chamada[] = [];
 let detalhe: { status: number; body?: unknown };
 let conviteN = 0;
+let permissoesPut = 200;
 let sair: (body: { resolucoes?: unknown[] }) => Response = () => json(204);
 
 const grupo = (meu_papel: Papel): GrupoDetalhe => ({
@@ -25,7 +26,7 @@ const grupo = (meu_papel: Papel): GrupoDetalhe => ({
     { id: "m1", usuario: "u1", nome: "Dev", email: "dev@varal.local", papel: "admin", sou_eu: meu_papel === "admin", contas_atribuidas_qtd: 2 },
     { id: "m2", usuario: "u2", nome: "", email: "observador@varal.local", papel: "observador", sou_eu: meu_papel === "observador", contas_atribuidas_qtd: 0 },
   ],
-  casas: [{ id: "c1", nome: "Casa 1" }],
+  casas: [{ id: "c1", nome: "Casa 1", personalizada: false, capacidades: ["ver", "criar", "editar", "pagar", "recorrencias"] }],
 });
 
 const json = (status: number, body?: unknown) =>
@@ -50,6 +51,10 @@ beforeEach(() => {
       const papel = (JSON.parse(String(init!.body)) as { papel: Papel }).papel;
       return json(201, { id: `cv${conviteN}`, url: `http://localhost:3000/c/${TOKEN}${conviteN}`, expira_em: "2026-11-21T12:00:00Z", papel });
     }
+    if (input === "/api/grupos/g1/subgrupos/c1/permissoes/" && method === "GET")
+      return json(200, { personalizada: false, versao: 1, membros: [{ membro_id: "m2", papel: "observador", ver: true, criar: false, editar: false, pagar: false, recorrencias: false }] });
+    if (input === "/api/grupos/g1/subgrupos/c1/permissoes/" && method === "PUT")
+      return permissoesPut === 200 ? json(200, { ...JSON.parse(String(init!.body)), versao: 2 }) : json(409, { detail: "Outra pessoa mudou estas permissões." });
     if (method === "DELETE") return json(204);
     return json(404, { detail: "x" });
   }));
@@ -57,6 +62,7 @@ beforeEach(() => {
 
 afterEach(() => {
   sair = () => json(204);
+  permissoesPut = 200;
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   vi.clearAllMocks();
@@ -164,6 +170,45 @@ test("CU02: a group created just now opens the invite once and drops ?convidar=1
   renderPagina();
   expect(await screen.findByRole("dialog", { name: "Convidar para o grupo" })).toBeTruthy();
   expect(window.location.search).toBe("");
+});
+
+test("COR-10: admin personalises a category; without Ver nothing else; a stale version asks to reload", async () => {
+  detalhe = { status: 200, body: grupo("admin") };
+  renderPagina();
+  fireEvent.click(await screen.findByRole("button", { name: "Editar Casa 1" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Quem pode fazer o quê" }));
+  const folha = await screen.findByRole("dialog", { name: "Quem pode fazer o quê" });
+  expect(await within(folha).findByText(/Vale o padrão de cada papel/)).toBeTruthy();
+  fireEvent.click(within(folha).getByRole("switch", { name: "Personalizar permissões desta categoria" }));
+  const pessoa = within(folha).getByRole("group", { name: /observador@varal.local/ });
+  fireEvent.click(within(pessoa).getByRole("checkbox", { name: "Cadastrar" }));
+  expect(within(pessoa).getByRole("checkbox", { name: "Cadastrar" })).toHaveProperty("checked", true);
+  fireEvent.click(within(pessoa).getByRole("checkbox", { name: "Ver" }));
+  expect(within(pessoa).getByRole("checkbox", { name: "Cadastrar" })).toHaveProperty("checked", false);
+  expect(within(pessoa).getByRole("checkbox", { name: "Cadastrar" })).toHaveProperty("disabled", true);
+  fireEvent.click(within(pessoa).getByRole("checkbox", { name: "Ver" }));
+  fireEvent.click(within(pessoa).getByRole("checkbox", { name: "Pagar" }));
+
+  permissoesPut = 409;
+  fireEvent.click(within(folha).getByRole("button", { name: "Salvar" }));
+  expect(await within(folha).findByText(/Outra pessoa mudou estas permissões/)).toBeTruthy();
+  expect(within(folha).getByRole("button", { name: "Recarregar" })).toBeTruthy();
+  permissoesPut = 200;
+  fireEvent.click(within(folha).getByRole("button", { name: "Recarregar" }));
+  fireEvent.click(await within(folha).findByRole("switch", { name: "Personalizar permissões desta categoria" }));
+  fireEvent.click(within(within(folha).getByRole("group", { name: /observador@varal.local/ })).getByRole("checkbox", { name: "Pagar" }));
+  fireEvent.click(within(folha).getByRole("button", { name: "Salvar" }));
+  await waitFor(() => expect(chamadas.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({
+    personalizada: true, versao: 1,
+    membros: [{ membro_id: "m2", papel: "observador", ver: true, criar: false, editar: false, pagar: true, recorrencias: false }],
+  }));
+});
+
+test("COR-10: a member does not see the permissions button", async () => {
+  detalhe = { status: 200, body: grupo("membro") };
+  renderPagina();
+  await screen.findByRole("heading", { name: "Família" });
+  expect(screen.queryByRole("button", { name: /Editar Casa 1|Quem pode fazer o quê/ })).toBeNull();
 });
 
 test("q10/rn13: admin sets the alert window from 1 to 7 days", async () => {

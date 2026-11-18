@@ -4,13 +4,13 @@ import json
 from django.db import transaction
 from drf_spectacular.utils import extend_schema, extend_schema_field
 from rest_framework import serializers, status
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.boletos.models import DocumentoBoleto, Instrumento
 from apps.boletos.tasks import agendar
-from apps.espacos.acesso import espaco_ou_404, lancamentos_do_usuario
+from apps.espacos.acesso import espaco_ou_404, lancamentos_do_usuario, pode_na
 from apps.espacos.models import Espaco, Membro, Papel
 from apps.espacos.servicos import Conflito, _admins_travados
 from apps.lancamentos.models import Status
@@ -185,6 +185,8 @@ class CriarView(APIView):
         grupo = espaco_ou_404(
             request.user, dados["grupo_id"], "criar_conta", tipo=Espaco.Tipo.GRUPO
         )
+        if not pode_na(request.user, grupo.meu_papel, None, "criar"):
+            raise PermissionDenied()  # COR-10: a category grant does not reach requests
         _admins_travados([grupo.pk])
         list(
             Membro.objects.select_for_update()

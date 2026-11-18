@@ -8,14 +8,19 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh: vi.fn() }
 
 let criar: { status: number; body: unknown };
 const enviados: unknown[] = [];
+const TUDO = ["ver", "criar", "editar", "pagar", "recorrencias"];
+let papelNoGrupo = "admin";
+let casasDoGrupo: { id: string; nome: string; capacidades: string[] }[] = [];
 
 beforeEach(() => {
   document.cookie = "csrftoken=t";
   enviados.length = 0;
+  papelNoGrupo = "admin";
+  casasDoGrupo = [{ id: "c1", nome: "Casa 1", capacidades: TUDO }];
   vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
     if (url === "/api/grupos/g1/")
       return json(200, {
-        id: "g1", nome: "Família", meu_papel: "admin", janela_alerta_dias: 3, casas: [{ id: "c1", nome: "Casa 1" }],
+        id: "g1", nome: "Família", meu_papel: papelNoGrupo, janela_alerta_dias: 3, casas: casasDoGrupo,
         membros: [
           { id: "m1", nome: "Dev", email: "dev@varal.local", papel: "admin", sou_eu: true },
           { id: "m2", usuario: "u2", nome: "Mãe", email: "mae@x", papel: "pagador", sou_eu: false },
@@ -41,6 +46,14 @@ function preencher() {
   fireEvent.change(screen.getByLabelText("Vencimento"), { target: { value: "2026-11-20" } });
   fireEvent.change(screen.getByLabelText("Descrição"), { target: { value: "Energia" } });
 }
+
+test("COR-10: only categories where the person may create are offered; observers get no Sem categoria", async () => {
+  papelNoGrupo = "observador";
+  casasDoGrupo = [{ id: "c1", nome: "Casa 1", capacidades: ["ver"] }, { id: "c2", nome: "Internet", capacidades: ["ver", "criar"] }];
+  renderComSessao(<ContaFolha open onClose={() => {}} destino={{ espaco: "g1" }} />);
+  const categorias = await screen.findByRole("group", { name: "Categoria" }, { timeout: 5_000 });
+  expect(within(categorias).getAllByRole("button").map((b) => b.textContent)).toEqual(["Internet"]);
+});
 
 test("ca28: restricted bill with another payer warns before saving; observer is not a payer option", async () => {
   renderComSessao(<ContaFolha open onClose={() => {}} destino={{ espaco: "g1" }} />);
@@ -141,8 +154,24 @@ test("COR-06: opened from a group, that group comes first and selected; the othe
   await grupoCarregado();
 });
 
-test("COR-06: opened from a group where you only observe, the order stays and the first is selected", () => {
+test("COR-10: opened from a group where you observe, it is offered (the admin may allow creating there)", () => {
   const user = { ...me, grupos: [...me.grupos, { id: "g2", nome: "Condomínio", papel: "observador" as const }] };
   renderComSessao(<ContaFolha open onClose={() => {}} destino={{ espaco: "g2" }} />, undefined, user);
-  expect(onde()).toEqual(["Pessoal*", "Família"]);
+  expect(onde()).toEqual(["Condomínio*", "Pessoal", "Família"]);
+});
+
+test("COR-10: without Pagar in the category, choosing yourself as payer is refused before saving", async () => {
+  casasDoGrupo = [{ id: "c1", nome: "Casa 1", capacidades: ["ver", "criar"] }];
+  renderComSessao(<ContaFolha open onClose={() => {}} destino={{ espaco: "g1", categoria: "c1" }} />);
+  await grupoCarregado();
+  expect(await screen.findByText("Você não pode pagar contas desta categoria. Escolha outra pessoa.")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Mãe" }));
+  expect(screen.queryByText("Você não pode pagar contas desta categoria. Escolha outra pessoa.")).toBeNull();
+});
+
+test("COR-10: an observer without any category to create in is told so", async () => {
+  papelNoGrupo = "observador";
+  casasDoGrupo = [{ id: "c1", nome: "Casa 1", capacidades: ["ver"] }];
+  renderComSessao(<ContaFolha open onClose={() => {}} destino={{ espaco: "g1" }} />);
+  expect(await screen.findByText("Você não pode cadastrar contas neste grupo. Escolha outro espaço.", undefined, { timeout: 5_000 })).toBeTruthy();
 });

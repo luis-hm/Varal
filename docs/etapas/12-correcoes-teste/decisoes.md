@@ -28,6 +28,7 @@
 
 | ID | Pergunta | Proposta |
 | --- | --- | --- |
-| Q12-1 | Aprova a política de permissões por categoria (DEC-04/08/10)? | [ADR 0017](../../arquitetura/adr/0017-permissoes-por-categoria.md) |
+| Q12-1 | Aprova a política de permissões por categoria (DEC-04/08/10)? | **Aprovada pelo dono em 18/11/2026** ([ADR 0017](../../arquitetura/adr/0017-permissoes-por-categoria.md)); implementada. |
+| Q12-4 | Confirma as regras que fecharam lacunas do COR-10 na revisão de segurança (papel rebaixado perde concessões acima do papel; pôr-se como pagador exige "Pagar"; pedido de pagamento exige cadastrar sem categoria; "cancelar os próximos" pula o que não pode editar; membro novo começa sem acesso à categoria personalizada)? | Implementadas como a opção mais restritiva; lista no [ADR 0017](../../arquitetura/adr/0017-permissoes-por-categoria.md#implementação). Desfazer é só código. |
 | Q12-2 | O cadastro deve pedir o nome da pessoa e o Perfil deve deixar editar? Hoje o Perfil mostra "Não informado". | Pedir nome opcional no cadastro e editar no Perfil (`PATCH /api/me/`). |
 | Q12-3 | Cadastrar no Google Console a URI `https://hmgvaral.codehub.systems/accounts/google/login/callback/` (ação do dono, COR-12). | — |

@@ -2347,10 +2347,33 @@ components:
       - vencimento
       - vencimentos_possiveis
       type: object
+    CapacidadesEnum:
+      description: '* `ver` - ver
+
+        * `criar` - criar
+
+        * `editar` - editar
+
+        * `pagar` - pagar
+
+        * `recorrencias` - recorrencias'
+      enum:
+      - ver
+      - criar
+      - editar
+      - pagar
+      - recorrencias
+      type: string
     Casa:
       properties:
         arquivado:
           type: boolean
+        capacidades:
+          description: O que você pode fazer com contas desta categoria (COR-10)
+          items:
+            $ref: '#/components/schemas/CapacidadesEnum'
+          readOnly: true
+          type: array
         icone:
           $ref: '#/components/schemas/IconeEnum'
         id:
@@ -2360,9 +2383,14 @@ components:
         nome:
           maxLength: 150
           type: string
+        personalizada:
+          readOnly: true
+          type: boolean
       required:
+      - capacidades
       - id
       - nome
+      - personalizada
       type: object
     CategoriaRef:
       properties:
@@ -3911,6 +3939,52 @@ components:
           $ref: '#/components/schemas/ValorTipoEnum'
         visibilidade:
           $ref: '#/components/schemas/VisibilidadeEnum'
+      type: object
+    PermissaoMembro:
+      properties:
+        criar:
+          type: boolean
+        editar:
+          type: boolean
+        membro_id:
+          format: uuid
+          type: string
+        pagar:
+          type: boolean
+        papel:
+          allOf:
+          - $ref: '#/components/schemas/PapelEnum'
+          readOnly: true
+        recorrencias:
+          type: boolean
+        ver:
+          type: boolean
+      required:
+      - criar
+      - editar
+      - membro_id
+      - pagar
+      - papel
+      - recorrencias
+      - ver
+      type: object
+    Permissoes:
+      properties:
+        membros:
+          items:
+            $ref: '#/components/schemas/PermissaoMembro'
+          type: array
+        personalizada:
+          description: 'false: vale o padrão de cada papel; true: valem as linhas
+            de `membros`'
+          type: boolean
+        versao:
+          description: A versão lida; outra versão gravada dá 409
+          type: integer
+      required:
+      - membros
+      - personalizada
+      - versao
       type: object
     Pessoa:
       properties:
@@ -6854,6 +6928,102 @@ paths:
           description: ''
       security:
       - cookieAuth: []
+      tags:
+      - grupos
+  /api/grupos/{grupo_id}/subgrupos/{casa_id}/permissoes/:
+    get:
+      operationId: grupos_casas_permissoes
+      parameters:
+      - in: path
+        name: casa_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: grupo_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Permissoes'
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Seu papel não permite esta ação.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Grupo, membro, casa ou convite fora do seu acesso.
+      security:
+      - cookieAuth: []
+      summary: Quem pode fazer o quê nesta categoria (admin; COR-10)
+      tags:
+      - grupos
+    put:
+      operationId: grupos_casas_permissoes_salvar
+      parameters:
+      - in: path
+        name: casa_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: path
+        name: grupo_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Permissoes'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Permissoes'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Permissoes'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Permissoes'
+          description: ''
+        '400':
+          description: Membro inválido ou ação sem Ver
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Seu papel não permite esta ação.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+          description: Grupo, membro, casa ou convite fora do seu acesso.
+        '409':
+          description: Outra pessoa mudou estas permissões
+      security:
+      - cookieAuth: []
+      summary: 'Salvar as permissões da categoria (admin; COR-10). Versão antiga:
+        409.'
       tags:
       - grupos
   /api/health/:

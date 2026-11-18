@@ -7,7 +7,7 @@ by `espaco_ou_404`, never by their id alone.
 from django.db.models import Case, Exists, OuterRef, Q, Subquery, Value, When
 from rest_framework.exceptions import NotFound, PermissionDenied
 
-from .models import Espaco, Membro, Papel
+from .models import Espaco, Membro, Papel, PermissaoCategoria, Subgrupo
 
 ACOES = frozenset(
     {
@@ -28,6 +28,83 @@ PERMISSOES = {
     # Decision 6: the payer never sees the group page, only the bills they pay (RN07).
     Papel.PAGADOR: frozenset({"pagar_propria"}),
 }
+
+
+# ---- COR-10 / ADR 0017: capabilities per category --------------------------------------------
+CAPACIDADES = ("ver", "criar", "editar", "pagar", "recorrencias")
+_TODAS = frozenset(CAPACIDADES)
+PADRAO = {
+    DONO: _TODAS,
+    Papel.ADMIN: _TODAS,
+    Papel.MEMBRO: _TODAS,
+    Papel.OBSERVADOR: frozenset({"ver"}),
+    Papel.PAGADOR: frozenset(),
+}
+PERSONALIZAVEIS = (Papel.MEMBRO, Papel.OBSERVADOR)
+# Role actions that depend on the bill's category, and the capability they need.
+DA_CATEGORIA = {"criar_conta": "criar", "editar_conta": "editar", "pagar_qualquer": "pagar"}
+
+
+def capacidades(usuario, papel_, subgrupo_id):
+    """What `usuario` may do with bills of one category. Owner/admin: everything; payer: nothing
+    (RN07 covers their own bills); no category or a non-personalised one: the role default."""
+    padrao = PADRAO.get(papel_, frozenset())
+    if papel_ not in PERSONALIZAVEIS or not subgrupo_id:
+        return padrao
+    if not Subgrupo.objects.filter(pk=subgrupo_id, personalizada=True).exists():
+        return padrao
+    linha = (
+        PermissaoCategoria.objects.filter(subgrupo_id=subgrupo_id, membro__usuario=usuario)
+        .values(*CAPACIDADES)
+        .first()
+    ) or {}
+    return frozenset(c for c in CAPACIDADES if linha.get(c))
+
+
+def pode_na(usuario, papel_, subgrupo_id, acao):
+    """`pode` for an action on a bill of a category: `acao` is a role action ("editar_conta")
+    or a capability ("recorrencias"). Actions unrelated to categories fall back to `pode`."""
+    capacidade = acao if acao in CAPACIDADES else DA_CATEGORIA.get(acao)
+    if capacidade is None:
+        return pode(papel_, acao)
+    return capacidade in capacidades(usuario, papel_, subgrupo_id)
+
+
+def _categoria_visivel(usuario, chave="subgrupo"):
+    """Q: the category is not personalised, or this user was granted "ver" in it."""
+    concedida = Exists(
+        PermissaoCategoria.objects.filter(
+            subgrupo=OuterRef(chave or "pk"), membro__usuario=usuario, ver=True
+        )
+    )
+    if chave is None:  # over Subgrupo itself
+        return Q(personalizada=False) | Q(concedida)
+    # EXISTS instead of a join: bill queries are locked with FOR UPDATE (no outer joins).
+    personalizada = Exists(Subgrupo.objects.filter(pk=OuterRef(chave), personalizada=True))
+    return ~Q(personalizada) | Q(concedida)
+
+
+def categorias_visiveis(usuario, espaco, papel_=None):
+    """The group's categories this user may see (lists, filters, summaries)."""
+    papel_ = papel_ if papel_ is not None else papel(usuario, espaco)
+    categorias = Subgrupo.objects.filter(espaco=espaco)
+    if papel_ in PERSONALIZAVEIS:
+        return categorias.filter(_categoria_visivel(usuario, None))
+    return categorias if papel_ is not None else categorias.none()  # payer: as before COR-10
+
+
+def _alguma_concessao(usuario, espaco):
+    """An observer may still create in a category where the admin allowed it (ADR 0017)."""
+    return (
+        PermissaoCategoria.objects.filter(
+            membro__usuario=usuario,
+            subgrupo__espaco=espaco,
+            subgrupo__personalizada=True,
+            subgrupo__arquivado=False,
+        )
+        .filter(Q(criar=True) | Q(recorrencias=True))
+        .exists()
+    )
 
 
 def espacos_do_usuario(usuario):
@@ -62,7 +139,14 @@ def espaco_ou_404(usuario, espaco_id, acao=None, tipo=None):
     if espaco is None:
         raise NotFound()
     if acao and not pode(espaco.meu_papel, acao):
-        raise PermissionDenied()
+        # The role's default says no, but a category grant may say yes; the service then
+        # checks the exact category (lancamentos.servicos.criar, recorrencias.servicos.criar).
+        if not (
+            acao == "criar_conta"
+            and espaco.meu_papel in PERSONALIZAVEIS
+            and _alguma_concessao(usuario, espaco)
+        ):
+            raise PermissionDenied()
     return espaco
 
 
@@ -85,12 +169,12 @@ def _ve(usuario, papel_, modelo=None):
     if papel_ == Papel.PAGADOR:
         return Q(pagador=usuario) | (Q(visibilidade=Visibilidade.RESTRITA) & Q(escolhido))
     if papel_ in (Papel.ADMIN, Papel.MEMBRO, Papel.OBSERVADOR):
-        return (
-            Q(visibilidade=Visibilidade.GRUPO)
-            | Q(criador=usuario)
-            | Q(pagador=usuario)
-            | Q(escolhido)
-        )
+        do_grupo = Q(visibilidade=Visibilidade.GRUPO)
+        if papel_ != Papel.ADMIN:
+            # COR-10: a personalised category hides its group-wide bills from members without
+            # "ver". Creator, payer and chosen people always keep seeing theirs (ADR 0017).
+            do_grupo &= _categoria_visivel(usuario)
+        return do_grupo | Q(criador=usuario) | Q(pagador=usuario) | Q(escolhido)
     return None
 
 
@@ -121,10 +205,8 @@ def lancamentos_do_usuario(usuario):
     return contas.filter(
         Q(meu_papel=DONO)
         | (Q(meu_papel=Papel.PAGADOR) & _ve(usuario, Papel.PAGADOR))
-        | (
-            Q(meu_papel__in=(Papel.ADMIN, Papel.MEMBRO, Papel.OBSERVADOR))
-            & _ve(usuario, Papel.MEMBRO)
-        )
+        | (Q(meu_papel=Papel.ADMIN) & _ve(usuario, Papel.ADMIN))
+        | (Q(meu_papel__in=PERSONALIZAVEIS) & _ve(usuario, Papel.MEMBRO))
     )
 
 
@@ -143,7 +225,7 @@ def lancamento_ou_404(usuario, lancamento_id, acao=None, travar=False):
         raise NotFound()
     espaco = conta.espaco
     espaco.meu_papel = conta.meu_papel
-    if acao and not pode(espaco.meu_papel, acao):
+    if acao and not pode_na(usuario, espaco.meu_papel, conta.subgrupo_id, acao):
         raise PermissionDenied()
     conta.espaco = espaco  # keeps `meu_papel` for the caller
     return conta
@@ -193,10 +275,8 @@ def recorrencias_do_usuario(usuario):
     return modelos.filter(
         Q(meu_papel=DONO)
         | (Q(meu_papel=Papel.PAGADOR) & _ve(usuario, Papel.PAGADOR, Recorrencia))
-        | (
-            Q(meu_papel__in=(Papel.ADMIN, Papel.MEMBRO, Papel.OBSERVADOR))
-            & _ve(usuario, Papel.MEMBRO, Recorrencia)
-        )
+        | (Q(meu_papel=Papel.ADMIN) & _ve(usuario, Papel.ADMIN, Recorrencia))
+        | (Q(meu_papel__in=PERSONALIZAVEIS) & _ve(usuario, Papel.MEMBRO, Recorrencia))
     )
 
 
@@ -207,6 +287,7 @@ def recorrencia_ou_404(usuario, recorrencia_id, acao=None):
     if not modelo:
         raise NotFound()
     modelo.espaco.meu_papel = modelo.meu_papel
-    if acao and not pode(modelo.meu_papel, acao):
+    # COR-10: managing a recurrence needs "recorrencias" in its category.
+    if acao and not pode_na(usuario, modelo.meu_papel, modelo.subgrupo_id, "recorrencias"):
         raise PermissionDenied()
     return modelo

@@ -15,6 +15,7 @@ import { Folha } from "@/components/ui/folha";
 import { Icon } from "@/components/ui/icon";
 import { RadioCard } from "@/components/ui/radio-card";
 import { RecorrenciasFolha } from "@/components/recurrences/recorrencias-folha";
+import { PermissoesFolha } from "./permissoes-folha";
 import { RecurringRow } from "@/components/recurrences/recurring-row";
 import { ICONES_CATEGORIA, iconeDe, SEM_CATEGORIA, type IconeCategoria } from "@/lib/categorias/icones";
 import { nomeMes, plural, reais, totalConhecido } from "@/lib/contas/formato";
@@ -68,6 +69,7 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
   const pendentes = useConvitesPendentes(grupo.id, admin);
   const [membro, setMembro] = useState<Membro | null>(null);
   const [casa, setCasa] = useState<Casa | "nova" | null>(null);
+  const [permissoes, setPermissoes] = useState<Casa | null>(null); // COR-10
   const [config, setConfig] = useState(false);
   const [recorrencias, setRecorrencias] = useState<string | true | false>(false); // id = open on that recurrence
   const modelos = useRecorrencias(grupo.id);
@@ -211,7 +213,8 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
         <>
           <ConviteFolha grupoNome={grupo.nome} estado={convite} />
           <MembroFolha grupoId={grupo.id} membro={membro} onClose={() => setMembro(null)} />
-          <CasaFolha grupoId={grupo.id} casa={casa} casas={grupo.casas} onClose={() => setCasa(null)} />
+          <CasaFolha grupoId={grupo.id} casa={casa} casas={grupo.casas} onClose={() => setCasa(null)} onPermissoes={(c) => { setCasa(null); setPermissoes(c); }} />
+          <PermissoesFolha grupo={grupo} casa={permissoes} onClose={() => setPermissoes(null)} />
           {configN > 0 && <ConfiguracoesFolha key={configN} open={config} grupo={grupo} onClose={() => setConfig(false)} />}
         </>
       )}
@@ -280,7 +283,7 @@ function MembroFolha({ grupoId, membro, onClose }: { grupoId: string; membro: Me
   );
 }
 
-function CasaFolha({ grupoId, casa, casas, onClose }: { grupoId: string; casa: Casa | "nova" | null; casas: Casa[]; onClose: () => void }) {
+function CasaFolha({ grupoId, casa, casas, onClose, onPermissoes }: { grupoId: string; casa: Casa | "nova" | null; casas: Casa[]; onClose: () => void; onPermissoes: (casa: Casa) => void }) {
   const { criarCasa, alterarCasa } = useAcoesGrupo(grupoId);
   const [nome, setNome] = useState<string | null>(null);
   const [icone, setIcone] = useState<IconeCategoria | null>(null);
@@ -357,6 +360,10 @@ function CasaFolha({ grupoId, casa, casas, onClose }: { grupoId: string; casa: C
             ))}
           </div>
         </fieldset>
+        {casa && !nova && <div className={styles.permissaoResumo}>
+          <p className={styles.nota}>{casa.personalizada ? "Permissões personalizadas nesta categoria." : "Vale o padrão de cada papel."}</p>
+          <Button tone="secondary" label="Quem pode fazer o quê" disabled={ocupado} onClick={() => onPermissoes(casa)} />
+        </div>}
       </form>}
     </Folha>
   );

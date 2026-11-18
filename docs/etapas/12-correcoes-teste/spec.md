@@ -17,7 +17,7 @@ Branch `etapa/12-correcoes-teste`, aberta sobre a 11 (HMG publicado). Não fecha
 | COR-07 | "Sem categoria" aparece no resumo, no filtro e tem tela própria; filtro ativo nunca some. |
 | COR-08 | Telas acompanham as mudanças; espaçamento de 24px entre seções nas duas larguras. |
 | COR-09 | Perfil redesenhado, mesmos fluxos e proteções. |
-| COR-10 | Permissões por categoria — **proposta** ([ADR 0017](../../arquitetura/adr/0017-permissoes-por-categoria.md)); só implementar após ok do dono. |
+| COR-10 | Permissões por categoria ([ADR 0017](../../arquitetura/adr/0017-permissoes-por-categoria.md), aprovado em 18/11/2026). |
 | COR-11 | Grupos → grupo → categoria → contas → detalhe. |
 | COR-12 | Login Google sem 403 CSRF (referrer `strict-origin` em `/entrar` e `/criar-conta`, Next e edge). URI de retorno no Google Console é ação do dono. |
 | Auditoria | Itens da auditoria do escopo inicial listados no [handoff](handoff-codex.md#3-auditoria-do-escopo-inicial). |
@@ -33,7 +33,7 @@ Branch `etapa/12-correcoes-teste`, aberta sobre a 11 (HMG publicado). Não fecha
 - CA07 (COR-09): Perfil mostra identidade, dados, preferências, exportar e excluir (zona de perigo), em 390×844 e 1440×900; reautenticação abre em folha/modal.
 - CA08 (COR-11): da aba Grupos chega-se às contas de uma categoria e ao detalhe, e volta para a categoria.
 - CA09 (COR-12): no formulário de `/entrar`, o POST para `/accounts/google/login/` leva `Origin` do próprio site (não `null`).
-- CA10 (COR-10, depois do ok): ver critérios do ADR 0017 e do handoff.
+- CA10 (COR-10): dado um admin que personaliza duas categorias com ações diferentes para duas pessoas, então cada ação permitida funciona e cada negada é recusada também por chamada direta à API (404 sem "ver", 403 sem a ação); trocar ids não dá acesso cruzado; contagens, totais, opções e arquivos não revelam contas sem "ver"; versão antiga dá 409.
 - CA11: `make test`, `make lint`, `make types` (sem diff) e `make e2e` verdes.
 
 ## Fora de escopo

@@ -6,10 +6,10 @@ from datetime import date
 
 from django.db import transaction
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.boletos.tasks import _travar_objeto
-from apps.espacos.acesso import espaco_ou_404, recorrencia_ou_404
+from apps.espacos.acesso import espaco_ou_404, pode_na, recorrencia_ou_404
 from apps.espacos.models import Espaco, Membro, Papel, Subgrupo
 from apps.espacos.servicos import Conflito, _admins_travados
 from apps.lancamentos.models import Acao, Lancamento, Status
@@ -231,6 +231,8 @@ def criar(usuario, espaco, dados):
                 .filter(espaco=espaco, pk=dados["subgrupo"])
                 .values_list("pk", flat=True)
             )
+        if not pode_na(usuario, espaco.meu_papel, dados.get("subgrupo"), "recorrencias"):
+            raise PermissionDenied()  # COR-10
         dados = _normalizar_template(espaco, dados)
         acesso = dados.pop("acesso", set())
         modelo = Recorrencia.objects.create(espaco=espaco, criador=usuario, cursor=atual, **dados)
@@ -257,7 +259,7 @@ def criar(usuario, espaco, dados):
                 visibilidade=modelo.visibilidade,
                 acesso=list(acesso),
             )
-            conta = criar_conta(usuario, espaco, inicial)
+            conta = criar_conta(usuario, espaco, inicial, capacidade="recorrencias")
             if conta.vencimento.replace(day=1) != atual:
                 raise ValidationError({"ocorrencia_inicial": {"vencimento": [MENSAGEM_MES]}})
             if modelo.valor_tipo == "fixo" and conta.valor_centavos != modelo.valor_centavos:
@@ -287,6 +289,11 @@ def editar_modelo(usuario, recorrencia_id, dados, competencia_inicio=None):
         )
         if modelo.estado == Recorrencia.Estado.ENCERRADA:
             raise Conflito("Recorrência encerrada não pode ser alterada.")
+        nova = dados.get("subgrupo", modelo.subgrupo_id)
+        if str(nova or "") != str(modelo.subgrupo_id or "") and not pode_na(
+            usuario, modelo.espaco.meu_papel, nova, "recorrencias"
+        ):
+            raise PermissionDenied()  # COR-10: moving it needs the grant in the new category
         materializar(modelo, mes_atual())
         dados = _normalizar_template(modelo.espaco, dados, modelo)
         acesso = dados.pop("acesso", None)
@@ -463,6 +470,9 @@ def cancelar_proximos(usuario, conta_id):
         modelo.competencias.filter(competencia__gte=alvo.competencia).exclude(
             estado="gerada"
         ).delete()
+        papel_ = modelo.espaco.meu_papel
         for conta in Lancamento.objects.filter(pk__in=ids).order_by("pk"):
-            _cancelar(conta, usuario)
+            # COR-10: an occurrence moved to a category without "editar" stays open.
+            if pode_na(usuario, papel_, conta.subgrupo_id, "editar"):
+                _cancelar(conta, usuario)
         return alvo

@@ -214,6 +214,22 @@ def aceitar_convite(usuario, token):
     return membro
 
 
+def _ajustar_permissoes(membro):
+    """COR-10: a new role never keeps category grants above its default (membro -> observador
+    keeps only "ver"); a promotion widens nothing. The payer role has no category grants."""
+    from .acesso import CAPACIDADES, PADRAO, PERSONALIZAVEIS
+    from .models import PermissaoCategoria
+
+    linhas = PermissaoCategoria.objects.filter(membro=membro)
+    if membro.papel not in PERSONALIZAVEIS:
+        if membro.papel != Papel.ADMIN:
+            linhas.delete()
+        return
+    acima = {c: False for c in CAPACIDADES if c not in PADRAO[membro.papel]}
+    if acima:
+        linhas.update(**acima)
+
+
 def alterar_papel(grupo, membro_id, papel):
     from apps.lancamentos.servicos import preservar_acesso
 
@@ -229,6 +245,7 @@ def alterar_papel(grupo, membro_id, papel):
             preservar_acesso(grupo, membro.usuario)  # ADR 0008, before the role changes
         membro.papel = papel
         membro.save(update_fields=["papel"])
+        _ajustar_permissoes(membro)
         from apps.solicitacoes.servicos import invalidar_preparacoes
 
         invalidar_preparacoes(grupo, membro.usuario)

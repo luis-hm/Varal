@@ -2,7 +2,7 @@ import type { Papel } from "./client";
 
 // Doop: k0kB5dc-Vo / RadioCard texts in 11 · Convidar membro (bkv_O9ohNO) and M05 (8XSFrkwy2d).
 export const papeis: Record<Papel, { title: string; text: string }> = {
-  admin: { title: "Admin", text: "Faz tudo, inclusive convidar e criar casas" },
+  admin: { title: "Admin", text: "Faz tudo, inclusive convidar e criar categorias" },
   membro: { title: "Membro", text: "Cria, edita e paga contas do grupo" },
   pagador: { title: "Pagador", text: "Vê só as contas dele e marca como pagas" },
   observador: { title: "Observador", text: "Só acompanha, sem alterar nada" },
