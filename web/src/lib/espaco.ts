@@ -20,7 +20,8 @@ export function espacosParaCriar(user: Me, atual?: string): EspacoAtual[] {
   const todos = [
     resolverEspaco(user, undefined),
     ...user.grupos
-      .filter((g) => g.papel === "admin" || g.papel === "membro")
+      // COR-10: an observer may create where the admin allowed it; offered from that group's own screens.
+      .filter((g) => g.papel === "admin" || g.papel === "membro" || (g.papel === "observador" && g.id === atual))
       .map((g) => ({ id: g.id, nome: g.nome, tipo: "grupo" as const, papel: g.papel })),
   ];
   const i = todos.findIndex((e) => e.id === atual);

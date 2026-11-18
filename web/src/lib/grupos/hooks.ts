@@ -16,6 +16,8 @@ export const useGrupos = () => useQuery({ queryKey: keys.lista, queryFn: api.lis
 export const useGrupo = (id: string, enabled = true) => useQuery({ queryKey: keys.grupo(id), queryFn: () => api.verGrupo(id), retry, enabled });
 export const useConvitesPendentes = (id: string, enabled: boolean) =>
   useQuery({ queryKey: keys.convites(id), queryFn: () => api.listarConvites(id), enabled, retry });
+// COR-10: the admin's grid of who may do what in one category.
+export const usePermissoes = (id: string, casa: string | undefined) => useQuery({ queryKey: ["grupos", id, "permissoes", casa], queryFn: () => api.verPermissoes(id, casa!), enabled: !!casa, retry, gcTime: 0 });
 export const usePreviewArquivamento = (id: string, casa: string | undefined) => useQuery({ queryKey: ["grupos", id, "arquivamento", casa], queryFn: () => api.previewArquivamento(id, casa!), enabled: !!casa, retry });
 
 // ["grupos"] prefixes every group query (list, detail, pending invites).
@@ -38,6 +40,7 @@ export function useAcoesGrupo(id: string) {
     alterarPapel: useMutation({ mutationFn: ({ membro, papel }: { membro: string; papel: api.Papel }) => api.alterarPapel(id, membro, papel), ...opts }),
     remover: useMutation({ mutationFn: (membro: string) => api.removerMembro(id, membro), ...opts }),
     criarCasa: useMutation({ mutationFn: (body: Parameters<typeof api.criarCasa>[1]) => api.criarCasa(id, body), ...opts }),
+    salvarPermissoes: useMutation({ mutationFn: ({ casa, ...body }: { casa: string } & api.Permissoes) => api.salvarPermissoes(id, casa, body), ...opts }),
     alterarCasa: useMutation({ mutationFn: ({ casa, ...body }: { casa: string } & Parameters<typeof api.alterarCasa>[2]) => api.alterarCasa(id, casa, body), ...opts }),
     // The invite URL carries a bearer token (RN31): keep it in memory only, drop it at once.
     criarConvite: useMutation({ mutationFn: (papel: api.Papel) => api.criarConvite(id, papel), gcTime: 0, ...opts }),

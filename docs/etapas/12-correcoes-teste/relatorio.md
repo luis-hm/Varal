@@ -15,6 +15,7 @@
 | COR-07 | "Sem categoria" no resumo, filtro e tela própria; filtro ativo continua visível e removível. |
 | COR-08 | Grupo, Início, Contas, Detalhe e Perfil com 24px entre seções. |
 | COR-09 | Perfil redesenhado (identidade, dados, preferências, exportar, zona de perigo; reautenticação em folha). |
+| COR-10 | Permissões por categoria ([ADR 0017](../../arquitetura/adr/0017-permissoes-por-categoria.md)): modelo, regra central em `acesso.py`, endpoint do admin com versão e histórico, folha "Quem pode fazer o quê", Nova conta e recorrências só oferecem categorias permitidas. 22 testes de API (`test_permissoes_categoria.py`), incluindo os achados da revisão de segurança (sem bloqueantes; 4 importantes corrigidos). |
 | COR-11 | Grupos → grupo → categoria → contas → detalhe. |
 | COR-12 | Referrer `strict-origin` em `/entrar` e `/criar-conta` (Next e edge). Falta a URI no Google Console (dono). |
 
@@ -29,10 +30,10 @@
 
 ## Testes
 
-- API (projeto `varaltest`): suíte completa verde (546 no início; arquivos afetados 201 verdes após as mudanças).
-- Web: 165/165 Vitest, `tsc` e lint limpos.
+- API (projeto `varaltest`): 568/568 em 18/11/2026.
+- Web: 170/170 Vitest, `tsc` e lint limpos.
 - E2E: **não rodado**; pontos que vão quebrar estão no [handoff §4](handoff-codex.md#4-e2e-playwright).
 
 ## Falta
 
-COR-10 (aguarda ok do dono no [ADR 0017](../../arquitetura/adr/0017-permissoes-por-categoria.md)), auditoria, E2E, validação visual e docs finais — ver [handoff](handoff-codex.md). Perguntas abertas: [decisões](decisoes.md#perguntas-ao-dono-abertas).
+Auditoria restante, E2E, validação visual e docs finais — ver [handoff](handoff-codex.md). Pergunta aberta: Q12-2 (nome do usuário) em [decisões](decisoes.md#perguntas-ao-dono-abertas).

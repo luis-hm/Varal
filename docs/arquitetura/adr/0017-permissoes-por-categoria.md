@@ -3,7 +3,7 @@
 > **Contém:** a proposta de política para o admin definir o que cada membro pode fazer em cada categoria.
 > **Origem:** COR-10 e DEC-04/08/09/10 de [correções do teste inicial](../../produto/correcoes-teste-inicial-2026-11-16.md#9-cor-10--permissões-por-categoria-configuradas-pelo-admin).
 
-- **Status:** **proposta — aguarda o ok do dono** (no chat ou no doc "Varal — Ajustes"). Nada disto está implementado.
+- **Status:** aceita (18/11/2026, aprovada pelo dono no chat) e implementada na Etapa 12.
 
 ## Contexto
 
@@ -26,6 +26,19 @@ O dono pediu que o admin configure, por categoria, quem pode ver, cadastrar, edi
 4. **Sem categoria** não é personalizável (fica no padrão do papel).
 5. Revogação vale na próxima consulta/ação; não recolhe arquivos já baixados nem URLs assinadas já emitidas (expiram sozinhas).
 6. Toda alteração grava histórico (autor, categoria, data, antes/depois) e usa `versao` para detectar edição concorrente (409).
+
+## Implementação
+
+- Observador sem concessão continua sem criar; com `criar`/`recorrencias` em alguma categoria, passa pela checagem do espaço e o serviço confere a categoria exata. Na Nova conta, o grupo do observador só aparece a partir das telas daquele grupo.
+- `Subgrupo.personalizada=False` volta à regra anterior; as linhas de `PermissaoCategoria` são apagadas ao desligar.
+- Consultas de contas usam `EXISTS` (não join) na checagem de categoria, porque são travadas com `FOR UPDATE`.
+- Lacunas fechadas após a revisão de segurança (18/11/2026), a confirmar pelo dono (Q12-4 da etapa 12):
+  - mudar o papel nunca deixa concessão acima do novo papel (membro → observador fica só com `ver`); promover não amplia nada; virar pagador apaga as concessões;
+  - pôr a si mesmo como pagador exige `pagar` na categoria (senão `criar`/`editar` virariam pagamento);
+  - pedir para alguém pagar exige `criar` sem categoria (a cópia nasce sem categoria);
+  - "cancelar os próximos" deixa abertas as ocorrências de categorias sem `editar`;
+  - quem entra no grupo depois que a categoria foi personalizada começa sem acesso a ela;
+  - a geração automática de uma recorrência continua mesmo se o criador perder `recorrencias` (só a próxima ação manual é barrada).
 
 ## Consequências
 

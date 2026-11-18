@@ -10,7 +10,7 @@ from apps.boletos import servicos as instrumentos
 from apps.espacos.acesso import (
     espaco_ou_404,
     lancamentos_visiveis,
-    pode,
+    pode_na,
     quem_ve,
 )
 from apps.espacos.models import Espaco, Membro, Papel, Subgrupo
@@ -140,7 +140,16 @@ def _historico(conta, usuario, acao, dados=None):
     return historico
 
 
-def criar(usuario, espaco, dados):
+def _pagar_por_si(usuario, papel_, subgrupo_id, pagador):
+    """COR-10: the assigned payer may pay (RN07), so naming oneself payer needs "pagar" in the
+    category; otherwise "criar"/"editar" would be a way around it."""
+    if pagador and str(pagador) == str(usuario.pk):
+        if not pode_na(usuario, papel_, subgrupo_id, "pagar"):
+            raise PermissionDenied("Você não pode pagar contas desta categoria.")
+
+
+def criar(usuario, espaco, dados, capacidade="criar"):
+    """`capacidade`: "criar", or "recorrencias" when a recurrence creates its first bill."""
     dados = dict(dados)
     for campo in ("escopo", "confirmar_chegada", "valor_tipo"):
         dados.pop(campo, None)
@@ -165,6 +174,10 @@ def criar(usuario, espaco, dados):
                 .filter(espaco=espaco, pk=dados["subgrupo"])
                 .values_list("pk", flat=True)
             )
+        # COR-10: the grant is per category (read after locking it against permission edits).
+        if not pode_na(usuario, espaco.meu_papel, dados.get("subgrupo"), capacidade):
+            raise PermissionDenied()
+        _pagar_por_si(usuario, espaco.meu_papel, dados.get("subgrupo"), dados.get("pagador"))
         dados = dict(dados)
         pdf = pdf_servicos.preparar_pdf(usuario, espaco, dados)
         instrumento = instrumentos.preparar(dados)
@@ -204,8 +217,17 @@ def editar(usuario, conta_id, dados):
     with transaction.atomic():
         barreira()
         conta = conta_travada(usuario, conta_id, casas_extra=(dados.get("subgrupo"),))
-        if not pode(conta.espaco.meu_papel, "editar_conta"):
+        papel_ = conta.espaco.meu_papel
+        if not pode_na(usuario, papel_, conta.subgrupo_id, "editar"):
             raise PermissionDenied()
+        # COR-10: moving a bill to another category also needs "criar" there.
+        nova = dados.get("subgrupo", conta.subgrupo_id)
+        if str(nova or "") != str(conta.subgrupo_id or "") and not pode_na(
+            usuario, papel_, nova, "criar"
+        ):
+            raise PermissionDenied()
+        if "pagador" in dados and str(dados["pagador"] or "") != str(conta.pagador_id or ""):
+            _pagar_por_si(usuario, papel_, nova, dados["pagador"])
         if conta.status == Status.CANCELADA:
             raise Conflito("Conta cancelada não pode ser editada.")
         dados = dict(dados)
@@ -285,7 +307,7 @@ def cancelar(usuario, conta_id, escopo="mes"):
     with transaction.atomic():
         barreira()
         conta = conta_travada(usuario, conta_id)
-        if not pode(conta.espaco.meu_papel, "editar_conta"):
+        if not pode_na(usuario, conta.espaco.meu_papel, conta.subgrupo_id, "editar"):
             raise PermissionDenied()
         if conta.status not in ABERTOS:
             raise Conflito("Só conta aguardando boleto ou pendente pode ser cancelada.")

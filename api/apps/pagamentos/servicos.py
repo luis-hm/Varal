@@ -4,7 +4,7 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
-from apps.espacos.acesso import DONO, lancamento_ou_404, membros_ids, pode, quem_ve
+from apps.espacos.acesso import DONO, lancamento_ou_404, membros_ids, pode, pode_na, quem_ve
 from apps.espacos.models import Espaco, Membro, Papel, Subgrupo
 from apps.espacos.servicos import Conflito, _admins_travados
 from apps.lancamentos.models import Acao, Status, Visibilidade
@@ -16,7 +16,7 @@ from .models import DocumentoComprovante, EventoPagamento, Pagamento
 
 def pode_pagar(usuario, conta):
     papel = conta.espaco.meu_papel
-    return pode(papel, "pagar_qualquer") or (
+    return pode_na(usuario, papel, conta.subgrupo_id, "pagar_qualquer") or (
         pode(papel, "pagar_propria") and conta.pagador_id == usuario.pk
     )
 

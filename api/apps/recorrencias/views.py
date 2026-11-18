@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.boletos.serializers import InstrumentoEntradaSerializer
-from apps.espacos.acesso import espaco_ou_404, pode, recorrencias_visiveis
+from apps.espacos.acesso import espaco_ou_404, pode_na, recorrencias_visiveis
 from apps.lancamentos.models import Visibilidade
 from apps.lancamentos.views import CentavosField, ContaDetalheSerializer, _detalhe
 from apps.solicitacoes.coordenacao import coordenado
@@ -67,7 +67,8 @@ class RecorrenciaSerializer(serializers.Serializer):
         return list(obj.acesso.values_list("pk", flat=True))
 
     def _edita(self, obj):
-        return pode(self.context["papel"], "editar_conta")
+        usuario = self.context["request"].user
+        return pode_na(usuario, self.context["papel"], obj.subgrupo_id, "recorrencias")
 
     def get_pode_editar(self, obj) -> bool:
         return self._edita(obj) and obj.estado != Recorrencia.Estado.ENCERRADA

@@ -23,12 +23,13 @@ from apps.boletos.serializers import (
 )
 from apps.contas_usuario.models import Usuario
 from apps.espacos.acesso import (
+    categorias_visiveis,
     espaco_ou_404,
     lancamento_ou_404,
     lancamentos_do_usuario,
     lancamentos_visiveis,
     membros_ids,
-    pode,
+    pode_na,
     quem_ve,
 )
 from apps.espacos.models import Espaco
@@ -304,7 +305,9 @@ class ContaDetalheSerializer(ContaSerializer):
         )
 
     def get_pode_editar(self, obj) -> bool:
-        return obj.status != Status.CANCELADA and pode(self.context["papel"], "editar_conta")
+        return obj.status != Status.CANCELADA and pode_na(
+            self.context["request"].user, self.context["papel"], obj.subgrupo_id, "editar_conta"
+        )
 
 
 class ContaSimplesSerializer(ContaSerializer):
@@ -656,7 +659,11 @@ class LancamentosView(APIView):
         # (vencimento, id) when one space passes ~1000 visible bills.
         itens = contas.filter(filtros[filtro]).select_related(*COM_DADOS)
         # COR-07: options never depend on the month, so an active filter can always be undone.
-        categorias = espaco.subgrupos.filter(arquivado=False).order_by("nome")
+        categorias = (
+            categorias_visiveis(request.user, espaco, espaco.meu_papel)
+            .filter(arquivado=False)
+            .order_by("nome")
+        )
         com_pagador = visiveis.filter(pagador__isnull=False).select_related("pagador")
         pagadores = {c.pagador for c in com_pagador if c.pagador_id in membros_atuais}
         contexto = {"request": request, "membros": membros_atuais}
@@ -776,7 +783,9 @@ class ResumoView(APIView):
 
             por_casa = [
                 linha(c.pk, c.nome, c.icone)
-                for c in espaco.subgrupos.filter(arquivado=False).order_by("nome")
+                for c in categorias_visiveis(request.user, espaco, espaco.meu_papel)
+                .filter(arquivado=False)
+                .order_by("nome")
             ]
             # Archived categories keep their paid bills: still counted, after the active ones.
             vistas = {c["id"] for c in por_casa}

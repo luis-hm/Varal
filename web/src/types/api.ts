@@ -1750,6 +1750,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/grupos/{grupo_id}/subgrupos/{casa_id}/permissoes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Quem pode fazer o quê nesta categoria (admin; COR-10) */
+        get: operations["grupos_casas_permissoes"];
+        /** Salvar as permissões da categoria (admin; COR-10). Versão antiga: 409. */
+        put: operations["grupos_casas_permissoes_salvar"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health/": {
         parameters: {
             query?: never;
@@ -2872,12 +2890,24 @@ export interface components {
             vencimento: string | null;
             vencimentos_possiveis: string[];
         };
+        /**
+         * @description * `ver` - ver
+         *     * `criar` - criar
+         *     * `editar` - editar
+         *     * `pagar` - pagar
+         *     * `recorrencias` - recorrencias
+         * @enum {string}
+         */
+        CapacidadesEnum: "ver" | "criar" | "editar" | "pagar" | "recorrencias";
         Casa: {
             arquivado?: boolean;
+            /** @description O que você pode fazer com contas desta categoria (COR-10) */
+            readonly capacidades: components["schemas"]["CapacidadesEnum"][];
             icone?: components["schemas"]["IconeEnum"];
             /** Format: uuid */
             readonly id: string;
             nome: string;
+            readonly personalizada: boolean;
         };
         CategoriaRef: {
             icone: string;
@@ -3472,6 +3502,23 @@ export interface components {
             valor_centavos?: number | null;
             valor_tipo?: components["schemas"]["ValorTipoEnum"];
             visibilidade?: components["schemas"]["VisibilidadeEnum"];
+        };
+        PermissaoMembro: {
+            criar: boolean;
+            editar: boolean;
+            /** Format: uuid */
+            membro_id: string;
+            pagar: boolean;
+            readonly papel: components["schemas"]["PapelEnum"];
+            recorrencias: boolean;
+            ver: boolean;
+        };
+        Permissoes: {
+            membros: components["schemas"]["PermissaoMembro"][];
+            /** @description false: vale o padrão de cada papel; true: valem as linhas de `membros` */
+            personalizada: boolean;
+            /** @description A versão lida; outra versão gravada dá 409 */
+            versao: number;
         };
         Pessoa: {
             /** Format: uuid */
@@ -5314,6 +5361,106 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ArquivamentoPreview"];
                 };
+            };
+        };
+    };
+    grupos_casas_permissoes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                casa_id: string;
+                grupo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Permissoes"];
+                };
+            };
+            /** @description Seu papel não permite esta ação. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Grupo, membro, casa ou convite fora do seu acesso. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    grupos_casas_permissoes_salvar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                casa_id: string;
+                grupo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Permissoes"];
+                "application/x-www-form-urlencoded": components["schemas"]["Permissoes"];
+                "multipart/form-data": components["schemas"]["Permissoes"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Permissoes"];
+                };
+            };
+            /** @description Membro inválido ou ação sem Ver */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Seu papel não permite esta ação. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Grupo, membro, casa ou convite fora do seu acesso. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Outra pessoa mudou estas permissões */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

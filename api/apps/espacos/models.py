@@ -141,6 +141,56 @@ class Subgrupo(models.Model):
     nome = models.CharField(max_length=150)
     icone = models.CharField(max_length=20, choices=Icone.choices, default=Icone.CASA)
     arquivado = models.BooleanField(default=False)
+    # COR-10 / ADR 0017: False = each role's default (the rule before COR-10); True = the
+    # admin's per-member grants in PermissaoCategoria. `versao` detects concurrent edits.
+    personalizada = models.BooleanField(default=False)
+    versao = models.PositiveIntegerField(default=1)
 
     def __str__(self):
         return self.nome
+
+
+class PermissaoCategoria(models.Model):
+    """What one member (membro/observador) may do in a personalised category (ADR 0017)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    subgrupo = models.ForeignKey(Subgrupo, on_delete=models.CASCADE, related_name="permissoes")
+    membro = models.ForeignKey(
+        Membro, on_delete=models.CASCADE, related_name="permissoes_categoria"
+    )
+    ver = models.BooleanField(default=False)
+    criar = models.BooleanField(default=False)
+    editar = models.BooleanField(default=False)
+    pagar = models.BooleanField(default=False)
+    recorrencias = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["subgrupo", "membro"], name="permissao_categoria_unica"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(ver=True)
+                | models.Q(criar=False, editar=False, pagar=False, recorrencias=False),
+                name="permissao_categoria_exige_ver",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Permissões de {self.membro_id} em {self.subgrupo_id}"
+
+
+class HistoricoPermissao(models.Model):
+    """Who changed a category's permissions, when, and the before/after (ADR 0017)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    subgrupo = models.ForeignKey(Subgrupo, on_delete=models.CASCADE, related_name="+")
+    autor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+"
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    antes = models.JSONField()
+    depois = models.JSONField()
+
+    def __str__(self):
+        return f"Permissões de {self.subgrupo_id} em {self.criado_em}"

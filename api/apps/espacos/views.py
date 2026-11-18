@@ -17,7 +17,16 @@ from rest_framework.views import APIView
 from apps.solicitacoes.coordenacao import coordenado
 
 from . import servicos
-from .acesso import espaco_ou_404, espacos_do_usuario, pode
+from .acesso import (
+    CAPACIDADES,
+    DONO,
+    PERSONALIZAVEIS,
+    capacidades,
+    categorias_visiveis,
+    espaco_ou_404,
+    espacos_do_usuario,
+    pode,
+)
 from .models import Espaco, Membro, Papel, Subgrupo
 
 GRUPO_ID = "1b4e28ba-2fa1-11d2-883f-0016d3cca427"
@@ -97,9 +106,21 @@ class MembroSerializer(serializers.ModelSerializer):
 
 
 class CasaSerializer(serializers.ModelSerializer):
+    capacidades = serializers.SerializerMethodField(
+        help_text="O que você pode fazer com contas desta categoria (COR-10)"
+    )
+
     class Meta:
         model = Subgrupo
-        fields = ["id", "nome", "icone", "arquivado"]
+        fields = ["id", "nome", "icone", "arquivado", "personalizada", "capacidades"]
+        read_only_fields = ["personalizada"]
+
+    @extend_schema_field(serializers.ListField(child=serializers.ChoiceField(CAPACIDADES)))
+    def get_capacidades(self, obj):
+        request = self.context.get("request")
+        papel_ = self.context.get("papel", DONO)  # admin endpoints: everything
+        caps = capacidades(request.user if request else None, papel_, obj.pk)
+        return [c for c in CAPACIDADES if c in caps]
 
 
 class GrupoDetalheSerializer(serializers.Serializer):
@@ -118,8 +139,11 @@ class GrupoDetalheSerializer(serializers.Serializer):
 
     @extend_schema_field(CasaSerializer(many=True))
     def get_casas(self, grupo):
+        categorias = categorias_visiveis(self.context["request"].user, grupo, grupo.meu_papel)
         return CasaSerializer(
-            grupo.subgrupos.filter(arquivado=False).order_by("nome"), many=True
+            categorias.filter(arquivado=False).order_by("nome"),
+            many=True,
+            context={**self.context, "papel": grupo.meu_papel},
         ).data
 
 
@@ -266,7 +290,20 @@ class GruposView(APIView):
             .filter(tipo=Espaco.Tipo.GRUPO)
             .annotate(
                 membros_qtd=Count("membros", distinct=True),
-                casas_qtd=Count("subgrupos", filter=Q(subgrupos__arquivado=False), distinct=True),
+                # COR-10: personalised categories count only for who may see them.
+                casas_qtd=Count(
+                    "subgrupos",
+                    filter=Q(subgrupos__arquivado=False)
+                    & (
+                        ~Q(meu_papel__in=PERSONALIZAVEIS)
+                        | Q(subgrupos__personalizada=False)
+                        | Q(
+                            subgrupos__permissoes__membro__usuario=request.user,
+                            subgrupos__permissoes__ver=True,
+                        )
+                    ),
+                    distinct=True,
+                ),
             )
             .order_by("nome")
         )
@@ -617,3 +654,125 @@ class SubgrupoView(APIView):
             if dados:
                 casa.save(update_fields=list(dados))
         return Response(CasaSerializer(casa).data)
+
+
+# ---- COR-10 / ADR 0017: who may do what in a category ------------------------------------
+
+
+class PermissaoMembroSerializer(serializers.Serializer):
+    membro_id = serializers.UUIDField()
+    papel = serializers.ChoiceField(Papel.choices, read_only=True)
+    ver = serializers.BooleanField()
+    criar = serializers.BooleanField()
+    editar = serializers.BooleanField()
+    pagar = serializers.BooleanField()
+    recorrencias = serializers.BooleanField()
+
+    def validate(self, attrs):
+        if not attrs["ver"] and any(attrs[c] for c in CAPACIDADES if c != "ver"):
+            raise serializers.ValidationError("Quem não vê a categoria não pode ter outra ação.")
+        return attrs
+
+
+class PermissoesSerializer(serializers.Serializer):
+    personalizada = serializers.BooleanField(
+        help_text="false: vale o padrão de cada papel; true: valem as linhas de `membros`"
+    )
+    versao = serializers.IntegerField(help_text="A versão lida; outra versão gravada dá 409")
+    membros = PermissaoMembroSerializer(many=True)
+
+
+def _permissoes(casa):
+    """Current effective grants for the group's membros/observadores (admins: everything)."""
+    from .acesso import PADRAO, PERSONALIZAVEIS
+
+    linhas = {p.membro_id: p for p in casa.permissoes.all()}
+    membros = []
+    for m in Membro.objects.filter(espaco_id=casa.espaco_id, papel__in=PERSONALIZAVEIS).order_by(
+        "criado_em", "pk"
+    ):
+        linha = linhas.get(m.pk)
+        caps = {
+            c: (bool(linha and getattr(linha, c)) if casa.personalizada else c in PADRAO[m.papel])
+            for c in CAPACIDADES
+        }
+        membros.append({"membro_id": m.pk, "papel": m.papel, **caps})
+    return {"personalizada": casa.personalizada, "versao": casa.versao, "membros": membros}
+
+
+class PermissoesView(APIView):
+    @extend_schema(
+        operation_id="grupos_casas_permissoes",
+        summary="Quem pode fazer o quê nesta categoria (admin; COR-10)",
+        responses={200: PermissoesSerializer, **_erros(403, 404)},
+    )
+    def get(self, request, grupo_id, casa_id):
+        grupo = _grupo(request, grupo_id, "gerenciar_grupo")
+        casa = get_object_or_404(Subgrupo, espaco=grupo, pk=casa_id)
+        return Response(_permissoes(casa))
+
+    @extend_schema(
+        operation_id="grupos_casas_permissoes_salvar",
+        summary="Salvar as permissões da categoria (admin; COR-10). Versão antiga: 409.",
+        request=PermissoesSerializer,
+        responses={
+            200: PermissoesSerializer,
+            400: OpenApiResponse(description="Membro inválido ou ação sem Ver"),
+            409: OpenApiResponse(description="Outra pessoa mudou estas permissões"),
+            **_erros(403, 404),
+        },
+    )
+    @transaction.atomic
+    @coordenado
+    def put(self, request, grupo_id, casa_id):
+        from apps.recorrencias.servicos import travar_espaco
+
+        from .acesso import PERSONALIZAVEIS
+        from .models import HistoricoPermissao, PermissaoCategoria
+        from .servicos import Conflito
+
+        grupo = _grupo(request, grupo_id, "gerenciar_grupo")
+        travar_espaco(request.user, grupo)
+        grupo = _grupo(request, grupo_id, "gerenciar_grupo")
+        # Bill writes lock the category row too, so they never see half-saved grants.
+        casa = get_object_or_404(Subgrupo.objects.select_for_update(), espaco=grupo, pk=casa_id)
+        entrada = PermissoesSerializer(data=request.data)
+        entrada.is_valid(raise_exception=True)
+        dados = entrada.validated_data
+        if dados["versao"] != casa.versao:
+            raise Conflito(
+                "Outra pessoa mudou estas permissões. Recarregue para ver a versão atual."
+            )
+        validos = set(
+            Membro.objects.filter(espaco=grupo, papel__in=PERSONALIZAVEIS).values_list(
+                "pk", flat=True
+            )
+        )
+        pedidos = [m["membro_id"] for m in dados["membros"]]
+        if len(set(pedidos)) != len(pedidos) or not set(pedidos) <= validos:
+            raise serializers.ValidationError(
+                {"membros": ["Use só membros e observadores deste grupo, uma vez cada."]}
+            )
+        antes = _permissoes(casa)
+        casa.permissoes.all().delete()
+        if dados["personalizada"]:
+            PermissaoCategoria.objects.bulk_create(
+                PermissaoCategoria(
+                    subgrupo=casa,
+                    membro_id=m["membro_id"],
+                    **{c: m[c] for c in CAPACIDADES},
+                )
+                for m in dados["membros"]
+            )
+        casa.personalizada = dados["personalizada"]
+        casa.versao += 1
+        casa.save(update_fields=["personalizada", "versao"])
+        depois = _permissoes(casa)
+        # Ids and booleans only, no names (LGPD).
+        HistoricoPermissao.objects.create(
+            subgrupo=casa,
+            autor=request.user,
+            antes=PermissoesSerializer(antes).data,
+            depois=PermissoesSerializer(depois).data,
+        )
+        return Response(depois)

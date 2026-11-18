@@ -181,19 +181,25 @@ export function ContaFolha({ open, onClose, conta, returnFocusTo, destino }: Pro
   const quemVe = pessoas(membros, ["admin", "membro", "observador"], user.id).filter((p) => conta || p.id !== user.id);
   for (const p of conta?.acesso ?? []) if (!quemVe.some((q) => q.id === p.id)) quemVe.push(p);
   // Q20: a bill of an archived category keeps and shows it.
-  const casas: { id: string; nome: string; icone?: string | null }[] = [...(grupo.data?.casas ?? [])];
+  // COR-10: only categories where this person may create (moving a bill also needs it there).
+  const casas: { id: string; nome: string; icone?: string | null }[] = (grupo.data?.casas ?? []).filter((c) => c.capacidades.includes("criar"));
+  const podeSemCategoria = grupo.data?.meu_papel === "admin" || grupo.data?.meu_papel === "membro" || (!!conta && !conta.subgrupo);
   if (conta?.subgrupo && !casas.some((c) => c.id === conta.subgrupo!.id)) casas.push(conta.subgrupo);
 
   const erro = criar.error ?? editar.error ?? cancelar.error ?? recorrencias.criar.error;
   const api = erro instanceof ApiError ? erro.campos : {};
   // COR-06: a category the group no longer has (archived while the form was open) is not sent silently.
-  const casaValida = casa === null || casas.some((c) => c.id === casa);
+  const casaValida = casa === null ? podeSemCategoria : casas.some((c) => c.id === casa);
+  // COR-10: the assigned payer may pay, so naming yourself payer needs "pagar" in the category.
+  const pagoNaCategoria = casa === null || (grupo.data?.casas.find((c) => c.id === casa)?.capacidades.includes("pagar") ?? true);
+  const euSemPagar = emGrupo && pagador === user.id && !pagoNaCategoria && conta?.pagador?.id !== user.id;
+  const SEM_PAGAR = "Você não pode pagar contas desta categoria. Escolha outra pessoa.";
   const erros = {
     valor: local.valor ?? api.valor_centavos,
     vencimento: local.vencimento ?? api.vencimento,
     descricao: local.descricao ?? api.descricao,
     casa: local.casa ?? api.subgrupo ?? (grupo.data && !casaValida ? "Escolha uma categoria deste grupo." : undefined),
-    pagador: api.pagador,
+    pagador: api.pagador ?? (euSemPagar ? SEM_PAGAR : undefined),
     // Q19b: "Você é a única pessoa que vê esta conta…" comes back on `acesso`.
     acesso: api.acesso ?? api.visibilidade,
     instrumento: local.instrumento ?? api.instrumento ?? api.codigo ?? api.chave_pix,
@@ -284,6 +290,7 @@ export function ContaFolha({ open, onClose, conta, returnFocusTo, destino }: Pro
     if (!vencimento) faltas.vencimento = "Informe o vencimento.";
     if (!descricao.trim()) faltas.descricao = "Dê um nome para a conta.";
     if (emGrupo && (!grupo.data || !casaValida)) faltas.casa = "Espere carregar as categorias e escolha uma.";
+    if (euSemPagar) faltas.pagador = SEM_PAGAR;
     if (repetir && vencimento.slice(0, 7) !== mesAtual()) faltas.repeticao = "Para repetir, o vencimento da primeira conta precisa ser deste mês. Você pode salvar sem repetir.";
     if (repetir && (!Number.isInteger(Number(diaRecorrencia)) || Number(diaRecorrencia) < 1 || Number(diaRecorrencia) > 31)) faltas.repeticao = "Informe o dia das próximas contas, de 1 a 31.";
     if (modo !== "manual" && !conferencia) faltas.instrumento = "Confira o código ou a chave antes de salvar.";
@@ -441,12 +448,13 @@ export function ContaFolha({ open, onClose, conta, returnFocusTo, destino }: Pro
         {emGrupo && grupo.data && (
           <>
             <div className={styles.g2}>
+              {!casas.length && !podeSemCategoria && <p className={styles.erro} role="alert">Você não pode cadastrar contas neste grupo. Escolha outro espaço.</p>}
               {!!casas.length && (
                 <Escolha titulo="Categoria" erro={erros.casa}>
                   {casas.map((c) => (
                     <Chip key={c.id} label={c.nome} icon={iconeDe(c.icone)} wrap state={casa === c.id ? "on" : "off"} onClick={() => setCasa(c.id)} />
                   ))}
-                  <Chip label="Sem categoria" state={casa === null ? "on" : "off"} onClick={() => setCasa(null)} />
+                  {podeSemCategoria && <Chip label="Sem categoria" state={casa === null ? "on" : "off"} onClick={() => setCasa(null)} />}
                 </Escolha>
               )}
               <Escolha titulo="Quem paga" erro={erros.pagador}>

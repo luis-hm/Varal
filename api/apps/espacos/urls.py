@@ -28,6 +28,11 @@ urlpatterns = [
         views.ArquivamentoPreviewView.as_view(),
         name="casa_arquivamento_preview",
     ),
+    path(
+        "grupos/<uuid:grupo_id>/subgrupos/<uuid:casa_id>/permissoes/",
+        views.PermissoesView.as_view(),
+        name="casa_permissoes",
+    ),
     path("convites/<str:token>/", views.ConvitePublicoView.as_view(), name="convite_publico"),
     path(
         "convites/<str:token>/aceitar/", views.AceitarConviteView.as_view(), name="convite_aceitar"

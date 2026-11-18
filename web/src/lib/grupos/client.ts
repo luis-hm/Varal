@@ -8,6 +8,8 @@ export type GrupoLista = S["GrupoLista"];
 export type GrupoDetalhe = S["GrupoDetalhe"];
 export type Membro = S["Membro"];
 export type Casa = S["Casa"];
+export type Permissoes = S["Permissoes"];
+export type Capacidade = Casa["capacidades"][number];
 export type ConviteCriado = S["ConviteCriado"];
 export type ConvitePendente = S["ConvitePendente"];
 export type ConvitePublico = S["ConvitePublico"];
@@ -95,6 +97,8 @@ export const alterarPapel = (id: string, membroId: string, papel: Papel) =>
   call<Membro>(g(id, `membros/${membroId}/`), "PATCH", { papel } satisfies S["PatchedPapel"]);
 export const removerMembro = (id: string, membroId: string) => call<null>(g(id, `membros/${membroId}/`), "DELETE");
 export const criarCasa = (id: string, body: Pick<Casa, "nome" | "icone">) => call<Casa>(g(id, "subgrupos/"), "POST", body);
+export const verPermissoes = (id: string, casaId: string) => call<Permissoes>(g(id, `subgrupos/${casaId}/permissoes/`));
+export const salvarPermissoes = (id: string, casaId: string, body: Permissoes) => call<Permissoes>(g(id, `subgrupos/${casaId}/permissoes/`), "PUT", body);
 export const alterarCasa = (id: string, casaId: string, body: S["PatchedCasaAlterar"]) => call<Casa>(g(id, `subgrupos/${casaId}/`), "PATCH", body);
 export const previewArquivamento = (id: string, casaId: string) => call<S["ArquivamentoPreview"]>(g(id, `subgrupos/${casaId}/arquivamento/`));
 export const verConvite = (token: string) => call<ConvitePublico>(t(token));
