@@ -516,9 +516,18 @@
   padding: var(--spacing-3) var(--spacing-4);
 }
 
+/* Floated, the legend sits inside the card: a long e-mail wraps there instead of over the border. */
 .permissao legend {
-  padding: 0 var(--spacing-1);
+  float: left;
+  width: 100%;
+  padding: 0;
+  margin-bottom: var(--spacing-2);
   font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.permissao legend + * {
+  clear: both;
 }
 
 .permissao legend span {

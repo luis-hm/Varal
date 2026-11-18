@@ -85,7 +85,7 @@
 }
 
 .sub {
-  margin-top: 4px;
+  margin-top: var(--spacing-1);
   font-size: var(--text-base);
   color: var(--color-ink-muted);
 }

@@ -103,7 +103,7 @@ export function Inicio({ inicial }: { inicial?: { usuario: string; espaco: strin
 
 type HeroiProps = { mes: string; total: number; indefinidos: number; qtd: number; pagas: number; vencidas: number; vencem: number; janela: number; avisosProntos: boolean };
 
-/** Month total (count-up) and the clothesline (swing). Q12/Q23: no paid bar and no "pagas" tag until stage 07. */
+/** Month total (count-up), the clothesline (swing) and the paid progress (Q12/Q23; none while the month is empty). */
 function Heroi({ mes, total, indefinidos, qtd, pagas, vencidas, vencem, janela, avisosProntos }: HeroiProps) {
   const rotulo = `${indefinidos ? "Total conhecido" : "Total"} de ${nomeMes(mes)}`;
   return (
