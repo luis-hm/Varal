@@ -51,7 +51,7 @@ export function PagamentoAcoes({ conta, modoSimples = false, iniciar = false, ao
     try {
       let documentoId: string | undefined;
       if (arquivo) {
-        if (arquivo.size <= 0 || arquivo.size > 5 * 1024 * 1024) throw new Error("Escolha um arquivo de até 5 MiB.");
+        if (arquivo.size <= 0 || arquivo.size > 5 * 1024 * 1024) throw new Error("Escolha um arquivo de até 5 MB.");
         setEstado("Enviando comprovante…");
         const documento = await acoes.enviar.mutateAsync({ id: conta.id, arquivo, pagamento: modo === "anexar" ? pagamento?.id : undefined });
         if (!vigente()) return;

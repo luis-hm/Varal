@@ -21,7 +21,7 @@ export function ComprovanteCampo({ arquivo, ocupado, obrigatorio = false, onEsco
   return (
     <section aria-labelledby={`${id}-titulo`}>
       <p className={styles.rotulo} id={`${id}-titulo`}>Comprovante {!obrigatorio && <span>(opcional)</span>}</p>
-      <p id={info} className={styles.aviso}>JPEG, PNG ou PDF de até 5 MiB; imagens de até 20 megapixels, sem animação. O arquivo original e seus metadados ficam disponíveis para quem vê a conta.</p>
+      <p id={info} className={styles.aviso}>JPEG, PNG ou PDF de até 5 MB; imagens de até 20 megapixels, sem animação. O arquivo original e seus metadados ficam disponíveis para quem vê a conta.</p>
       <div className={styles.arquivos}>
         <input id={camera} className={styles.inputArquivo} type="file" accept="image/jpeg,image/png" capture="environment" disabled={ocupado} aria-describedby={info} onChange={(e) => {
           const escolhido = e.target.files?.[0];
