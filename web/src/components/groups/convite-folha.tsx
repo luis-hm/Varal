@@ -19,16 +19,24 @@ export function useConvite(grupoId: string) {
   // The full URL (bearer token, RN31) lives only here, in memory.
   const [convite, setConvite] = useState<ConviteCriado | null>(null);
   const usado = useRef(false);
+  // Each request gets a number; closing or switching role makes the one in flight stale.
+  const pedido = useRef(0);
 
   function descartar() {
     // Closing or switching role without copying/sharing revokes the unused link (ADR 0004).
+    pedido.current += 1;
     if (convite && !usado.current) revogarConvite.mutate(convite.id);
   }
 
   function gerar(p: Papel) {
     usado.current = false;
     setConvite(null);
-    criarConvite.mutate(p, { onSuccess: setConvite });
+    const meu = ++pedido.current;
+    // A link that arrives after the sheet closed or the role changed was never shown: revoke it too.
+    criarConvite.mutateAsync(p).then(
+      (criado) => (meu === pedido.current ? setConvite(criado) : revogarConvite.mutate(criado.id)),
+      () => {}, // shown through criarConvite.error
+    );
   }
 
   return {
