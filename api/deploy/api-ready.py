@@ -12,8 +12,9 @@ try:
     import django
 
     django.setup()
-    from config.views import readiness
     from django.test import RequestFactory
+
+    from config.views import readiness
 
     result = readiness(RequestFactory().get("/api/ready/"))
     sys.exit(0 if result.status_code == 200 else 1)
