@@ -95,6 +95,8 @@ test("PDF sem código permite conferir manualmente antes de vincular", async () 
   const file = new File(["%PDF-"], "conta.pdf", { type: "application/pdf" });
   fireEvent.change(screen.getByLabelText(/Escolha ou arraste/), { target: { files: [file] } });
   expect(await screen.findByText("Confira os dados manualmente.")).toBeTruthy();
+  // CU05: no code in the PDF offers pasting it.
+  expect(within(screen.getByText(/Não achamos o código neste PDF/)).getByRole("button", { name: "Colar código" })).toBeTruthy();
   expect(screen.queryByTitle("Prévia do PDF")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Carregar prévia" }));
   expect((await screen.findByTitle("Prévia do PDF")).getAttribute("src")).toBe("http://storage.example/conta.pdf");
