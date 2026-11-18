@@ -164,6 +164,23 @@ test("ca19/rn31: invite starts as Pagador, shows the short link, copies the full
   await waitFor(() => expect(chamadas.filter((c) => c.method === "DELETE").map((c) => c.url)).toContain("/api/grupos/g1/convites/cv3/"));
 });
 
+test("rn31: closing the invite before the link arrives still revokes it", async () => {
+  detalhe = { status: 200, body: grupo("admin") };
+  let liberar = () => {};
+  const anterior = vi.mocked(fetch).getMockImplementation()!;
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
+    const resposta = anterior(input, init);
+    if (input === "/api/grupos/g1/convites/" && init?.method === "POST") await new Promise<void>((r) => { liberar = r; });
+    return resposta;
+  });
+  renderPagina();
+  fireEvent.click(await screen.findByRole("button", { name: "Convidar pessoa" }));
+  await waitFor(() => expect(chamadas.some((c) => c.method === "POST")).toBe(true));
+  fireEvent.click(screen.getAllByRole("button", { name: "Fechar" })[0]);
+  await act(async () => liberar());
+  await waitFor(() => expect(chamadas.filter((c) => c.method === "DELETE").map((c) => c.url)).toEqual(["/api/grupos/g1/convites/cv1/"]));
+});
+
 test("CU02: a group created just now opens the invite once and drops ?convidar=1", async () => {
   detalhe = { status: 200, body: grupo("admin") };
   window.history.replaceState(null, "", "/grupos/g1?convidar=1");
