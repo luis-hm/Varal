@@ -166,7 +166,7 @@ Só se o dono aprovar: campo "Seu nome" opcional no cadastro (`web/src/component
 
 1. **CU02 — convite depois de criar grupo — feito:** criar grupo navega para `/grupos/{id}?convidar=1` e a folha de convite abre uma vez (teste em `grupo-pagina.test.tsx`). Falta o E2E (`grupos.spec.ts` que cria grupo deve fechar ou usar essa folha).
 2. **CU01 — e-mail já cadastrado — feito:** com `email_taken` no cadastro aparece "Já existe uma conta com este e-mail. Entrar ou recuperar a senha." (`auth-form.tsx`). Não preenche o e-mail na recuperação (não foi pedido).
-3. **CU05 — PDF sem código:** quando a leitura do PDF terminar sem linha digitável nem Pix, a conferência (M02) deve oferecer "Colar código" (o mesmo campo da Nova conta) em vez de só mostrar erro. Arquivos em `components/bills/` (procure `instrumento`/`pdf`).
+3. **CU05 — PDF sem código — feito:** os estados reais do PDF são `pendente`, `lido`, `conferencia_manual` e `invalido` (a folha testava um `"falhou"` que não existe). Agora `invalido` mostra "Escolha outro arquivo ou cole o código" e `conferencia_manual` sem candidatos mostra "Não achamos o código neste PDF. Colar código" (`conta-folha.tsx`). Falta o E2E em `pdf.spec.ts`.
 4. **Recorrência clicada — feito:** o grupo passa `inicial={r.id}` para `RecorrenciasFolha`. Falta só um E2E que clique numa recorrência e veja o detalhe dela.
 
 ### 3.5 Limpeza
