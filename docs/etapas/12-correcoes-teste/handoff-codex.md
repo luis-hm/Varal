@@ -1,5 +1,7 @@
 # Handoff ao Codex — o que falta na Etapa 12
 
+> **Situação em 18/11/2026:** tudo feito pelo Claude Code, menos as ações do dono (§7). Ver [relatório](relatorio.md).
+
 > **Contém:** tudo o que ainda falta na etapa 12, passo a passo, com arquivos, comandos e critérios de pronto.
 > **Origem:** sessão do Claude Code de 18/11/2026, que fez COR-01 a COR-09, COR-11 e COR-12 (parte de código).
 > Leia **inteiro** antes de começar. Faça na ordem. Não pule a seção 0.
@@ -75,19 +77,19 @@ Só se o dono aprovar: campo "Seu nome" opcional no cadastro (`web/src/component
 
 ### 3.4 Fluxos incompletos do escopo inicial
 
-1. **CU02 — convite depois de criar grupo — feito:** criar grupo navega para `/grupos/{id}?convidar=1` e a folha de convite abre uma vez (teste em `grupo-pagina.test.tsx`). Falta o E2E (`grupos.spec.ts` que cria grupo deve fechar ou usar essa folha).
+1. **CU02 — convite depois de criar grupo — feito (E2E também):** criar grupo navega para `/grupos/{id}?convidar=1` e a folha de convite abre uma vez (teste em `grupo-pagina.test.tsx`). O E2E fecha essa folha. Fechar antes de o link chegar deixava um convite pendente; agora ele é revogado (`useConvite`).
 2. **CU01 — e-mail já cadastrado — feito:** com `email_taken` no cadastro aparece "Já existe uma conta com este e-mail. Entrar ou recuperar a senha." (`auth-form.tsx`). Não preenche o e-mail na recuperação (não foi pedido).
-3. **CU05 — PDF sem código — feito:** os estados reais do PDF são `pendente`, `lido`, `conferencia_manual` e `invalido` (a folha testava um `"falhou"` que não existe). Agora `invalido` mostra "Escolha outro arquivo ou cole o código" e `conferencia_manual` sem candidatos mostra "Não achamos o código neste PDF. Colar código" (`conta-folha.tsx`). Falta o E2E em `pdf.spec.ts`.
-4. **Recorrência clicada — feito:** o grupo passa `inicial={r.id}` para `RecorrenciasFolha`. Falta só um E2E que clique numa recorrência e veja o detalhe dela.
+3. **CU05 — PDF sem código — feito:** os estados reais do PDF são `pendente`, `lido`, `conferencia_manual` e `invalido` (a folha testava um `"falhou"` que não existe). Agora `invalido` mostra "Escolha outro arquivo ou cole o código" e `conferencia_manual` sem candidatos mostra "Não achamos o código neste PDF. Colar código" (`conta-folha.tsx`). E2E em `pdf.spec.ts` (`rn28/rn29`).
+4. **Recorrência clicada — feito:** o grupo passa `inicial={r.id}` para `RecorrenciasFolha`. E2E em `etapa12.spec.ts`.
 
-### 3.5 Limpeza
+### 3.5 Limpeza — **feito**
 
 - `grep -rn "px" web/src/components --include=*.module.css` e troque valores soltos de espaçamento por tokens (`var(--spacing-N)`) quando houver token igual. Não mexa em larguras fixas do design (264px do SideNav, 52px do botão, 44px de alvo).
 - Margem lateral de 20px (`var(--spacing-5)`) no mobile em Avisos, Perfil (já feito) e modo simples.
 - Código morto — **feito:** apagados `em-breve.tsx`/`em-breve.module.css`, `contas-pagador.tsx` e o `simples.module.css` da rota (o de `components/simple/` está em uso).
 - Comentários "stays in stage N" / "fica para a etapa N" já superados: atualize ou apague.
 
-## 4. E2E (Playwright)
+## 4. E2E (Playwright) — **feito** (casos novos em `web/e2e/etapa12.spec.ts`)
 
 O E2E **não foi rodado** depois das mudanças e vai quebrar nestes pontos conhecidos (procure outros com `grep -n "casa\|Casa\|mes=" web/e2e/*.ts`):
 
@@ -111,7 +113,7 @@ Ao corrigir: mude o **teste** para o comportamento novo (ele é o pedido do dono
 - Trocar de aba e voltar sem pedir login (COR-01): `page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")))`.
 - Depois do COR-10: membro sem "Ver" não vê a categoria nem as contas; chamada direta à API dá 404.
 
-## 5. Validação visual
+## 5. Validação visual — **feito** (capturas em [evidencias/](evidencias/))
 
 Suba um ambiente isolado com seed (não o de dev) — por exemplo `docker compose -p varaltest -f infra/docker-compose.yml up -d` e `docker compose -p varaltest ... run --rm api python manage.py seed` (confira o comando real no `Makefile`, alvo `seed`) — e o Next com `npm run dev` apontando para ele. Tire capturas em **390×844 e 1440×900** de: Início, Contas (sem mês, com mês, com `?espaco=`), Grupo, Categoria, Nova conta (com destino), Detalhe, Perfil, Avisos. Compare com os frames do Doop (tabela em `docs/design/README.md`) e verifique:
 - 24px (`--spacing-6`) entre seções; 20px de margem lateral no mobile;
@@ -135,9 +137,9 @@ Guarde as capturas em `docs/etapas/12-correcoes-teste/evidencias/`.
 
 ## 8. Pronto quando
 
-- [ ] `docker compose -p varaltest ... pytest -q` verde (569 testes em 18/11/2026).
-- [ ] `npx vitest run`, `npx tsc --noEmit`, `npm run lint` verdes em `web/`.
-- [ ] `make types` sem diff.
-- [ ] `make e2e` verde nas duas larguras.
-- [ ] Capturas da seção 5 salvas.
-- [ ] Docs da seção 6 atualizados, commits locais feitos, **sem push**.
+- [x] `docker compose -p varaltest ... pytest -q` verde (569 testes em 18/11/2026).
+- [x] `npx vitest run`, `npx tsc --noEmit`, `npm run lint` verdes em `web/`.
+- [x] `make types` sem diff.
+- [x] `make e2e` verde nas duas larguras.
+- [x] Capturas da seção 5 salvas.
+- [x] Docs da seção 6 atualizados, commits locais feitos, **sem push**.

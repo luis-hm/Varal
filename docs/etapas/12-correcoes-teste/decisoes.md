@@ -23,6 +23,8 @@
 | Lista sem mês não tem paginação (comentário `ponytail:` no código). | Volume de um grupo familiar é pequeno. | Paginação por cursor quando passar de ~500 contas. |
 | `varal_owner` com `Max-Age` de 14 dias. | Cookie de sessão sumia ao fechar o navegador e mascarava a volta. | Tirar o `Max-Age`. |
 | Referrer `strict-origin` só em `/entrar` e `/criar-conta`; o resto segue `no-referrer`. | O formulário do Google precisa de `Origin` para o CSRF do Django; não enfraquece CSRF. | Voltar a regra única em `next.config.ts` e no edge. |
+| Capturas da etapa em JPEG (qualidade 70) versionadas em [evidencias/](evidencias/), geradas pelo teste "evidências da etapa 12" de `etapa12.spec.ts`. | O handoff pede as capturas na etapa; em JPEG somam ~0,6 MB. As outras etapas seguem em `web/e2e/__screens__` (ignorado). | Apagar a pasta e o teste. |
+| Specs E2E usam `ORIGIN` (`LAB_BASE_URL`) no lugar de `localhost:3000` fixo. | A porta 3000 da máquina estava ocupada por outro projeto; o E2E rodou na 3100. | Voltar o literal. |
 
 ## Perguntas ao dono (abertas)
 
