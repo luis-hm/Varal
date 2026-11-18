@@ -157,7 +157,7 @@ export function ContaDetalhe({ conta, voltar, retornoPagamento }: Props) {
           ))}
         </section>
 
-        {conta.mensagem_solicitacao && <section className={styles.info} aria-label="Mensagem do pedido"><h2>Mensagem do pedido</h2><p>{conta.mensagem_solicitacao}</p></section>}
+        {conta.mensagem_solicitacao && <section className={styles.mensagem} aria-label="Mensagem do pedido"><h2>Mensagem do pedido</h2><p>{conta.mensagem_solicitacao}</p></section>}
         {conta.espaco.tipo === "pessoal" && <SolicitacaoAcoes key={`pedido:${conta.id}`} conta={conta} />}
 
         <section className={`${styles.historico} ${styles.in} ${styles.d2}`} aria-labelledby="historico-t">

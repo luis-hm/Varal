@@ -1,10 +1,210 @@
-.page { max-width: 760px; margin: 0 auto; padding: var(--spacing-6); color: var(--color-ink); }
-.page h1 { font-size: var(--text-2xl); }
-.page h2 { font-size: var(--text-lg); }
-.section { margin: var(--spacing-6) 0; padding: var(--spacing-4); background: var(--color-surface); border-radius: var(--radius-lg); }
-.section p { line-height: var(--leading-body); }
-.value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.actions { display: flex; flex-wrap: wrap; gap: var(--spacing-3); align-items: center; }
-.form { display: grid; gap: var(--spacing-3); margin-top: var(--spacing-4); }
-.error { color: var(--color-red-text); }
-.checkbox { display: flex; align-items: center; gap: var(--spacing-2); min-height: 44px; }
+/* COR-09: Perfil. Same 20px gutter as the other mobile screens; 24px between cards; two columns from 1024px. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding: var(--spacing-5) var(--spacing-5) var(--spacing-8);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+.identidade {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-5);
+  border-radius: var(--radius-2xl);
+  background: var(--color-ink);
+  color: var(--color-surface);
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-amber);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 800;
+}
+
+.quem {
+  flex: 1;
+  min-width: 0;
+}
+
+.quem h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: var(--tracking-display);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quem p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.8;
+}
+
+.grupos {
+  margin-top: var(--spacing-1);
+  font-size: var(--text-sm);
+}
+
+/* The logout button keeps its own look; on the dark card it gets a light surface. */
+.sair {
+  flex: none;
+  color: var(--color-ink);
+}
+
+.colunas,
+.coluna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  min-width: 0;
+}
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-5);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+}
+
+.cartao h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.cartao p {
+  line-height: var(--leading-body);
+  color: var(--color-ink-soft);
+}
+
+.perigo {
+  border-color: var(--color-red);
+  background: var(--color-red-soft);
+}
+
+.perigo h2 {
+  color: var(--color-red-text);
+}
+
+.dados {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.dados div {
+  min-width: 0;
+}
+
+.dados dt {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.dados dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+  align-items: center;
+}
+
+.confirmar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+}
+
+.estado {
+  padding: var(--spacing-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font-size: var(--text-sm);
+}
+
+.estado[data-estado="pronto"] {
+  background: var(--color-green-soft);
+  color: var(--color-green-text);
+}
+
+.estado[data-estado="falhou"],
+.estado[data-estado="expirado"] {
+  background: var(--color-red-soft);
+  color: var(--color-red-text);
+}
+
+.form {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.error {
+  color: var(--color-red-text);
+}
+
+.aviso {
+  color: var(--color-green-text);
+}
+
+.link {
+  min-height: 44px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-height: 44px;
+  font-weight: 600;
+}
+
+@media (min-width: 1024px) {
+  .page {
+    max-width: 1080px;
+    padding: 0;
+  }
+
+  .identidade {
+    padding: var(--spacing-6);
+  }
+
+  .colunas {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
