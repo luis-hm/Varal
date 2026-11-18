@@ -156,14 +156,11 @@ Arquivos com `page.on("dialog")`: `e2e/fixtures.ts:123`, `contas.spec.ts:32`, `p
 
 Só se o dono aprovar: campo "Seu nome" opcional no cadastro (`web/src/components/auth/`), `PATCH /api/me/ {nome}` em `api/apps/contas_usuario/`, campo editável na seção "Seus dados" do Perfil (`web/src/components/perfil/perfil.tsx`). Sem aprovação, não mexa.
 
-### 3.3 Textos inconsistentes
+### 3.3 Textos inconsistentes — **feito em parte**
 
-Procure com `grep -rn` em `web/src` e unifique:
-- "5 MB" vs "5 MiB" → use "5 MB" em todo texto de tela.
-- "Eu" vs "Você" para a própria pessoa nas opções de pagador → "Você".
-- "Aguardando boleto" vs "Aguardando conferência" → confira o `StatusBadge` (`components/ui/status-badge.tsx`) e use o mesmo texto do selo em todo lugar.
-- "voltará a ficar pendente" → "volta a ficar pendente" (já trocado em `pagamento-acoes.tsx`; confira se há outros).
-Atualize os testes que citam esses textos (e o E2E).
+- "5 MiB" → "5 MB" em `comprovante-campo.tsx` e `pagamento-acoes.tsx` (feito).
+- "voltará a ficar pendente" → "volta a ficar pendente" (feito).
+- **Não mexa** em "Eu" (opção de pagador na Nova conta, decisão Q16 da etapa 04) nem em "Aguardando conferência" do modo simples (rótulo próprio da etapa 10): vêm de decisões anteriores. Se achar que devem mudar, pergunte ao dono.
 
 ### 3.4 Fluxos incompletos do escopo inicial
 
@@ -176,7 +173,7 @@ Atualize os testes que citam esses textos (e o E2E).
 
 - `grep -rn "px" web/src/components --include=*.module.css` e troque valores soltos de espaçamento por tokens (`var(--spacing-N)`) quando houver token igual. Não mexa em larguras fixas do design (264px do SideNav, 52px do botão, 44px de alvo).
 - Margem lateral de 20px (`var(--spacing-5)`) no mobile em Avisos, Perfil (já feito) e modo simples.
-- Código morto (candidatos): `web/src/components/layout/em-breve.tsx` + `em-breve.module.css`, `web/src/components/bills/contas-pagador.tsx` e **um** dos dois `simples.module.css` (`web/src/app/(app)/grupos/[id]/simples/` e `web/src/components/simple/`). Para cada um, `grep -rn "<nome sem extensão>" web/src web/e2e`; só apague se nada importar.
+- Código morto — **feito:** apagados `em-breve.tsx`/`em-breve.module.css`, `contas-pagador.tsx` e o `simples.module.css` da rota (o de `components/simple/` está em uso).
 - Comentários "stays in stage N" / "fica para a etapa N" já superados: atualize ou apague.
 
 ## 4. E2E (Playwright)
