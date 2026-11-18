@@ -444,3 +444,7 @@ Rastreabilidade a revisar na implementação: RF01/CU01/RNF01 e CA06/CA12 da aut
 Validar mobile 390×844 e desktop 1440×900 com os mesmos dados e rotas. Conferir antes os frames 03/D03, 05/M01, 06/M02, 10/D04 e, se afetado, 13/D05 no Doop. Alterações do canvas exigem pedido explícito. Os nomes citados são referências do índice local, não evidência de leitura ao vivo nesta tarefa.
 
 Antes de implementar mudanças de regras, registrar as decisões em ADR e atualizar spec/plano/tarefas e documentos derivados pertinentes. Não editar manualmente `docs/especificacao-varal.md`; reexportação permanece com Claude Code. Após implementação e validação, o relatório deve indicar quais itens COR-01–12 foram efetivamente concluídos para o dono ou Claude Code atualizar Ajustes. Os diagnósticos de COR-07 e do início de COR-12 foram executados; nenhuma correção de produto, permissão nova ou revisão visual está implementada neste registro.
+
+## 14. Situação na Etapa 12 (18/11/2026)
+
+COR-01 a COR-09, COR-11 e a parte de código do COR-12 foram feitos na etapa 12 ([relatório](../etapas/12-correcoes-teste/relatorio.md)). COR-10 tem proposta no [ADR 0017](../arquitetura/adr/0017-permissoes-por-categoria.md) e aguarda o dono; a URI do Google Console do COR-12 é ação do dono.
