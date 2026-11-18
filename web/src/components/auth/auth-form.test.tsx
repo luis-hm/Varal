@@ -23,7 +23,9 @@ test("ca02/ca14: API validation is associated with its labelled field and announ
   expect(screen.getByLabelText("E-mail").getAttribute("aria-invalid")).toBe("true");
   expect(screen.getByLabelText("E-mail").getAttribute("aria-describedby")).toBeTruthy();
   expect(screen.getByRole("alert").textContent).toBe("Confira os campos indicados.");
-  expect(screen.getByRole("link", { name: "Entrar" })).toBeTruthy();
+  // CU01: e-mail already registered offers signing in or recovering the password.
+  expect(screen.getAllByRole("link", { name: "Entrar" }).length).toBe(2);
+  expect(screen.getByRole("link", { name: "recuperar a senha" }).getAttribute("href")).toBe("/recuperar-senha");
 });
 
 test("ca07: recovery confirms the same generic message without exposing whether the account exists", async () => {
