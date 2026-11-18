@@ -1,5 +1,6 @@
 // Doop: k0kB5dc-Vo / 10 · Grupo + D04, 05 + M01; CU09, Q08-8.
 "use client";
+import { useConfirmar } from "@/components/ui/confirmar";
 import { estadoRecorrencia, motivoPausa } from "./estado";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSessao } from "@/components/layout/app-shell";
@@ -17,6 +18,7 @@ import styles from "./recorrencias.module.css";
 
 type Props = { open: boolean; espacoId: string; pessoal: boolean; inicial?: string; onClose: () => void };
 export function RecorrenciasFolha({ open, espacoId, pessoal, inicial, onClose }: Props) {
+  const [pedir, confirmacao] = useConfirmar();
   const { user } = useSessao();
   const lista = useRecorrencias(open ? espacoId : undefined);
   const grupo = useGrupo(espacoId, open && !pessoal);
@@ -107,9 +109,10 @@ export function RecorrenciasFolha({ open, espacoId, pessoal, inicial, onClose }:
           {editavel && <Button type="submit" label={ocupado ? "Salvando…" : selecionado === "nova" ? "Criar recorrência" : "Salvar"} />}
         </fieldset>
       </form>
-      {item && <div className={styles.acoes}>{([ ["pausar", item.pode_pausar, "Pausar"], ["retomar", item.pode_retomar, "Retomar"], ["encerrar", item.pode_encerrar, "Encerrar"] ] as const).map(([acao, permitido, label]) => permitido && <Button key={acao} tone="secondary" label={label} disabled={ocupado} onClick={() => { if (acao === "encerrar" && !window.confirm("Encerrar esta recorrência? As contas já criadas serão mantidas.")) return; void executar(() => acoes.acao.mutateAsync({ id: item.id, acao }), voltar); }} />)}</div>}
+      {item && <div className={styles.acoes}>{([ ["pausar", item.pode_pausar, "Pausar"], ["retomar", item.pode_retomar, "Retomar"], ["encerrar", item.pode_encerrar, "Encerrar"] ] as const).map(([acao, permitido, label]) => permitido && <Button key={acao} tone="secondary" label={label} disabled={ocupado} onClick={async () => { if (acao === "encerrar" && !(await pedir("Encerrar esta recorrência? As contas já criadas serão mantidas.", "Encerrar"))) return; void executar(() => acoes.acao.mutateAsync({ id: item.id, acao }), voltar); }} />)}</div>}
       <Button tone="ghost" label="Voltar à lista" disabled={ocupado} onClick={voltar} />
     </>}
     {erro && <p role="alert" className={styles.erro}>{erro}</p>}
+    {confirmacao}
   </Folha>;
 }

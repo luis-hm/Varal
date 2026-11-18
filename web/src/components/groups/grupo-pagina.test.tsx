@@ -181,9 +181,9 @@ test("ca22/rn32: a blocked exit lists the bills, each resolved before Sair resen
           contas: [{ id: "l1", descricao: "Remédio da vó" }, { id: "l2", descricao: "Presente" }],
           pessoas: [{ id: "u9", nome: "Ana" }],
         });
-  vi.spyOn(window, "confirm").mockReturnValue(true);
   renderPagina();
   fireEvent.click(await screen.findByRole("button", { name: "Sair do grupo" }));
+  fireEvent.click(within(await screen.findByRole("dialog", { name: /Sair de / })).getByRole("button", { name: "Sair" }));
   expect(await screen.findByText(/Escolha quem vê cada uma/)).toBeTruthy();
   expect(screen.getByRole("link", { name: "Remédio da vó" }).getAttribute("href")).toBe("/contas/l1");
   const sairBtn = screen.getByRole("button", { name: "Sair" });

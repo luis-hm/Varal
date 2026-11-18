@@ -5,6 +5,7 @@
 // COR-06: destination explicit ("Onde fica esta conta?"); a personal bill hides Categoria, Quem paga and Quem vê.
 "use client";
 
+import { useConfirmar } from "@/components/ui/confirmar";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useSessao } from "@/components/layout/app-shell";
@@ -59,6 +60,7 @@ type Props = {
 };
 
 export function ContaFolha({ open, onClose, conta, returnFocusTo, destino }: Props) {
+  const [pedir, confirmacao] = useConfirmar();
   const router = useRouter();
   const { user } = useSessao();
   const { criar, editar, cancelar } = useAcoesConta();
@@ -487,9 +489,9 @@ export function ContaFolha({ open, onClose, conta, returnFocusTo, destino }: Pro
             tone="danger"
             label={cancelar.isPending ? "Cancelando…" : "Cancelar conta"}
             disabled={ocupado}
-            onClick={() => {
+            onClick={async () => {
               if (gravacao.current) return;
-              if (window.confirm(escopoEfetivo === "proximos" && conta.recorrente ? `Cancelar ${conta.descricao} neste mês e nos próximos? As contas abertas serão canceladas e as futuras gerações encerradas.` : `Cancelar ${conta.descricao}? Ela sai das listas e dos totais e fica no histórico.`)) {
+              if (await pedir(escopoEfetivo === "proximos" && conta.recorrente ? `Cancelar ${conta.descricao} neste mês e nos próximos? As contas abertas serão canceladas e as futuras gerações encerradas.` : `Cancelar ${conta.descricao}? Ela sai das listas e dos totais e fica no histórico.`, "Cancelar conta")) {
                 gravacao.current = true;
                 cancelar.mutate({ id: conta.id, body: conta.recorrente ? { escopo: escopoEfetivo } : undefined }, { onSuccess: onClose, onSettled: () => { gravacao.current = false; } });
               }
@@ -498,6 +500,7 @@ export function ContaFolha({ open, onClose, conta, returnFocusTo, destino }: Pro
         )}
         </fieldset>
       </form>
+      {confirmacao}
     </Folha>
   );
 }
