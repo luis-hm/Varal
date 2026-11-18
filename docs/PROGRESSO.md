@@ -19,6 +19,7 @@
 | 09 | Notificações | concluída e integrada localmente à main (`56337ed`) | `etapa/09-notificacoes` | 16/11/2026 | [relatorio](etapas/09-notificacoes/relatorio.md) |
 | 10 | Solicitação e modo simples | concluída e integrada localmente à main (`5cd29ba`) | `etapa/10-solicitacao-modo-simples` | 16/11/2026 | [relatório](etapas/10-solicitacao-modo-simples/relatorio.md) |
 | 11 | Acabamento e deploy | HMG publicado; CA13/18 e implantação final em produção pendentes | `etapa/11-acabamento-deploy` | — | [relatório](etapas/11-acabamento-deploy/relatorio.md) |
+| 12 | Correções do teste inicial | em andamento: COR-01–09/11/12 feitos; COR-10 aguarda ok do dono; resto no [handoff](etapas/12-correcoes-teste/handoff-codex.md) | `etapa/12-correcoes-teste` | — | [relatório parcial](etapas/12-correcoes-teste/relatorio.md) |
 
 ## Decisões
 
@@ -60,6 +61,12 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 ## Log
 
 Ordem cronológica inversa.
+
+### 18/11/2026 — Etapa 12: correções do teste inicial (parcial)
+
+- Casa vira categoria com ícone ([ADR 0016](arquitetura/adr/0016-categorias-com-icone.md)); Contas sem mês obrigatório e pessoal por padrão; "Sem categoria" visível; tela da categoria; Nova conta no destino da tela; Perfil redesenhado; sessão não pede login ao voltar à aba; referrer do login Google corrigido.
+- Commits `c806774`, `7aa9ad1`, `1f7e9ba`, `905a43a`. API e web verdes; E2E não rodado.
+- Permissões por categoria propostas no [ADR 0017](arquitetura/adr/0017-permissoes-por-categoria.md), aguardando o dono. Restante no [handoff ao Codex](etapas/12-correcoes-teste/handoff-codex.md).
 
 ### 17/11/2026 — COR-12: checklist Google Cloud documentado
 

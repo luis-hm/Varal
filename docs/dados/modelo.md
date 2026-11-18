@@ -12,7 +12,7 @@ usuario            id, nome, email, telefone, prefs_notificacao
 espaco             id, tipo (pessoal|grupo), nome, dono_id, janela_alerta_dias
 membro             espaco_id, usuario_id, papel (admin|membro|pagador|observador)
 convite            id, espaco_id, papel, token, expira_em, usado_por?
-subgrupo           id, espaco_id, nome, arquivado
+subgrupo           id, espaco_id, nome, icone, arquivado
 categoria          id, espaco_id?, nome, tipo (despesa|receita)
 
 lancamento         id, espaco_id, subgrupo_id?, categoria_id?,
@@ -54,7 +54,7 @@ Difere do bloco da especificação (RN04, RN31 / [ADR 0004](../arquitetura/adr/0
 - **`espaco`:** grupo **sem dono** (restrição `espaco_grupo_sem_dono`); quem administra é `membro` com papel admin. Todo grupo tem sempre ≥ 1 admin (serviços e guarda `pre_delete` em `Usuario`). Migração `0004` transforma dono legado de grupo em `membro` admin.
 - **`membro`:** `id` UUID, `espaco`, `usuario`, `papel`, `criado_em`; único por `(espaco, usuario)` (`membro_unico_por_espaco`).
 - **`convite`:** `token` não existe; guarda **`token_hash`** (SHA-256, único). Mais `expira_em` (criação + 7 dias), `usado_por?`, `usado_em?`, **`revogado_em?`**, `criado_por?`, `criado_em`. Pendente = sem uso, sem revogação e não expirado.
-- **`subgrupo`** (casa): `id`, `espaco`, `nome`, `arquivado` (arquivar não apaga).
+- **`subgrupo`** (categoria na UI, antes "casa"; [ADR 0016](../arquitetura/adr/0016-categorias-com-icone.md)): `id`, `espaco`, `nome`, `icone` (lista fechada `Icone`, padrão `casa`), `arquivado` (arquivar não apaga).
 
 ## Implementação da Etapa 04
 
