@@ -19,7 +19,7 @@
 | 09 | Notificações | concluída e integrada localmente à main (`56337ed`) | `etapa/09-notificacoes` | 16/11/2026 | [relatorio](etapas/09-notificacoes/relatorio.md) |
 | 10 | Solicitação e modo simples | concluída e integrada localmente à main (`5cd29ba`) | `etapa/10-solicitacao-modo-simples` | 16/11/2026 | [relatório](etapas/10-solicitacao-modo-simples/relatorio.md) |
 | 11 | Acabamento e deploy | HMG publicado; CA13/18 e implantação final em produção pendentes | `etapa/11-acabamento-deploy` | — | [relatório](etapas/11-acabamento-deploy/relatorio.md) |
-| 12 | Correções do teste inicial | concluída; Q12-2 e URI do Google Console com o dono | `etapa/12-correcoes-teste` | 18/11/2026 | [relatório](etapas/12-correcoes-teste/relatorio.md) |
+| 12 | Correções do teste inicial | concluída; URI do Google Console com o dono | `etapa/12-correcoes-teste` | 18/11/2026 | [relatório](etapas/12-correcoes-teste/relatorio.md) |
 
 ## Decisões
 
@@ -61,6 +61,12 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 ## Log
 
 Ordem cronológica inversa.
+
+### 18/11/2026 — Q12-2: nome no cadastro e no Perfil (branch `etapa/12-nome-perfil`)
+
+- Aprovado pelo dono. Cadastro pede "Nome (opcional)"; o Perfil edita o nome no cartão "Seus dados" (`PATCH /api/me/`).
+- Frames 14 · Perfil e D07 · Perfil desenhados no Doop a pedido do dono.
+- API 560/560, web 174/174, E2E 42/42 nas duas larguras. [Relatório](etapas/12-correcoes-teste/relatorio.md#depois-do-fechamento-q12-2-nome).
 
 ### 18/11/2026 — Infra enxuta (branch `infra/simplificar-deploy`, pedido do dono)
 

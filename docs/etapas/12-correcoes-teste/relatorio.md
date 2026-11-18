@@ -58,8 +58,16 @@ As specs antigas foram ajustadas às regras novas (COR-05/06, CU01, COR-09).
 
 Nenhum. Todos os itens de "Varal — Ajustes" já estavam marcados como feitos (lido em 18/11/2026).
 
+## Depois do fechamento: Q12-2 (nome)
+
+Aprovado pelo dono em 18/11/2026, na branch `etapa/12-nome-perfil`:
+
+- Cadastro com "Nome (opcional)", até 150 caracteres (`ACCOUNT_SIGNUP_FORM_CLASS`).
+- Perfil edita o nome no cartão "Seus dados" (`PATCH /api/me/`, só o próprio nome; vazio é permitido).
+- Frames novos no Doop: 14 · Perfil (`jbgXyOMpqy`) e D07 · Perfil (`GLWxRQP3Lr`). O frame 01/D01 não ganhou o campo; ele segue o componente Field.
+- Testes: API 560/560; web 174/174; E2E `auth` + `etapa12` + `privacidade11` 42/42. Capturas `perfil-nome-*`.
+
 ## Pendências do dono
 
-- Q12-2: como pedir e mostrar o nome do usuário ([decisões](decisoes.md#perguntas-ao-dono-abertas)).
 - Google Console: cadastrar `https://hmgvaral.codehub.systems/accounts/google/login/callback/` e testar o login Google na HMG (COR-12).
 - `make e2e` na máquina do dono: a senha do volume `varal_pgdata` não confere com o `infra/.env` atual, e a porta 3000 está em uso.

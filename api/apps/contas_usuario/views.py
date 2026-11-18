@@ -23,6 +23,10 @@ class MeSerializer(serializers.Serializer):
     grupos = GrupoResumoSerializer(many=True)
 
 
+class MeNomeSerializer(serializers.Serializer):
+    nome = serializers.CharField(max_length=150, allow_blank=True)
+
+
 @extend_schema(
     methods=["GET"],
     responses=MeSerializer,
@@ -55,12 +59,25 @@ class MeSerializer(serializers.Serializer):
     request=ConfirmacaoExclusaoSerializer,
     responses={204: None, 401: ReauthRespostaSerializer},
 )
-@api_view(["GET", "DELETE"])
+@extend_schema(
+    methods=["PATCH"],
+    operation_id="me_editar_nome",
+    request=MeNomeSerializer,
+    responses=MeSerializer,
+)
+@api_view(["GET", "PATCH", "DELETE"])
 def me(request):
     if request.method == "DELETE":
         from apps.privacidade.views import excluir_me
 
         return excluir_me(request)
+    if request.method == "PATCH":
+        # Only the name is editable here (Q12-2); the email is the login identity.
+        dados = MeNomeSerializer(data=request.data, partial=True)
+        dados.is_valid(raise_exception=True)
+        if "nome" in dados.validated_data:
+            request.user.nome = dados.validated_data["nome"]
+            request.user.save(update_fields=["nome"])
     espaco = Espaco.objects.get(dono=request.user, tipo=Espaco.Tipo.PESSOAL)
     response = Response(
         MeSerializer(

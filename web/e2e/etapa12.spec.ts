@@ -6,7 +6,7 @@ import path from "node:path";
 import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 import { test } from "./rn31-isolation";
-import { AUTH, ORIGIN, api, criarGrupo, entrarNoGrupo, hoje, logar, me, novaConta, outraAba, type Conta } from "./fixtures";
+import { AUTH, ORIGIN, TEST_PASSWORD, api, criarGrupo, entrarNoGrupo, hoje, logar, me, novaConta, outraAba, uniqueEmail, type Conta } from "./fixtures";
 
 const visivel = (page: Page | Locator, nome: string | RegExp) => page.getByRole("button", { name: nome }).filter({ visible: true });
 const link = (page: Page | Locator, nome: string | RegExp) => page.getByRole("link", { name: nome }).filter({ visible: true });
@@ -237,4 +237,30 @@ test("evidências da etapa 12: grupo, categoria, Contas, permissões, Perfil, Av
   await page.goto(`/grupos/${grupo.id}/simples`);
   await expect(link(page, /Energia/)).toBeVisible();
   await foto("simples");
+});
+
+test("q12-2: nome opcional no cadastro, mostrado e editável no Perfil", async ({ page }, info) => {
+  await page.context().clearCookies();
+  await page.goto("/criar-conta");
+  await page.getByLabel("Nome (opcional)").fill("Ana Martins");
+  await page.getByLabel("E-mail", { exact: true }).fill(uniqueEmail());
+  await page.getByLabel("Senha", { exact: true }).fill(TEST_PASSWORD);
+  const cadastro = page.waitForResponse((r) => new URL(r.url()).pathname === `${AUTH}auth/signup` && r.request().method() === "POST");
+  await page.getByRole("button", { name: "Criar conta", exact: true }).click();
+  expect((await cadastro).status()).toBe(200);
+  await expect(page).toHaveURL(`${ORIGIN}/`, { timeout: 20_000 }); // first visit compiles "/" in next dev
+  expect((await me(page.request)).nome).toBe("Ana Martins");
+
+  await page.goto("/perfil");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Ana Martins");
+  await visivel(page, "Editar nome").click();
+  await page.getByLabel("Nome", { exact: true }).fill("Ana M. Souza");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: path.join(__dirname, "../../docs/etapas/12-correcoes-teste/evidencias", `perfil-nome-${info.project.name}.jpg`), type: "jpeg", quality: 70, fullPage: true });
+  await visivel(page, "Salvar nome").click();
+  await expect(texto(page, "Nome salvo.")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Ana M. Souza");
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Ana M. Souza");
 });

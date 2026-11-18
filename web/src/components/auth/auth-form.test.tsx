@@ -122,3 +122,17 @@ test("tentativa substituída não encerra sessão após consulta legada tardia",
   expect(fetchMock.mock.calls.filter(([url]) => url.endsWith("auth/login"))).toHaveLength(1);
   expect(fetchMock.mock.calls.filter(([url]) => url.endsWith("auth/session"))).toHaveLength(1);
 });
+
+test("q12-2: cadastro envia o nome opcional junto com e-mail e senha", async () => {
+  const fetch = vi.fn().mockImplementation((url) => Promise.resolve(String(url).endsWith("config") ? reply(config) : reply({ status: 400, errors: [{ param: "nome", code: "max_length", message: "Nome longo demais." }] }, 400)));
+  vi.stubGlobal("fetch", fetch);
+  show("signup");
+  fireEvent.change(screen.getByLabelText("Nome (opcional)"), { target: { value: "Ana" } });
+  fireEvent.change(screen.getByLabelText("E-mail"), { target: { value: "ana@example.com" } });
+  fireEvent.change(screen.getByLabelText("Senha"), { target: { value: "valid-password-test" } });
+  fireEvent.submit(screen.getByRole("form", { name: "Criar conta" }));
+  await screen.findByText("Nome longo demais.");
+  const envio = fetch.mock.calls.find(([url]) => String(url).endsWith("auth/signup"));
+  expect(JSON.parse(envio![1].body)).toEqual({ nome: "Ana", email: "ana@example.com", password: "valid-password-test" });
+  expect(screen.getByLabelText("Nome (opcional)").getAttribute("aria-invalid")).toBe("true");
+});

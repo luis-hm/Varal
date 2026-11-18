@@ -1961,7 +1961,7 @@ export interface paths {
         delete: operations["privacidade_excluir_conta"];
         options?: never;
         head?: never;
-        patch?: never;
+        patch: operations["me_editar_nome"];
         trace?: never;
     };
     "/api/me/exclusao/intencoes/": {
@@ -2363,6 +2363,7 @@ export interface components {
         };
         AllauthBaseSignup: {
             email: components["schemas"]["AllauthEmail"];
+            nome?: string;
         };
         /**
          * @description The client ID (in case of OAuth2 or OpenID Connect based providers)
@@ -3483,6 +3484,9 @@ export interface components {
             /** Format: date */
             vencimento?: string;
             visibilidade?: components["schemas"]["VisibilidadeEnum"];
+        };
+        PatchedMeNome: {
+            nome?: string;
         };
         PatchedPapel: {
             papel?: components["schemas"]["PapelEnum"];
@@ -5890,6 +5894,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReauthResposta"];
+                };
+            };
+        };
+    };
+    me_editar_nome: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedMeNome"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedMeNome"];
+                "multipart/form-data": components["schemas"]["PatchedMeNome"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
                 };
             };
         };
