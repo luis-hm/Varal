@@ -395,12 +395,14 @@
     gap: var(--spacing-6);
   }
 
+  .grade,
   .grade[data-grupo] {
     grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
   }
 
-  .grade { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); }
-  .recentes { display: block; margin-top: var(--spacing-6); }
+  /* Personal space: no "Por categoria" above, so "Avisos recentes" starts level with the other column. */
+  .lateral > * + * { margin-top: var(--spacing-6); }
+  .recentes { display: block; }
 
   .sec {
     padding: 0;

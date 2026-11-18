@@ -330,6 +330,22 @@ span.redondo { border: 0; }
 }
 
 /* ---- detail (07 / D03 panel) ---- */
+/* Message of a payment request: its own padded card, never the 2-column info grid (audit). */
+.mensagem {
+  padding: var(--spacing-4) var(--spacing-5);
+}
+
+.mensagem h2 {
+  margin-bottom: var(--spacing-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+
+.mensagem p {
+  overflow-wrap: anywhere;
+}
+
 .painelBarra {
   display: none;
 }
@@ -343,7 +359,8 @@ span.redondo { border: 0; }
 
 .resumo,
 .info,
-.historico {
+.historico,
+.mensagem {
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   border: 1px solid var(--color-line);

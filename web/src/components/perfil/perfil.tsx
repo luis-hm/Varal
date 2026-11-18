@@ -1,4 +1,5 @@
-// Doop: k0kB5dc-Vo / shell 02 · Início + D02 · Início; Field, Button; Q11-11 (no dedicated Perfil frame).
+// Doop: k0kB5dc-Vo / shell 02 · Início + D02 · Início; Field, Button, Folha; Q11-11 (no dedicated Perfil frame).
+// COR-09: redesigned presentation; same flows (preferences, export, delete, re-auth, logout) and protections.
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
@@ -8,6 +9,8 @@ import { Preferencias } from "@/components/notifications/avisos";
 import { useSessao } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { Folha } from "@/components/ui/folha";
+import { Icon } from "@/components/ui/icon";
 import { AuthError, confirmarCodigoReauth, emailsProprios, reautenticarSenha, sessaoAtual, solicitarCodigoReauth, solicitarVerificacaoEmail } from "@/lib/auth/client";
 import { marcarSaidaLocal } from "@/lib/auth/isolamento";
 import { ApiError } from "@/lib/grupos/client";
@@ -101,24 +104,59 @@ export function Perfil() {
     catch (error) { setErro(mensagem(error)); }
     finally { latch.current = false; setBusy(false); }
   }
+  const nome = user.nome?.trim() || "";
+  const iniciais = (nome || user.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((parte) => parte[0]).join("").toUpperCase();
+  const fecharReauth = () => { if (busy) return; setReauth(null); setSenha(""); setCodigo(""); setErro(""); };
+  const mensagens = <>{erro && <p className={styles.error} role="alert">{erro}</p>}{aviso && <p className={styles.aviso} role="status">{aviso}</p>}</>;
+  // COR-09: identity card, then two columns on desktop (preferences | data and privacy); the destructive
+  // area sits apart, last, in its own tinted card. Re-authentication is a sheet/modal like every other flow.
   return <div className={styles.page}>
-    <h1>Perfil</h1>
-    <section className={styles.section}><h2>Seus dados</h2><p>Nome</p><p className={styles.value} title={user.nome}>{user.nome}</p><p>E-mail</p><p className={styles.value} title={user.email}>{user.email}</p></section>
-    <Preferencias user={user.id} />
-    <section className={styles.section}><h2>Exportar meus dados</h2><p>Prepare um arquivo com seus dados pessoais e participações atuais. A exportação fica disponível por até 24 horas.</p>
-      <div className={styles.actions}><Button label="Preparar exportação" onClick={() => protegido("exportar")} disabled={busy || !!reauth} />{exportacao?.estado === "pronto" && <Button label="Baixar exportação" tone="secondary" onClick={() => protegido("baixar")} disabled={busy || !!reauth} />}</div>
-      {exportacao && <p role="status">{exportacao.estado === "pronto" ? "Exportação pronta" : exportacao.estado === "falhou" ? "Não foi possível preparar a exportação." : exportacao.estado === "expirado" ? "Exportação expirada." : "Preparando exportação…"} Disponível até {new Date(exportacao.expira_em).toLocaleString("pt-BR", { timeZone: "America/Fortaleza" })}.</p>}
-      {estado.isError && <p role="alert">Não foi possível consultar a exportação. <button type="button" onClick={() => estado.refetch()}>Tentar novamente</button></p>}
-    </section>
-    <section className={styles.section}><h2>Excluir minha conta</h2><p>Seus dados pessoais e sua conta serão excluídos. Dados e comprovantes dos grupos podem ser preservados conforme as regras do grupo.</p><Button tone="danger" label="Preparar exclusão" disabled={busy || !!reauth} onClick={() => protegido("excluir")} />
-      {intencao && <div><p>Confirme a exclusão até {new Date(intencao.expira_em).toLocaleString("pt-BR", { timeZone: "America/Fortaleza" })}.</p><label className={styles.checkbox}><input type="checkbox" checked={confirmado} onChange={(event) => setConfirmado(event.target.checked)} disabled={busy || !!reauth} /> Quero excluir minha conta</label><Button tone="danger" label="Confirmar exclusão" disabled={!confirmado || busy || !!reauth} onClick={() => protegido("confirmar")} /></div>}
-    </section>
-    {reauth && <section className={styles.section} aria-labelledby="confirmar-identidade"><h2 id="confirmar-identidade">Confirme sua identidade</h2>{auth.isLoading || emails.isLoading ? <p role="status">Carregando…</p> : auth.isError || emails.isError ? <p role="alert">Não foi possível carregar as opções de confirmação.</p> : <form className={styles.form} onSubmit={provar}>
-      {auth.data?.data.user.has_usable_password ? <Field label="Senha" type="password" autoComplete="current-password" value={senha} onChange={(event) => setSenha(event.target.value)} required /> : principal?.verified ? codigoEnviado ? <Field label="Código de confirmação" value={codigo} onChange={(event) => setCodigo(event.target.value)} required /> : <p>Enviaremos um código para seu e-mail verificado.</p> : <><p>Confirme seu endereço de e-mail antes de solicitar um código.</p><Button label="Enviar link de confirmação" tone="secondary" onClick={verificarEmail} disabled={busy || !principal} /></>}
-      {(auth.data?.data.user.has_usable_password || principal?.verified) && <Button type="submit" label={busy ? "Aguarde…" : !auth.data?.data.user.has_usable_password && !codigoEnviado ? "Enviar código" : "Confirmar identidade"} disabled={busy} />}
-      <Button label="Cancelar" tone="ghost" disabled={busy} onClick={() => { setReauth(null); setSenha(""); setCodigo(""); }} />
-    </form>}</section>}
-    {erro && <p className={styles.error} role="alert">{erro}</p>}{aviso && <p role="status">{aviso}</p>}
-    <LogoutButton />
+    <header className={styles.identidade}>
+      <span className={styles.avatar} aria-hidden="true">{iniciais}</span>
+      <div className={styles.quem}>
+        <h1 title={nome || user.email}>{nome || "Seu perfil"}</h1>
+        <p title={user.email}>{user.email}</p>
+        <p className={styles.grupos}>{user.grupos.length ? `${user.grupos.length} ${user.grupos.length === 1 ? "grupo" : "grupos"}` : "Só o espaço pessoal"}</p>
+      </div>
+      <div className={styles.sair}><LogoutButton /></div>
+    </header>
+    {!reauth && mensagens}
+    <div className={styles.colunas}>
+      <div className={styles.coluna}>
+        <section className={styles.cartao} aria-labelledby="dados-t">
+          <h2 id="dados-t"><Icon name="perfil" size="md" />Seus dados</h2>
+          <dl className={styles.dados}>
+            <div><dt>Nome</dt><dd title={nome}>{nome || "Não informado"}</dd></div>
+            <div><dt>E-mail</dt><dd title={user.email}>{user.email}</dd></div>
+          </dl>
+        </section>
+        <div className={styles.cartao}><Preferencias user={user.id} /></div>
+      </div>
+      <div className={styles.coluna}>
+        <section className={styles.cartao} aria-labelledby="exportar-t">
+          <h2 id="exportar-t"><Icon name="baixar" size="md" />Exportar meus dados</h2>
+          <p>Prepare um arquivo com seus dados pessoais e participações atuais. A exportação fica disponível por até 24 horas.</p>
+          <div className={styles.actions}><Button label="Preparar exportação" tone="secondary" onClick={() => protegido("exportar")} disabled={busy || !!reauth} />{exportacao?.estado === "pronto" && <Button label="Baixar exportação" onClick={() => protegido("baixar")} disabled={busy || !!reauth} />}</div>
+          {exportacao && <p className={styles.estado} data-estado={exportacao.estado} role="status">{exportacao.estado === "pronto" ? "Exportação pronta." : exportacao.estado === "falhou" ? "Não foi possível preparar a exportação." : exportacao.estado === "expirado" ? "Exportação expirada." : "Preparando exportação…"} Disponível até {new Date(exportacao.expira_em).toLocaleString("pt-BR", { timeZone: "America/Fortaleza" })}.</p>}
+          {estado.isError && <p role="alert">Não foi possível consultar a exportação. <button type="button" className={styles.link} onClick={() => estado.refetch()}>Tentar novamente</button></p>}
+        </section>
+        <section className={`${styles.cartao} ${styles.perigo}`} aria-labelledby="excluir-t">
+          <h2 id="excluir-t"><Icon name="alerta" size="md" />Excluir minha conta</h2>
+          <p>Seus dados pessoais e sua conta serão excluídos. Dados e comprovantes dos grupos podem ser preservados conforme as regras do grupo.</p>
+          {!intencao && <div className={styles.actions}><Button tone="danger" label="Preparar exclusão" disabled={busy || !!reauth} onClick={() => protegido("excluir")} /></div>}
+          {intencao && <div className={styles.confirmar}><p>Confirme a exclusão até {new Date(intencao.expira_em).toLocaleString("pt-BR", { timeZone: "America/Fortaleza" })}. Isso não pode ser desfeito.</p><label className={styles.checkbox}><input type="checkbox" checked={confirmado} onChange={(event) => setConfirmado(event.target.checked)} disabled={busy || !!reauth} /> Quero excluir minha conta</label><Button tone="danger" label="Confirmar exclusão" disabled={!confirmado || busy || !!reauth} onClick={() => protegido("confirmar")} /></div>}
+        </section>
+      </div>
+    </div>
+    <Folha open={!!reauth} onClose={fecharReauth} busy={busy} title="Confirme sua identidade" subtitle="Por segurança, confirme antes de continuar.">
+      {auth.isLoading || emails.isLoading ? <p role="status">Carregando…</p> : auth.isError || emails.isError ? <p role="alert">Não foi possível carregar as opções de confirmação.</p> : <form className={styles.form} onSubmit={provar}>
+        {auth.data?.data.user.has_usable_password ? <Field label="Senha" type="password" autoComplete="current-password" value={senha} onChange={(event) => setSenha(event.target.value)} required autoFocus /> : principal?.verified ? codigoEnviado ? <Field label="Código de confirmação" value={codigo} onChange={(event) => setCodigo(event.target.value)} required autoFocus /> : <p>Enviaremos um código para seu e-mail verificado.</p> : <><p>Confirme seu endereço de e-mail antes de solicitar um código.</p><Button label="Enviar link de confirmação" tone="secondary" onClick={verificarEmail} disabled={busy || !principal} /></>}
+        {reauth && mensagens}
+        <div className={styles.actions}>
+          {(auth.data?.data.user.has_usable_password || principal?.verified) && <Button type="submit" label={busy ? "Aguarde…" : !auth.data?.data.user.has_usable_password && !codigoEnviado ? "Enviar código" : "Confirmar identidade"} disabled={busy} />}
+          <Button label="Cancelar" tone="ghost" disabled={busy} onClick={fecharReauth} />
+        </div>
+      </form>}
+    </Folha>
   </div>;
 }
