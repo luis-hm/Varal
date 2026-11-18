@@ -121,6 +121,23 @@ Casos de uso: CU05 = RF10 e RF11 (só o manual); CU06 = RF13; CU07 = RF12 (teste
 | CA36 · grupo → restrita × desligamento | `test_rn32_concorrencia_grupo_para_restrita_e_saida` (saída e remoção) |
 | CA37 · detalhe e resposta de edição consistentes | `test_rn06_detalhe_revalida_acesso_na_consulta_que_carrega_dados`, `test_rn06_detalhe_mantem_snapshot_ate_prefetch_e_historico`, `test_rn06_detalhe_espera_edicao_e_rele_acesso_em_snapshot_novo`, `test_rn06_resposta_propria_edicao_nao_le_edicao_alheia_posterior` |
 
+## Rastreabilidade da Etapa 12 (correções do teste inicial)
+
+Origem: [correções do teste inicial](produto/correcoes-teste-inicial-2026-11-16.md); [ADR 0016](arquitetura/adr/0016-categorias-com-icone.md) e [ADR 0017](arquitetura/adr/0017-permissoes-por-categoria.md).
+
+| COR | RF / CU / RN | Tela mobile ↔ desktop | Testes |
+| --- | --- | --- | --- |
+| COR-01 | RNF01, RNF10 | shell (todas) | `sessao-guard.test.tsx`, `bootstrap-sessao.test.ts`, E2E `ca01 cor01` (`etapa12.spec.ts`) |
+| COR-02/03 | RF12, ADR 0009 | 03 · Contas ↔ D03 | `test_contas.py` (sem mês, combinações), `contas-pagina.test.tsx`, `contas.spec.ts`, E2E `ca02 ca04` (`etapa12.spec.ts`) |
+| COR-04 | RF07, CU04, ADR 0016 | 10 · Grupo ↔ D04 | `test_rf07_criar_renomear_arquivar_casa`, `grupo-pagina.test.tsx`, `grupos.spec.ts`, E2E `ca03…` (`etapa12.spec.ts`) |
+| COR-05/06 | RF10, RF11, CU05 | 03 ↔ D03; 05 ↔ M01 | `contas-pagina.test.tsx`, `conta-folha.test.tsx` (COR-06), E2E `dec30 cor06` (`contas.spec.ts`), `ca05` (`etapa12.spec.ts`) |
+| COR-07 | RF12 | 10 ↔ D04; 03 ↔ D03 | `test_contas.py` (`subgrupo=nenhum`, linha "Sem categoria"), `grupo-pagina.test.tsx` (COR-07), E2E `ca06` (`etapa12.spec.ts`) |
+| COR-08/09 | RN30 (Perfil) | Início, Detalhe, Perfil | `perfil.test.tsx`, `inicio.test.tsx`, capturas em [evidências](etapas/12-correcoes-teste/evidencias/) |
+| COR-10 | RN01–RN07, ADR 0008, ADR 0017 | 10 ↔ D04 (folha "Quem pode fazer o quê"); 05 ↔ M01 | `test_permissoes_categoria.py` (23), `grupo-pagina.test.tsx` (COR-10), `conta-folha.test.tsx` (COR-10), E2E `ca10 cor10` (`etapa12.spec.ts`) |
+| COR-11 | RF12, CU07 | Grupo → Categoria → Detalhe (03/07 ↔ D03) | `contas-pagina.test.tsx`, `grupos.spec.ts`, E2E `ca08` (`etapa12.spec.ts`) |
+| COR-12 | RF02, CU01 | 01 · Entrar ↔ D01 | `next.config.ts` (referrer), edge `map`; validação do login Google real pendente (Console) |
+| Auditoria | CU01, CU02, CU05 | Criar conta, Grupos, M02 | `auth-form.test.tsx` (CU01), `grupo-pagina.test.tsx` (CU02; convite fechado antes do link chegar é revogado, RN31), `conta-folha.test.tsx` (CU05), E2E `rf01 ca02` (`auth.spec.ts`) |
+
 ## Rastreabilidade da Etapa 09
 
 | Critérios / regras | Testes |

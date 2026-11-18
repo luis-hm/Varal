@@ -12,8 +12,8 @@
 | T05 | [x] Perfil e espaçamento (COR-08/09) | Claude Code | `905a43a` |
 | T06 | [x] Docs da etapa, ADR 0016, ADR 0017 (proposta), handoff | Claude Code | este commit |
 | T07 | [x] COR-10 permissões por categoria (ADR 0017 aprovado em 18/11) | Claude Code | este commit |
-| T08 | [~] Auditoria: 3.1, 3.3 (parte), 3.4 e código morto feitos; faltam 3.2 (Q12-2) e tokens/margens da 3.5 | Claude Code / Codex | `d50efb8`…`126678c` |
-| T09 | [ ] E2E ajustado e novos casos | Codex | — |
-| T10 | [ ] Validação visual 390×844 e 1440×900 | Codex | — |
-| T11 | [ ] Relatório, PROGRESSO, matriz, modelo, Ajustes | Codex | — |
+| T08 | [x] Auditoria 3.1, 3.3, 3.4, 3.5 e código morto; 3.2 espera a Q12-2 do dono | Claude Code | `d50efb8`…`126678c`, commits de 18/11 à tarde |
+| T09 | [x] E2E ajustado e novos casos (`etapa12.spec.ts`) | Claude Code | `test(e2e)` de 18/11 |
+| T10 | [x] Validação visual 390×844 e 1440×900 ([evidências](evidencias/)) | Claude Code | `fix(web)` e `docs` de 18/11 |
+| T11 | [x] Relatório, PROGRESSO, matriz, modelo, Ajustes (sem itens abertos) | Claude Code | `docs` de 18/11 |
 | T12 | [ ] Google Console (URI de retorno da HMG) | Dono | — |
