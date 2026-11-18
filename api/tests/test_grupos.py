@@ -714,7 +714,13 @@ def test_rf07_criar_renomear_arquivar_casa(g):
     casa = response.json()["id"]
     url = g.url + f"subgrupos/{casa}/"
     renomeada = client.patch(url, {"nome": "Centro"}, content_type="application/json")
-    assert renomeada.json() == {"id": casa, "nome": "Centro", "arquivado": False}
+    assert renomeada.json() == {"id": casa, "nome": "Centro", "icone": "casa", "arquivado": False}
+    # COR-04: categories pick an icon from a closed list.
+    assert (
+        client.patch(url, {"icone": "luz"}, content_type="application/json").json()["icone"]
+        == "luz"
+    )
+    assert client.patch(url, {"icone": "x"}, content_type="application/json").status_code == 400
     assert (
         client.patch(
             url, {"arquivado": True, "destino_subgrupo": None}, content_type="application/json"

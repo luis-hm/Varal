@@ -114,12 +114,32 @@ class Convite(models.Model):
         return f"Convite {self.papel} para {self.espaco}"
 
 
+class Icone(models.TextChoices):
+    """COR-04: a category picks one of these; names match web/src/components/ui/icon.tsx."""
+
+    CASA = "casa", "Casa"
+    LUZ = "luz", "Luz"
+    AGUA = "agua", "Água"
+    INTERNET = "internet", "Internet"
+    TELEFONE = "telefone", "Telefone"
+    CARRO = "carro", "Carro"
+    MERCADO = "mercado", "Mercado"
+    SAUDE = "saude", "Saúde"
+    EDUCACAO = "educacao", "Educação"
+    CARTAO = "cartao", "Cartão"
+    TRABALHO = "trabalho", "Trabalho"
+    LAZER = "lazer", "Lazer"
+    PET = "pet", "Pet"
+    CONTAS = "contas", "Outras"
+
+
 class Subgrupo(models.Model):
-    """A "casa" of a group (CU04)."""
+    """A category ("categoria", formerly "casa") of a group (CU04, COR-04); table name kept."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     espaco = models.ForeignKey(Espaco, on_delete=models.CASCADE, related_name="subgrupos")
     nome = models.CharField(max_length=150)
+    icone = models.CharField(max_length=20, choices=Icone.choices, default=Icone.CASA)
     arquivado = models.BooleanField(default=False)
 
     def __str__(self):

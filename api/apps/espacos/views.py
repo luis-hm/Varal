@@ -99,7 +99,7 @@ class MembroSerializer(serializers.ModelSerializer):
 class CasaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subgrupo
-        fields = ["id", "nome", "arquivado"]
+        fields = ["id", "nome", "icone", "arquivado"]
 
 
 class GrupoDetalheSerializer(serializers.Serializer):
@@ -543,7 +543,7 @@ class CasaAlterarSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Subgrupo
-        fields = ["id", "nome", "arquivado", "destino_subgrupo"]
+        fields = ["id", "nome", "icone", "arquivado", "destino_subgrupo"]
         read_only_fields = ["id"]
 
 
