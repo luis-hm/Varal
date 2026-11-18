@@ -1,6 +1,0 @@
-**
-!infra/
-!infra/deploy/
-!infra/deploy/edge.conf.template
-!infra/deploy/ssr.conf.template
-!infra/deploy/proxy-entrypoint.sh

@@ -63,15 +63,14 @@ class IntencaoExclusao(models.Model):
 
 
 class OperacaoExclusao(models.Model):
+    """A committed deletion; `publicada_em` marks its record outside the database (ADR 0018)."""
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # Independent of the deleted identity and never an email-derived identifier.
     owner_id = models.UUIDField(db_index=True)
     intencao_id = models.UUIDField(db_index=True, null=True)
-    estado = models.CharField(max_length=16, default="preparada")
-    fence = models.PositiveBigIntegerField(default=1)
-    recibo_prepare = models.JSONField(null=True)
-    recibo_terminal = models.JSONField(null=True)
     criado_em = models.DateTimeField(auto_now_add=True)
+    publicada_em = models.DateTimeField(null=True)
 
     def __str__(self):
         return f"Operação {self.pk}"
@@ -104,24 +103,3 @@ class LimpezaExportacao(models.Model):
 
     def __str__(self):
         return "Limpeza de exportação"
-
-
-class MarcaRestauracao(models.Model):
-    operation_id = models.UUIDField(primary_key=True)
-    criado_em = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return "Marca de restauração"
-
-
-class ExecucaoRestauracao(models.Model):
-    operation_id = models.UUIDField(primary_key=True)
-    fence_id = models.UUIDField()
-    journal_seq = models.PositiveBigIntegerField()
-    journal_record_mac = models.CharField(max_length=64)
-    target_lsn = models.CharField(max_length=32)
-    prova_sha256 = models.CharField(max_length=64)
-    criado_em = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return "Execução de restauração"

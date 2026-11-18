@@ -47,7 +47,7 @@ varal/
 | Playwright (`@playwright/test`, Chromium) | 1.65.0 | `web/package.json`, `web/playwright.config.ts`, `make e2e` |
 | Lint | ruff (api), ESLint + `tsc` (web) | `make lint` |
 
-PDF textual usa pdfplumber e `django-storages`/S3; Web Push integrado na 09 com `pywebpush==2.3.0`; a etapa 11 acrescenta witness WAL e novas provas locais. Allauth headless já integrado na Etapa 02.
+PDF textual usa pdfplumber e `django-storages`/S3; Web Push integrado na 09 com `pywebpush==2.3.0`; a etapa 11 acrescentou provas locais; journal e witness WAL saíram na [ADR 0018](adr/0018-exclusao-e-backup-simples.md). Allauth headless já integrado na Etapa 02.
 
 ## Serviços e portas (dev)
 
@@ -126,20 +126,17 @@ Seção derivada da implementação e [ADR0015](adr/0015-exportacao-exclusao-e-p
 
 | Configuração implementada | Uso |
 | --- | --- |
-| `JOURNAL_URL`, `JOURNAL_EPOCH` | Writer privado e época esperada; URL sem segredo/query |
-| `JOURNAL_CLIENT_KEY_ID`, `JOURNAL_CLIENT_KEY_FILE`; `JOURNAL_RECEIPT_KEY_ID`, `JOURNAL_RECEIPT_KEY_FILE` | Autenticação do cliente e validação de recibos; arquivos privados separados |
-| `JOURNAL_RESTORE_KEY_ID/FILE`, `JOURNAL_CHAIN_KEY_ID/FILE`, `JOURNAL_CHECKPOINT_KEY_ID/FILE` | Leitura/verificação de restore, cadeia e checkpoint; cada função com sua chave/ID, nunca chaves no documento/imagem |
-| `VARAL_WAL_WITNESS_DIR`, `VARAL_WAL_WITNESS_KEY_FILE`, `VARAL_WAL_WITNESS_EPOCH`, `VARAL_WAL_WITNESS_TIMEOUT` | ACK autenticado de WAL durável antes do transporte; timeout limitado a no máximo 20 s |
-| `VARAL_RESTORE_MODE=1` | Manutenção isolada: bloqueia views e transporte/dispatch; comando de reconciliação não abre produto |
+| `VARAL_RESTORE_MODE=1` | Manutenção: bloqueia views e transporte/dispatch |
+| `BACKUP_PASSPHRASE` | Só no serviço `backup`: cifra o `pg_dump` diário ([runbook](backup-restauracao.md)) |
 | `VARAL_TRUSTED_PROXY_COUNT`, `VARAL_TRUSTED_PROXY_CIDRS` | Topologia implementada aceita 0 ou 1 salto; salto 1 exige CIDRs explícitos. Não copiar configuração local para VPS/CDN desconhecida |
 | `ACCOUNT_REAUTHENTICATION_METHODS`, `ACCOUNT_REAUTHENTICATION_TIMEOUT` | Configuração do código: password/code e 300 s; guarda nativa usa comparação estrita |
 
-Runtime PostgreSQL não é role de manutenção/proprietária: migração/restore e permissões elevadas usam ambiente separado. Role runtime não pode alterar R diretamente, desabilitar trigger ou administrar schema; trigger SECURITY DEFINER tem search_path fixo. Credencial S3 restrita ao bucket deve ser distinguida dos smokes anteriores com root sintético. Um fixture com root não prova menor privilégio do runtime. Arquivador WAL cifra segmentos e publica ACK só após persistência; cadeia/checkpoint/recibos e atestado têm domínios MAC separados. HMAC não cifra rede, não autentica usuário browser e não prova frescor contra root que recue tudo.
+Runtime PostgreSQL não é role de manutenção/proprietária: migração/restore e permissões elevadas usam ambiente separado. Role runtime não pode alterar R diretamente, desabilitar trigger ou administrar schema; trigger SECURITY DEFINER tem search_path fixo. Credencial S3 restrita ao bucket deve ser distinguida dos smokes anteriores com root sintético. Um fixture com root não prova menor privilégio do runtime.
 
 ### E2E e manutenção
 
 `infra/docker-compose.e2e.yml` fornece Redis exclusivo sem portas/persistência, rootfs read-only/tmpfs; API e worker da suíte usam esse Redis. `make e2e`/CI passam `E2E_RN31_ISOLATED=1`, ID do container, projeto `varal`, serviço `redis-e2e` e `--workers=1`. Hook `web/e2e/rn31-isolation.ts` valida labels/mounts/portas/ID antes de remover **somente** `varal:rn31::ip:*` por SCAN/UNLINK. Preserva contadores de usuário/outras chaves; sem FLUSHDB, sem Redis dev. Não aplicar hook ao laboratório produtivo ou usar o resultado como prova do limite entre casos.
 
-Comandos/alvos reais: `make lab11-init`, `lab11-up`, `lab11-down`, `lab11-backup`, `lab11-journal-test`, `lab11-journal-container`, `lab11-proxy-smoke`, `lab11-smtp-smoke`, `lab11-wal-test`, `lab11-wal-smoke`, `lab11-backend-witness-smoke`, `lab11-auth-smoke`, `lab11-s3-smoke`, `lab11-log-sentinels`, `lab11-storage-policy-smoke`. Alvos que recebem laboratório exigem `LAB_DIR` próprio validado; backup exige caminho privado de chave. Não executar contra volumes existentes por adaptação manual. O [runbook](operacao-local.md) descreve ACTIVE_RESTORE, seleção do primário e gates pendentes.
+Os alvos `lab11-*` e o laboratório (`infra/lab`) saíram na ADR 0018. Backup e restauração: [runbook](backup-restauracao.md).
 
 A etapa 11 ainda não tem aceite final. CA08 teve prova real de aceite10→DELETE204→worker/S3/hash/ACL via DjangoClient em processo (sem proxy); CA17 teve SMTP STARTTLS/uma captura aceita e WebPush TLS/VAPID/AES/worker aceito em receptores locais (sem provedor público). CA16 continua bloqueado pela preservação de direitos de aceites posteriores ao target; rejeição negativa passou, caminho positivo está em curso. QA 24 casos teve 18 aprovados/6 falhas (cinco harness e uma ARIA corrigida, aguardando browser). Nenhum desses recortes equivale a fechamento ou deploy. P11 destino remoto ausente; P6 externa e P9 próximo push autorizado.

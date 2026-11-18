@@ -7,7 +7,6 @@ from apps.contas_usuario.models import Usuario
 from apps.espacos import servicos
 from apps.espacos.models import Espaco, Membro
 from apps.privacidade.exclusao import excluir_privilegiado
-from apps.privacidade.journal import verificar_disponibilidade
 from apps.solicitacoes.coordenacao import barreira
 
 USUARIOS_DE_TESTE = (Q(email__startswith="burst-") | Q(email__startswith="e2e-")) & Q(
@@ -63,13 +62,11 @@ class Command(BaseCommand):
                 return
 
         # Freeze the previewed scope. Group removal and each user deletion commit
-        # independently because journal I/O cannot be done in a DB transaction.
+        # independently, so a failure leaves a reportable partial state.
         concluidos = 0
         grupos_apagados = False
         desligamentos = 0
         try:
-            if usuarios_ids:
-                verificar_disponibilidade()
             with transaction.atomic():
                 barreira()
                 atuais = (

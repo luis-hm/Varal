@@ -1,7 +1,7 @@
 name: varal
 
 x-api: &api
-  build: ../api
+  build: {context: ../api, target: dev}
   env_file: .env
   volumes: ["../api:/app", "pdfspool:/varal/staging", "./scripts/api-entrypoint.sh:/varal/entrypoint.sh:ro"]
   entrypoint: ["/bin/sh", "/varal/entrypoint.sh"]
@@ -46,7 +46,7 @@ services:
       retries: 30
 
   storage-init:
-    build: ../api
+    build: {context: ../api, target: dev}
     env_file: .env
     environment:
       WEBPUSH_PRIVATE_KEY: ""
@@ -85,7 +85,7 @@ services:
     command: celery -A config beat -l info --schedule /tmp/celerybeat-schedule
 
   web:
-    build: ../web
+    build: {context: ../web, target: dev}
     environment:
       API_INTERNAL_URL: http://api:8000
     volumes: ["../web:/app", "/app/node_modules", "/app/.next"]

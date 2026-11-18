@@ -154,7 +154,7 @@ O recorte autorizado de backup local e teste de recuperação do Silo foi conclu
 
 - As cópias estão na mesma VPS e no mesmo disco físico visível. Protegem contra alguns erros lógicos, mas podem desaparecer junto com o servidor ou disco. Não há promessa de perda zero ou alta disponibilidade.
 - O arquivo não possui criptografia adicional. As permissões locais e o acesso administrativo do Coolify são sua proteção nesta configuração; uma cópia externa futura precisará de tratamento adequado.
-- Este backup cobre o volume do Silo e seus metadados internos. O banco PostgreSQL, o journal de exclusões, as filas e a configuração completa do aplicativo Varal não estão incluídos. Ainda não há um ponto de recuperação consistente do aplicativo inteiro.
+- Este backup cobre o volume do Silo e seus metadados internos. Os dumps diários do PostgreSQL e os registros de exclusão (ADR 0018) estão no bucket do app e entram junto; as filas e a configuração do Coolify não. Ainda não há um ponto de recuperação consistente do aplicativo inteiro.
 - O exercício com dois objetos sintéticos não mede tempo de recuperação de um volume cheio. A janela observada de parada/retomada não é uma garantia de RTO, e o cron diário não comprova por si só um RPO máximo.
 - Não promover uma cópia antiga a armazenamento ativo de clientes sem reconciliar exclusões, permissões e demais estados atuais do aplicativo. O clone desta prova fica isolado; não assume o lugar do primário.
 

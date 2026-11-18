@@ -297,14 +297,6 @@ CELERY_BEAT_SCHEDULE["recuperar-solicitacoes"] = {
     "schedule": 60.0,
 }
 
-# Journal credentials are file paths, never credential values in URLs or logs.
-JOURNAL_URL = env("JOURNAL_URL", "")
-JOURNAL_EPOCH = env("JOURNAL_EPOCH", "")
-JOURNAL_CLIENT_KEY_ID = env("JOURNAL_CLIENT_KEY_ID", "")
-JOURNAL_CLIENT_KEY_FILE = env("JOURNAL_CLIENT_KEY_FILE", "")
-JOURNAL_RECEIPT_KEY_ID = env("JOURNAL_RECEIPT_KEY_ID", "")
-JOURNAL_RECEIPT_KEY_FILE = env("JOURNAL_RECEIPT_KEY_FILE", "")
-
 # Only one explicitly enumerated proxy hop is supported; the edge overwrites XFF.
 VARAL_TRUSTED_PROXY_COUNT = int(env("VARAL_TRUSTED_PROXY_COUNT", "0"))
 VARAL_TRUSTED_PROXY_CIDRS = tuple(filter(None, env("VARAL_TRUSTED_PROXY_CIDRS", "").split(",")))
@@ -319,8 +311,8 @@ CELERY_BEAT_SCHEDULE["recuperar-exportacoes"] = {
     "task": "apps.privacidade.tasks.recuperar_exportacoes",
     "schedule": 300.0,
 }
-CELERY_BEAT_SCHEDULE["recuperar-terminais-exclusao"] = {
-    "task": "apps.privacidade.tasks.recuperar_terminais_exclusao",
+CELERY_BEAT_SCHEDULE["publicar-exclusoes"] = {
+    "task": "apps.privacidade.tasks.publicar_exclusoes",
     "schedule": 60.0,
 }
 CELERY_BEAT_SCHEDULE["limpar-tickets-google"] = {
@@ -362,15 +354,4 @@ LOGGING = {
     },
 }
 
-VARAL_WAL_WITNESS_DIR = env("VARAL_WAL_WITNESS_DIR", "")
-VARAL_WAL_WITNESS_KEY_FILE = env("VARAL_WAL_WITNESS_KEY_FILE", "")
-VARAL_WAL_WITNESS_EPOCH = env("VARAL_WAL_WITNESS_EPOCH", "")
-# Delivery tasks have a 35 s soft limit; reserve time for transport and finalization.
-VARAL_WAL_WITNESS_TIMEOUT = max(1, min(int(env("VARAL_WAL_WITNESS_TIMEOUT", "15")), 20))
-JOURNAL_RESTORE_KEY_ID = env("JOURNAL_RESTORE_KEY_ID", "")
-JOURNAL_RESTORE_KEY_FILE = env("JOURNAL_RESTORE_KEY_FILE", "")
-JOURNAL_CHAIN_KEY_ID = env("JOURNAL_CHAIN_KEY_ID", "")
-JOURNAL_CHAIN_KEY_FILE = env("JOURNAL_CHAIN_KEY_FILE", "")
-JOURNAL_CHECKPOINT_KEY_ID = env("JOURNAL_CHECKPOINT_KEY_ID", "")
-JOURNAL_CHECKPOINT_KEY_FILE = env("JOURNAL_CHECKPOINT_KEY_FILE", "")
 VARAL_RESTORE_MODE = env("VARAL_RESTORE_MODE", "0") == "1"

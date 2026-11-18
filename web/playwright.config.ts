@@ -3,7 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 // `make e2e` (and CI) starts the real API/PostgreSQL before this browser suite.
 export default defineConfig({
   testDir: "e2e",
-  testIgnore: ["production.spec.ts", "privacidade11.spec.ts"],
+  testIgnore: ["production.spec.ts"],
   globalSetup: "./e2e/global-setup.ts",
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

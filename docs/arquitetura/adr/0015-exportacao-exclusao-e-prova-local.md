@@ -3,7 +3,7 @@
 > **Contém:** decisão delegada sobre RN30, Perfil e validação operacional local, com limites de recuperação.
 > **Origem:** delegação expressa do dono, RN30/ADR0003 e Q11-1–11/T11-A–H ratificadas pelo orquestrador em 16/11/2026.
 
-**Status:** decidido por delegação; implementação e provas pendentes na abertura da etapa 11. Não é resposta literal do dono, alteração manual da especificação de origem ou conclusão jurídica.
+**Status:** journal, WAL, bootstrap e laboratório de restauração **substituídos pela [ADR 0018](0018-exclusao-e-backup-simples.md)** (18/11/2026); o resto continua valendo. Original: decidido por delegação; implementação e provas pendentes na abertura da etapa 11. Não é resposta literal do dono, alteração manual da especificação de origem ou conclusão jurídica.
 
 ## Decisão
 
@@ -29,4 +29,4 @@ Prova fresca/revisão global podem exigir nova geração; medir contenção/star
 
 P10 resolvida por delegação; P11 continua dependência concreta de destino/domínio/condições para implantação remota. P6 é reexportação externa; P3/P4 são provas locais da 11 e P9 verificação no próximo push autorizado. Nenhum novo ok genérico impede implementação local. Sem push/envio externo/deploy real ou alteração dos volumes existentes.
 
-[Spec](../../etapas/11-acabamento-deploy/spec.md), [decisões](../../etapas/11-acabamento-deploy/decisoes.md), [plano](../../etapas/11-acabamento-deploy/plano.md) e [protocolo wire do journal](../protocolo-journal.md).
+[Spec](../../etapas/11-acabamento-deploy/spec.md), [decisões](../../etapas/11-acabamento-deploy/decisoes.md), [plano](../../etapas/11-acabamento-deploy/plano.md).

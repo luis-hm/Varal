@@ -256,4 +256,4 @@ T11-J: ticket é emitido no post_login Google nativo depois da validação allau
 
 SSR privado T11-G aceita somente GET `/api/me/`, `/api/espacos/{UUID}/resumo/` e `/api/notificacoes/resumo/`, UUID validado, origem interna fixa e cookies/precondição somente no servidor. Backend reautoriza e não há cache privado. Não é proxy arbitrário por URL/path/método.
 
-RN31 agora combina usuário e IP normalizado em operação Redis atômica, até 10 aceites/hora por IP; falha do limitador retorna 503 seguro. A cadeia confiável precisa estar declarada/testada; não confiar em XFF direto do cliente. O Redis exclusivo da suíte E2E e seu hook não alteram a cota de produção: removem só contadores IP entre casos serializados e não provam a cota HTTP. [Operação](../arquitetura/operacao-local.md).
+RN31 agora combina usuário e IP normalizado em operação Redis atômica, até 10 aceites/hora por IP; falha do limitador retorna 503 seguro. A cadeia confiável precisa estar declarada/testada; não confiar em XFF direto do cliente. O Redis exclusivo da suíte E2E e seu hook não alteram a cota de produção: removem só contadores IP entre casos serializados e não provam a cota HTTP.
