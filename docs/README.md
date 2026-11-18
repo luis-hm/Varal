@@ -15,7 +15,7 @@ Sessão nova começa por [PROGRESSO.md](PROGRESSO.md). Cada agente lê **só** o
 | O que a etapa NN entrega e como se aceita? | `etapas/NN-slug/spec.md`, `plano.md`, `tarefas.md`, `relatorio.md` |
 | O que a etapa 10 entregou? | [Solicitação e modo simples](etapas/10-solicitacao-modo-simples/spec.md), [plano](etapas/10-solicitacao-modo-simples/plano.md), [tarefas](etapas/10-solicitacao-modo-simples/tarefas.md), [decisões](etapas/10-solicitacao-modo-simples/decisoes.md) e [ADR0014](arquitetura/adr/0014-solicitacao-e-sincronizacao-privada.md) |
 | O que a etapa 11 deve entregar e qual seu estado? | [Spec](etapas/11-acabamento-deploy/spec.md), [plano](etapas/11-acabamento-deploy/plano.md), [tarefas](etapas/11-acabamento-deploy/tarefas.md), [decisões](etapas/11-acabamento-deploy/decisoes.md) e [relatório](etapas/11-acabamento-deploy/relatorio.md) |
-| Como exportar/excluir e recuperar sem ressuscitar dados? | [ADR0015](arquitetura/adr/0015-exportacao-exclusao-e-prova-local.md) e [protocolo do journal](arquitetura/protocolo-journal.md) |
+| Como exportar/excluir e recuperar sem ressuscitar dados? | [ADR0015](arquitetura/adr/0015-exportacao-exclusao-e-prova-local.md) e [ADR0018](arquitetura/adr/0018-exclusao-e-backup-simples.md) |
 | Qual RF vira qual CU, RN, tela, etapa e teste? | [matriz-rastreabilidade.md](matriz-rastreabilidade.md) |
 | Para que serve o produto? O que está no MVP? | [produto/visao-e-escopo.md](produto/visao-e-escopo.md) |
 | Quais correções e mudanças surgiram no teste inicial do dono? | [Correções de 16/11/2026, complementadas em 17/11](produto/correcoes-teste-inicial-2026-11-16.md): sessão, filtros, grupos/categorias, permissões, telas, design/Perfil e login Google; diagnósticos de [Sem casa](produto/evidencias/sem-casa-2026-11-17/README.md) e [Google CSRF/OAuth](produto/evidencias/google-csrf-2026-11-17/README.md) reproduzidos; correções ainda não implementadas |
@@ -27,7 +27,7 @@ Sessão nova começa por [PROGRESSO.md](PROGRESSO.md). Cada agente lê **só** o
 | Quais entidades e campos existem? | [dados/modelo.md](dados/modelo.md) |
 | Como as peças conversam? | [arquitetura/visao-geral.md](arquitetura/visao-geral.md) |
 | Que versões, portas e variáveis de ambiente? | [arquitetura/stack.md](arquitetura/stack.md) |
-| Como operar o laboratório/primário restaurado sem contornar os gates? | [Runbook de operação local](arquitetura/operacao-local.md) (ACTIVE_RESTORE, backup, journal/WAL, ledger/direitos e limites P11) |
+| Como fazer backup e restaurar o banco sem trazer contas excluídas de volta? | [Backup e restauração](arquitetura/backup-restauracao.md) |
 | Como operar o Silo remoto no Coolify e quais são seus limites? | [Silo na VPS](arquitetura/silo-coolify.md) e [Compose](../infra/silo/compose.coolify.yml); separado do laboratório e do desenvolvimento |
 | Como funciona o backup local do Silo e como testar sua recuperação? | [Backup e recuperação do Silo](arquitetura/silo-backup-recuperacao.md), [agenda](../infra/silo/backup-schedule.json) e [template isolado](../infra/silo/compose.restore.yml) |
 | Como planejamos usar IA para ler boletos e evitar erros recorrentes? | [Plano de IA para boletos](arquitetura/ia-boletos.md) e [pesquisa oficial Gemini](arquitetura/pesquisa-gemini-boletos.md); proposta ainda não implementada |

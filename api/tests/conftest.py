@@ -3,6 +3,8 @@ import uuid
 import pytest
 from django.core.cache import cache
 
+REGISTROS = []
+
 
 @pytest.fixture(autouse=True)
 def local_auth_settings(settings, monkeypatch):
@@ -13,17 +15,10 @@ def local_auth_settings(settings, monkeypatch):
     settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
     settings.CELERY_TASK_ALWAYS_EAGER = True
     settings.CELERY_TASK_EAGER_PROPAGATES = True
-    # Test-only pure transport: domain guards and the journal ledger remain active.
-    settings.PRIVACIDADE_JOURNAL_FAKE_TESTE = True
     settings.RN31_TEST_NAMESPACE = str(uuid.uuid4())
-    monkeypatch.setattr(
-        "apps.privacidade.exclusao.registrar",
-        lambda operation_id, owner_id, kind, fence, prepare_seq=None: {
-            "seq": 1 if kind == "PREPARE" else 2
-        },
-    )
-    # Existing delivery tests do not perform external transport; production never bypasses WAL.
-    monkeypatch.setattr("apps.notificacoes.witness.testemunhar", lambda: None)
+    # Deletion records go to S3 in production (ADR 0018); tests keep them in memory.
+    monkeypatch.setattr("apps.privacidade.exclusao.registro", REGISTROS.append)
+    REGISTROS.clear()
     settings.CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
     cache.clear()
     yield

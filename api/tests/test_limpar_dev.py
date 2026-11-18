@@ -13,9 +13,6 @@ def usuario(email, username=None):
 
 
 def test_limpar_dev_apaga_sobras_de_teste_e_preserva_pessoas(monkeypatch):
-    monkeypatch.setattr(
-        "apps.espacos.management.commands.limpar_dev.verificar_disponibilidade", lambda: None
-    )
     dev = usuario("dev@varal.local", "dev")
     ana = usuario("ana@varal.local")
     burst = usuario("burst-1@varal.test")
@@ -42,9 +39,6 @@ def test_limpar_dev_informa_interrupcao_parcial_e_preserva_dev(monkeypatch):
 
     from apps.privacidade.exclusao import excluir_privilegiado
 
-    monkeypatch.setattr(
-        "apps.espacos.management.commands.limpar_dev.verificar_disponibilidade", lambda: None
-    )
     dev = usuario("dev@varal.local", "dev")
     a = usuario("burst-a@varal.test")
     b = usuario("e2e-b@varal.test")

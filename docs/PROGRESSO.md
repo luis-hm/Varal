@@ -62,6 +62,13 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 
 Ordem cronológica inversa.
 
+### 18/11/2026 — Infra enxuta (branch `infra/simplificar-deploy`, pedido do dono)
+
+- Saíram o journal de exclusões, o WAL com testemunha, o bootstrap de chaves e o laboratório da etapa 11 (`infra/lab`, `infra/journal`, `infra/wal`, alvos `lab11-*`, configs Playwright `*11`). Deploy passou de 15 para 10 serviços.
+- Exclusão de conta agora é uma transação só; um registro vai para o bucket depois do commit, e `reaplicar_exclusoes` reaplica após uma restauração ([ADR 0018](arquitetura/adr/0018-exclusao-e-backup-simples.md)). Migração `privacidade.0009`.
+- Backup diário cifrado do PostgreSQL no bucket (serviço `backup`, precisa de `BACKUP_PASSPHRASE` no Coolify). [Runbook](arquitetura/backup-restauracao.md).
+- Um Dockerfile por app com estágios `dev`/`prod`; `infra/postgres` e `infra/proxy` com o resto. Edge e ssr ficaram (confiança de IP e HTTPS do SSR).
+
 ### 18/11/2026 — Etapa 12 concluída
 
 - E2E ajustado às regras novas e verde nas duas larguras (153 passaram, 3 pulados; mais 4 rodados à parte). Casos novos em `web/e2e/etapa12.spec.ts`. API 569/569, web 171/171, tipos sem diferença.

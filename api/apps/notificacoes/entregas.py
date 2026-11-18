@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from apps.solicitacoes.coordenacao import barreira
 
-from . import push, transportes, witness
+from . import push, transportes
 from .acesso import autorizadas
 from .models import (
     EntregaNotificacao,
@@ -189,18 +189,6 @@ def enviar_email_entrega(pk):
         if not entrega or not _iniciar(entrega, n, "email", token):
             return
         destinatario = n.destinatario.email
-    try:
-        witness.testemunhar()
-    except witness.WitnessIndisponivel:
-        with transaction.atomic():
-            entrega = (
-                EntregaNotificacao.objects.select_for_update()
-                .filter(pk=pk, estado=EstadoEntrega.INICIADA, token=token)
-                .first()
-            )
-            if entrega:
-                _finalizar(entrega, transportes.Resultado("transiente", "witness_indisponivel"))
-        return
     with transaction.atomic():
         barreira()
         n = _contexto(ref["notificacao_id"])
@@ -298,20 +286,6 @@ def enviar_push_dispositivo(pk):
             _concluir_push(entrega)
             return
         segredo = bytes(inscricao_atual.segredo)
-    try:
-        witness.testemunhar()
-    except witness.WitnessIndisponivel:
-        with transaction.atomic():
-            entrega = EntregaNotificacao.objects.select_for_update().get(pk=ref["entrega_id"])
-            item = (
-                EntregaPushDispositivo.objects.select_for_update()
-                .filter(pk=pk, estado=EstadoEntrega.INICIADA, token=token)
-                .first()
-            )
-            if item:
-                _finalizar(item, transportes.Resultado("transiente", "witness_indisponivel"))
-                _concluir_push(entrega)
-        return
     with transaction.atomic():
         barreira()
         n = _contexto(ref["entrega__notificacao_id"])

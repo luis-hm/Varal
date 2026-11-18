@@ -1,7 +1,8 @@
-"""RN30 snapshot generation, fenced publication and durable object cleanup."""
+"""RN30 snapshot generation, fenced publication, durable object cleanup and deletion records."""
 
 import hashlib
 import json
+import logging
 import tempfile
 import uuid
 from datetime import timedelta
@@ -26,6 +27,7 @@ from apps.solicitacoes.coordenacao import barreira
 
 from .models import Exportacao, LimpezaExportacao, ParteExportacao, RevisaoExportacao
 
+logger = logging.getLogger(__name__)
 LOTE = 500
 LEASE = timedelta(minutes=10)
 MAGIC = b"VARAL-EXPORT-2\n"
@@ -406,36 +408,18 @@ def recuperar_exportacoes():
 
 
 @shared_task
-def recuperar_terminais_exclusao():
-    from .exclusao import publicar_terminal
-    from .journal import JournalIndisponivel, registrar
+def publicar_exclusoes():
+    """Publish deletion records not yet outside the database; beat retries what failed."""
+    from botocore.exceptions import BotoCoreError, ClientError
+
+    from .exclusao import registro
     from .models import OperacaoExclusao
 
-    # A lost PREPARE response is reconciled by replaying the identical message.
-    # Only the authoritative live ledger can decide ABORT, under its row lock.
-    limite = timezone.now() - timedelta(minutes=10)
-    preparadas = OperacaoExclusao.objects.filter(
-        estado="preparada", criado_em__lt=limite
-    ).values_list("pk", flat=True)
-    for operacao_id in preparadas.iterator():
-        op = OperacaoExclusao.objects.filter(pk=operacao_id, estado="preparada").first()
-        if not op:
-            continue
+    pendentes = OperacaoExclusao.objects.filter(publicada_em__isnull=True).order_by("criado_em")
+    for op in pendentes[:500]:
         try:
-            recibo = registrar(op.pk, op.owner_id, "PREPARE", op.fence)
-        except (JournalIndisponivel, ValueError):
-            continue
-        with transaction.atomic():
-            atual = OperacaoExclusao.objects.select_for_update().filter(pk=op.pk).first()
-            if not atual or atual.estado != "preparada" or atual.criado_em >= limite:
-                continue
-            if atual.recibo_prepare and atual.recibo_prepare != recibo:
-                continue
-            atual.recibo_prepare = recibo
-            atual.estado = "abortada"
-            atual.save(update_fields=["recibo_prepare", "estado"])
-    pendentes = OperacaoExclusao.objects.filter(
-        estado__in=("commitada", "abortada"), recibo_terminal__isnull=True
-    ).values_list("pk", flat=True)
-    for operacao_id in pendentes.iterator():
-        publicar_terminal(operacao_id)
+            registro(op)
+        except (BotoCoreError, ClientError):
+            logger.warning("deletion record not published; retrying later")
+            return
+        OperacaoExclusao.objects.filter(pk=op.pk).update(publicada_em=timezone.now())

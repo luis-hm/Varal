@@ -43,8 +43,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --frozen
-      - name: Verify encrypted WAL witness
-        run: uv run --frozen python -m unittest discover -s ../infra/wal -p 'test_*.py' -v
       - name: Start private S3 for integration tests
         working-directory: .
         run: sh infra/scripts/ci-storage.sh
@@ -81,13 +79,3 @@ jobs:
       - name: Fail if generated schema or types differ from the commit
         run: git diff --exit-code api/openapi.yaml web/src/types/api.ts
 
-  journal:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Verify journal protocol and recovery
-        run: make lab11-journal-test
-      - name: Verify journal container and isolated volumes
-        run: make lab11-journal-container
-      - name: Verify isolated TLS proxy contract
-        run: make lab11-proxy-smoke

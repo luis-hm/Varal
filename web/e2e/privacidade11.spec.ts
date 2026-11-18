@@ -1,10 +1,18 @@
-// Etapa 11: apenas laboratório HTTPS isolado; usuários e dados sintéticos.
+// Etapa 11 (RN30): exportar, excluir e sessão; usuários e dados sintéticos. Roda na suíte normal desde a ADR 0018.
 import { test, expect, type Page } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
-import { TEST_PASSWORD, api, criarGrupo, descartarContas, entrarNoGrupo, estadoAutenticado, hoje, logar, me, novaConta, semRolagemEAlvos44 } from "./fixtures";
+import { ORIGIN, TEST_PASSWORD, api, criarGrupo, descartarContas, entrarNoGrupo, estadoAutenticado, hoje, logar, me, novaConta, semRolagemEAlvos44 } from "./fixtures";
 
 test.afterEach(descartarContas);
+// The `next dev` badge is not part of the app and is smaller than 44px.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => addEventListener("DOMContentLoaded", () => {
+    const style = document.createElement("style");
+    style.textContent = "nextjs-portal { display: none !important; }";
+    document.head.append(style);
+  }));
+});
 
 async function acaoComReauth(page: Page, label: string, endpoint: string) {
   const enviar = async () => {
@@ -36,7 +44,7 @@ test("ca06: credencial errada mostra erro e não cria hint de identidade", async
 
 test("ca11: sessão legada sem hint não revela SSR e exige entrada real", async ({ browser, playwright }) => {
   const conta = await novaConta(playwright);
-  const contexto = await browser.newContext({ storageState: await conta.request.storageState(), baseURL: process.env.LAB_BASE_URL });
+  const contexto = await browser.newContext({ storageState: await conta.request.storageState(), baseURL: ORIGIN });
   try {
     const page = await contexto.newPage();
     const resposta = await contexto.request.get("/perfil", { maxRedirects: 0 });
@@ -231,7 +239,7 @@ test("ca11/t11-i: resposta de login A tardia após B não revela A", async ({ br
   test.setTimeout(120_000);
   const a = await novaConta(playwright);
   const b = await novaConta(playwright);
-  const contexto = await browser.newContext({ baseURL: process.env.LAB_BASE_URL });
+  const contexto = await browser.newContext({ baseURL: ORIGIN });
   let liberar!: () => void;
   let capturado!: () => void;
   let entregue!: () => void;
@@ -243,7 +251,7 @@ test("ca11/t11-i: resposta de login A tardia após B não revela A", async ({ br
     const [abaA, abaB] = await Promise.all([contexto.newPage(), contexto.newPage()]);
     await Promise.all([abaA.goto("/entrar"), abaB.goto("/entrar")]);
     await expect(abaA.getByRole("button", { name: "Entrar", exact: true })).toBeEnabled();
-    clienteA = await playwright.request.newContext({ baseURL: process.env.LAB_BASE_URL, storageState: await contexto.storageState() });
+    clienteA = await playwright.request.newContext({ baseURL: ORIGIN, storageState: await contexto.storageState() });
     await contexto.route("**/api/auth/browser/v1/auth/login", async (route) => {
       const body = route.request().postDataJSON() as { email?: string } | null;
       if (route.request().method() !== "POST" || body?.email !== a.email) return route.continue();

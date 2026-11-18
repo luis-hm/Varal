@@ -17,13 +17,13 @@ Ambientes Coolify: `hmg` (`csynpigwvzzsmsgs8ox1muns`) e `production` (`pdc5smdh3
 ## Fonte Git e construção
 
 - Aplicações de repositório público `luis-hm/Varal`, build pack Docker Compose, sem vínculo a GitHub App nem webhook direto de push.
-- Base Directory: `/infra/deploy`; Docker Compose Location: `/compose.coolify.yml`. Contexto de build `../..` corresponde à raiz do repositório.
-- Arquivo: [compose.coolify.yml](../../infra/deploy/compose.coolify.yml). Imagens próprias para Gunicorn, Next produtivo, proxies, PostgreSQL, journal/WAL e inicialização; não usar os Dockerfiles de desenvolvimento.
+- Base Directory: `/infra/deploy`; Docker Compose Location: `/compose.coolify.yml`. Contextos de build: `../../api`, `../../web` (estágio `prod` dos Dockerfiles de cada app), `../postgres` e `../proxy`.
+- Arquivo: [compose.coolify.yml](../../infra/deploy/compose.coolify.yml). Um Dockerfile por app (`api/`, `web/`) com estágios `dev` e `prod`; o deploy usa `prod`. `infra/postgres/` serve ao `postgres` e ao `backup`; `infra/proxy/` ao edge e ao ssr.
 - **Raw Compose obrigatório:** `is_raw_compose_deployment_enabled=true`. No modo normal, o Coolify pode injetar `.env` em todos os serviços e anular a separação de credenciais. Conferir o Compose efetivo antes da implantação.
 - Build serial por aplicação: `docker_compose_custom_build_command=docker compose --parallel 1 build`. Não mudar limites globais ou configurações de outros aplicativos.
-- Variáveis secretas somente runtime; Dockerfiles possuem listas restritas de inclusão no contexto. Manter varredura de imagens habilitada.
+- Variáveis secretas somente runtime; o `.dockerignore` de cada app exclui `.env*`, chaves e testes. Manter varredura de imagens habilitada.
 
-O Compose mantém bancos/Redis/journal internos, API sem porta pública e somente o edge na rede externa `coolify`. Traefik termina TLS e encaminha à porta interna8080. Routers próprios têm access logs e tracing desativados para não registrar tokens/URLs. O edge recebe o IP original somente do IP exato do Traefik e sobrescreve cabeçalhos antes de chegar à API. SSR usa proxy separado com três GETs autorizados, preservando a regra da11.
+O Compose mantém banco e Redis internos, API sem porta pública e somente o edge na rede externa `coolify`. Traefik termina TLS e encaminha à porta interna8080. Routers próprios têm access logs e tracing desativados para não registrar tokens/URLs. O edge recebe o IP original somente do IP exato do Traefik e sobrescreve cabeçalhos antes de chegar à API. SSR usa proxy separado com três GETs autorizados, preservando a regra da11.
 
 Upstreams dos proxies usam aliases privados exclusivos (`hmgvaral-api`/`hmgvaral-web` ou equivalentes de produção), sem depender de nomes genéricos que possam existir em outros projetos ligados à rede compartilhada. Namespace permitido somente `hmgvaral` ou `varal`; SSR continua sem acesso geral à API.
 
@@ -65,9 +65,9 @@ No Coolify, cada aplicação tem seu `manual_webhook_secret_github`. HMG tem `is
 
 ## Persistência, chaves e arquivos
 
-HMG tem banco, senhas de admin/migrador/runtime, Redis, spool, epoch e volumes próprios, prefixados `hmgvaral-`. Produção terá prefixo `varal-` e segredos diferentes. Bootstrap gera chaves em volumes separados, sela a identidade inicial e falha diante de inicialização parcial ou perda inconsistente de volumes. Não copiar chaves/fixtures/dumps do laboratório, não reinicializar volumes perdidos para fazer o serviço parecer saudável.
+HMG tem banco, senhas de admin/migrador/runtime, Redis, spool e volumes próprios, prefixados `hmgvaral-`. Produção terá prefixo `varal-` e segredos diferentes. Não reinicializar volumes perdidos para fazer o serviço parecer saudável; restaurar pelo [runbook](backup-restauracao.md).
 
-Runtime recebe apenas as capacidades necessárias; migração roda por role separada e uma trava de migração. PostgreSQL preserva arquivamento WAL e journal permanece habilitado. Redis usa persistência e limite de memória sem expulsão silenciosa de chaves. Esses mecanismos não substituem backup/recovery testado do novo conjunto.
+Runtime recebe apenas as capacidades necessárias; migração roda por role separada e uma trava de migração. O serviço `backup` faz o `pg_dump` diário cifrado no bucket ([ADR 0018](adr/0018-exclusao-e-backup-simples.md)); exige `BACKUP_PASSPHRASE`. Redis usa persistência e limite de memória sem expulsão silenciosa de chaves. Esses mecanismos não substituem backup/recovery testado do novo conjunto.
 
 | Armazenamento | Bucket | Credencial |
 | --- | --- | --- |
@@ -111,4 +111,4 @@ gh run list --repo luis-hm/Varal --branch develop
 
 Falha de implantação: consultar logs restritos no Coolify sem copiar dados de requisições. Voltar ao commit/imagem conhecido preservando banco/volumes; migrations podem exigir plano próprio de compatibilidade. Não usar `down -v`, prune de volumes ou limpar bucket/banco para corrigir configuração. Não reiniciar proxy global ou serviços de outros projetos.
 
-Backup local do Silo já existente inclui o volume do Silo; isso não comprova recuperação de PostgreSQL/journal/WAL desta stack. O conjunto novo precisa de backup consistente, retenção e ensaio de recuperação próprios. VPS e disco continuam únicos. HMG não é aprovação de RNF05/CA13, CA16/18, resiliência ou implantação final de produção.
+O backup do Silo inclui o volume do Silo, e com ele os dumps e os registros de exclusão. A restauração do banco segue o [runbook](backup-restauracao.md) e ainda precisa de um ensaio na HMG. VPS e disco continuam únicos. HMG não é aprovação de RNF05/CA13, CA16/18, resiliência ou implantação final de produção.

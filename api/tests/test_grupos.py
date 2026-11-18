@@ -613,8 +613,7 @@ def test_rn04_exclusao_usuario_ultimo_admin_admin_django(g):
     )
     assert bulk.status_code == 200 and "único admin do grupo" in bulk.content.decode()
     assert Usuario.objects.filter(pk=admin_.pk).exists()
-    # Admin deletion is refused: it runs inside admin's outer transaction and cannot
-    # durably prepare the independent journal without I/O under that transaction.
+    # Admin deletion is refused: only the account owner deletes, from Perfil (RN30).
     request = RequestFactory().post("/")
     request.user = root
     request._messages = CookieStorage(request)
@@ -626,7 +625,7 @@ def test_rn04_exclusao_usuario_ultimo_admin_admin_django(g):
     with pytest.raises(PermissionDenied, match="Perfil"):
         model_admin.delete_model(request, admin_)
     assert Usuario.objects.filter(pk=admin_.pk).exists()
-    # Even when guards allow it, admin cannot journal safely inside its outer transaction.
+    # Even when guards allow it, the admin still cannot delete the account.
     servicos.alterar_papel(g.grupo, g.m["membro"].pk, "admin")
     assert client.post(url, {"post": "yes"}).status_code == 403
     assert Usuario.objects.filter(pk=admin_.pk).exists()
