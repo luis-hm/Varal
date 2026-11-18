@@ -2,7 +2,7 @@
 // 06 · Conferir conta (tKY4nFTZ3-) + M02 (Sre1zOcaE-): Valor, Vencimento, Descrição, Casa, Quem paga, "Salvar conta".
 // No frame (guide varal-ui "Telas sem frame"): "Quem vê" people, the visibility notice and "Cancelar conta".
 // CU05, CU07; RF08–RF12, RN05, RN06, RN08–RN11, RN22, Q3, Q16, Q19b, CA28.
-// PDF, issue date, recurrence and "+ Nova" house stay in their stages (06/08).
+// COR-06: destination explicit ("Onde fica esta conta?"); a personal bill hides Categoria, Quem paga and Quem vê.
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -19,6 +19,8 @@ import type { ContaAlteracao, ContaDetalhe, ContaEntrada, InstrumentoEntrada, Le
 import { lerValor, mesAtual, valorEditavel } from "@/lib/contas/formato";
 import { useAcoesConta, useAcoesRecorrencia, useEnviarPdf, useLerInstrumento, usePdf, useRecorrencia } from "@/lib/contas/hooks";
 import { espacosParaCriar } from "@/lib/espaco";
+import type { Destino } from "@/components/layout/app-shell";
+import { iconeDe } from "@/lib/categorias/icones";
 import { ApiError, type Membro } from "@/lib/grupos/client";
 import { useGrupo } from "@/lib/grupos/hooks";
 import styles from "./conta-folha.module.css";
@@ -52,14 +54,17 @@ type Props = {
   /** Without a bill: create (Q3). With one: edit and cancel (CU07). */
   conta?: ContaDetalhe;
   returnFocusTo?: HTMLElement | null;
+  /** COR-06: where the person opened the form (group, category); without it the bill is personal. */
+  destino?: Destino;
 };
 
-export function ContaFolha({ open, onClose, conta, returnFocusTo }: Props) {
+export function ContaFolha({ open, onClose, conta, returnFocusTo, destino }: Props) {
   const router = useRouter();
-  const { user, espaco: atual } = useSessao();
+  const { user } = useSessao();
   const { criar, editar, cancelar } = useAcoesConta();
   const recorrencias = useAcoesRecorrencia();
-  const espacos = espacosParaCriar(user, atual.id); // ajuste 30: current space first and selected
+  // COR-06: the destination of the screen comes first and selected; with none, "Pessoal" (never the cookie).
+  const espacos = espacosParaCriar(user, destino?.espaco);
   const [espacoId, setEspacoId] = useState(conta?.espaco.id ?? espacos[0].id);
   const espaco = conta?.espaco ?? espacos.find((e) => e.id === espacoId)!;
   const emGrupo = espaco.tipo === "grupo";
@@ -75,7 +80,7 @@ export function ContaFolha({ open, onClose, conta, returnFocusTo }: Props) {
   const [valor, setValor] = useState(conta?.valor_centavos != null ? valorEditavel(conta.valor_centavos) : "");
   const [vencimento, setVencimento] = useState(conta?.vencimento ?? "");
   const [descricao, setDescricao] = useState(conta?.descricao ?? "");
-  const [casa, setCasa] = useState<string | null>(conta?.subgrupo?.id ?? null);
+  const [casa, setCasa] = useState<string | null>(conta ? (conta.subgrupo?.id ?? null) : espacos[0].id === destino?.espaco ? (destino?.categoria ?? null) : null);
   // Q16: "Eu" pre-selected; whoever creates in a group is admin or member, so can pay.
   const [pagador, setPagador] = useState<string | null>(conta ? (conta.pagador?.id ?? null) : user.id);
   const [visibilidade, setVisibilidade] = useState(conta?.visibilidade ?? "grupo");
@@ -173,17 +178,19 @@ export function ContaFolha({ open, onClose, conta, returnFocusTo }: Props) {
   // Creating: whoever creates always sees it, so "Eu" is not an option; editing keeps it (Q19b).
   const quemVe = pessoas(membros, ["admin", "membro", "observador"], user.id).filter((p) => conta || p.id !== user.id);
   for (const p of conta?.acesso ?? []) if (!quemVe.some((q) => q.id === p.id)) quemVe.push(p);
-  // Q20: a bill of an archived house keeps and shows it.
-  const casas = [...(grupo.data?.casas ?? [])];
+  // Q20: a bill of an archived category keeps and shows it.
+  const casas: { id: string; nome: string; icone?: string | null }[] = [...(grupo.data?.casas ?? [])];
   if (conta?.subgrupo && !casas.some((c) => c.id === conta.subgrupo!.id)) casas.push(conta.subgrupo);
 
   const erro = criar.error ?? editar.error ?? cancelar.error ?? recorrencias.criar.error;
   const api = erro instanceof ApiError ? erro.campos : {};
+  // COR-06: a category the group no longer has (archived while the form was open) is not sent silently.
+  const casaValida = casa === null || casas.some((c) => c.id === casa);
   const erros = {
     valor: local.valor ?? api.valor_centavos,
     vencimento: local.vencimento ?? api.vencimento,
     descricao: local.descricao ?? api.descricao,
-    casa: api.subgrupo,
+    casa: local.casa ?? api.subgrupo ?? (grupo.data && !casaValida ? "Escolha uma categoria deste grupo." : undefined),
     pagador: api.pagador,
     // Q19b: "Você é a única pessoa que vê esta conta…" comes back on `acesso`.
     acesso: api.acesso ?? api.visibilidade,
@@ -274,6 +281,7 @@ export function ContaFolha({ open, onClose, conta, returnFocusTo }: Props) {
     if (aguardandoSemConfirmar && (instrumentoAlterado || pdfId)) faltas.instrumento = "Confirme a chegada para salvar os dados conferidos.";
     if (!vencimento) faltas.vencimento = "Informe o vencimento.";
     if (!descricao.trim()) faltas.descricao = "Dê um nome para a conta.";
+    if (emGrupo && (!grupo.data || !casaValida)) faltas.casa = "Espere carregar as categorias e escolha uma.";
     if (repetir && vencimento.slice(0, 7) !== mesAtual()) faltas.repeticao = "Para repetir, o vencimento da primeira conta precisa ser deste mês. Você pode salvar sem repetir.";
     if (repetir && (!Number.isInteger(Number(diaRecorrencia)) || Number(diaRecorrencia) < 1 || Number(diaRecorrencia) > 31)) faltas.repeticao = "Informe o dia das próximas contas, de 1 a 31.";
     if (modo !== "manual" && !conferencia) faltas.instrumento = "Confira o código ou a chave antes de salvar.";
@@ -312,7 +320,7 @@ export function ContaFolha({ open, onClose, conta, returnFocusTo }: Props) {
       const dados = { descricao: entrada.descricao, dia_vencimento: Number(diaRecorrencia), valor_tipo: tipoRecorrencia, valor_centavos: tipoRecorrencia === "fixo" ? centavos : null, subgrupo: entrada.subgrupo, pagador: entrada.pagador, visibilidade: entrada.visibilidade, acesso: entrada.acesso, ocorrencia_inicial: { valor_centavos: centavos, vencimento: entrada.vencimento, instrumento: entrada.instrumento, documento_pdf: entrada.documento_pdf, data_emissao: entrada.data_emissao, beneficiario: entrada.beneficiario } };
       const assinatura = JSON.stringify([espaco.id, dados]);
       if (tentativa.current?.assinatura !== assinatura) tentativa.current = { assinatura, chave: crypto.randomUUID() };
-      return recorrencias.criar.mutate({ espaco: espaco.id, body: { ...dados, chave_idempotencia: tentativa.current.chave } }, { onSuccess: (resultado) => { if (sessao.current !== versaoSessao) return; onClose(); if (resultado.ocorrencia) router.push(`/contas/${resultado.ocorrencia.id}?mes=${resultado.ocorrencia.vencimento.slice(0, 7)}`); }, onSettled: terminou });
+      return recorrencias.criar.mutate({ espaco: espaco.id, body: { ...dados, chave_idempotencia: tentativa.current.chave } }, { onSuccess: (resultado) => { if (sessao.current !== versaoSessao) return; onClose(); if (resultado.ocorrencia) router.push(rotaDaConta(resultado.ocorrencia.id, espaco)); }, onSettled: terminou });
     }
     criar.mutate(
       { espaco: espaco.id, body: entrada },
@@ -320,12 +328,17 @@ export function ContaFolha({ open, onClose, conta, returnFocusTo }: Props) {
         onSuccess(nova) {
           if (sessao.current !== versaoSessao) return;
           onClose();
-          // The new bill, in its month's list (desktop: list + panel; mobile: its detail).
-          router.push(`/contas/${nova.id}?mes=${nova.vencimento.slice(0, 7)}`);
+          // The new bill where it was created: its category screen, or Contas in its own context.
+          router.push(rotaDaConta(nova.id, nova.espaco));
         },
         onSettled: terminou,
       },
     );
+  }
+
+  function rotaDaConta(id: string, onde: { id: string; tipo: string }) {
+    if (destino?.base && destino.espaco === onde.id) return `${destino.base}/${id}`;
+    return `/contas/${id}${onde.tipo === "grupo" ? `?espaco=${encodeURIComponent(onde.id)}` : ""}`;
   }
 
   const podeCancelar = conta && (conta.status === "pendente" || conta.status === "aguardando");
@@ -410,21 +423,26 @@ export function ContaFolha({ open, onClose, conta, returnFocusTo }: Props) {
           <Field label="Emissão" type="date" value={emissao} onChange={(e) => { setEmissao(e.target.value); setMetadadosAlterados(true); }} hint="Do PDF" />
           <Field label="Beneficiário" value={beneficiario} maxLength={200} onChange={(e) => { setBeneficiario(e.target.value); setMetadadosAlterados(true); }} hint="Confira o nome no PDF" />
         </div>}
-        <Field label="Descrição" placeholder="Energia · Casa 3" maxLength={150} value={descricao} onChange={(e) => setDescricao(e.target.value)} error={erros.descricao} required />
+        <Field label="Descrição" placeholder="Energia de novembro" maxLength={150} value={descricao} onChange={(e) => setDescricao(e.target.value)} error={erros.descricao} required />
         {conta?.status === "aguardando" && <label className={styles.confirmacao}><input type="checkbox" checked={confirmarChegada} onChange={(e) => setConfirmarChegada(e.target.checked)} />Confirmar valor e vencimento desta conta</label>}
         {!conta && <RepeticaoCampo repetir={repetir} tipo={tipoRecorrencia} dia={diaRecorrencia} disabled={ocupado} erro={local.repeticao} onRepetir={(v) => { setRepetir(v); if (v && !diaRecorrencia && vencimento) setDiaRecorrencia(String(Number(vencimento.slice(8, 10)))); }} onTipo={setTipoRecorrencia} onDia={setDiaRecorrencia} />}
         {conta?.recorrente && modelo.data?.pode_editar && <EscopoRecorrencia value={escopo} onChange={setEscopo} disabled={ocupado} />}
 
-        {emGrupo && grupo.isPending && <p className={styles.nota} role="status">Carregando casas e pessoas…</p>}
+        {emGrupo && grupo.isPending && <p className={styles.nota} role="status">Carregando categorias e pessoas…</p>}
+        {emGrupo && grupo.error && (
+          <div className={styles.nota} role="alert">
+            Não foi possível carregar as pessoas deste grupo. <button type="button" className={styles.link} onClick={() => void grupo.refetch()}>Tentar de novo</button>
+          </div>
+        )}
         {emGrupo && grupo.data && (
           <>
             <div className={styles.g2}>
               {!!casas.length && (
-                <Escolha titulo="Casa" erro={erros.casa}>
-                  <Chip label="Sem casa" state={casa === null ? "on" : "off"} onClick={() => setCasa(null)} />
+                <Escolha titulo="Categoria" erro={erros.casa}>
                   {casas.map((c) => (
-                    <Chip key={c.id} label={c.nome} wrap state={casa === c.id ? "on" : "off"} onClick={() => setCasa(c.id)} />
+                    <Chip key={c.id} label={c.nome} icon={iconeDe(c.icone)} wrap state={casa === c.id ? "on" : "off"} onClick={() => setCasa(c.id)} />
                   ))}
+                  <Chip label="Sem categoria" state={casa === null ? "on" : "off"} onClick={() => setCasa(null)} />
                 </Escolha>
               )}
               <Escolha titulo="Quem paga" erro={erros.pagador}>

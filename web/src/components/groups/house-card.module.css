@@ -1,5 +1,12 @@
 /* Doop: k0kB5dc-Vo / componente HouseCard */
+.wrap {
+  position: relative;
+  min-width: 0;
+  display: flex;
+}
+
 .house {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -14,18 +21,46 @@
   text-align: left;
 }
 
-button.house {
+a.house {
+  text-decoration: none;
   cursor: pointer;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
-button.house:hover {
+a.house:hover {
   border-color: var(--color-ink-subtle);
 }
 
-button.house:focus-visible {
+a.house:active {
+  transform: scale(0.98);
+}
+
+a.house:focus-visible,
+.editar:focus-visible {
   outline: 3px solid var(--color-amber);
   outline-offset: 2px;
+}
+
+/* Edit sits on the card corner, its own 44px target (RNF08). */
+.editar {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-ink-muted);
+  cursor: pointer;
+}
+
+.editar:hover {
+  color: var(--color-ink);
+  background: var(--color-bg);
 }
 
 .ib {
@@ -39,7 +74,7 @@ button.house:focus-visible {
 }
 
 .lb {
-  max-width: 100%;
+  max-width: calc(100% - 28px);
   font-size: var(--text-base);
   overflow-wrap: anywhere;
 }
@@ -78,7 +113,7 @@ button.house:focus-visible {
     animation: none;
   }
 
-  button.house {
+  a.house {
     transition: none;
   }
 }

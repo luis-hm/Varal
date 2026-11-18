@@ -1,4 +1,5 @@
 // Doop: k0kB5dc-Vo / componente BillCard (Mwqabjlc2s), used in 02, 03, D02, D03.
+import { iconeDe } from "@/lib/categorias/icones";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Icon } from "@/components/ui/icon";
@@ -44,14 +45,14 @@ export function BillCard({ title, meta, value, icon, status, href, selected, can
   );
 }
 
-/** A Conta from the API as a BillCard: house icon when it has one, otherwise the manual icon (no instrument yet). */
+/** A Conta from the API as a BillCard: its category icon when it has one, otherwise the manual icon. */
 export function ContaCard({ conta, href, selected }: { conta: Conta; href: string; selected?: boolean }) {
   return (
     <BillCard
       title={conta.descricao}
       meta={metaConta(conta)}
       value={valorConta(conta.valor_centavos)}
-      icon={<Icon name={conta.subgrupo ? "casa" : "manual"} size="md" />}
+      icon={<Icon name={conta.subgrupo ? iconeDe(conta.subgrupo.icone) : "manual"} size="md" />}
       status={<StatusBadge status={conta.status_exibido} />}
       href={href}
       selected={selected}

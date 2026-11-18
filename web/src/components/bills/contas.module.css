@@ -97,82 +97,147 @@ span.redondo { border: 0; }
 
 .cab {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-4) var(--spacing-5) var(--spacing-1);
+  gap: var(--spacing-3);
+  padding: var(--spacing-4) var(--spacing-5) 0;
 }
 
-.cab h1 {
+.titulo1 {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.titulo1 h1 {
   font-family: var(--font-display);
   font-size: var(--text-xl);
   font-weight: 700;
   min-height: 44px;
   display: flex;
   align-items: center;
+  overflow-wrap: anywhere;
 }
 
-.meses {
-  order: 3;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: var(--spacing-2);
-}
-
-.mesTx {
-  flex: 1;
-  min-width: 0;
-  text-align: center;
-}
-
-.mesTx b {
+.titulo1 small {
   display: block;
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: 700;
-}
-
-.mesTx small {
+  margin-top: -6px;
   font-size: var(--text-sm);
   color: var(--color-ink-muted);
 }
 
-/* 36px circle (03) inside a 44px target. */
-.seta {
-  position: relative;
-  flex: none;
+/* Category icon next to the title (COR-04/11). */
+.selo {
   width: 44px;
   height: 44px;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-full);
-  color: var(--color-ink);
-}
-
-.seta::before {
-  content: "";
-  position: absolute;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   border: 1px solid var(--color-line);
 }
 
-.seta svg {
+.acoes {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.redondo[data-ativo] {
   position: relative;
 }
 
-.esq {
-  transform: scaleX(-1);
+.redondo[data-ativo]::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-full);
+  background: var(--color-amber);
+  border: 2px solid var(--color-surface);
 }
 
-/* Desktop subtitle; on a phone the same total sits under the month (03). */
-.sub {
-  display: none;
+/* Context ("Ver: Pessoal") and period on one wrapping row. */
+.contexto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-1) var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-5) 0;
+}
+
+.periodo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  min-height: 44px;
+}
+
+.mesNome {
+  padding: 0 var(--spacing-1);
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.limparMes {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--spacing-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.limparMes:focus-visible,
+.tag:focus-visible {
+  outline: 3px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+.resumoLista {
+  padding: var(--spacing-1) var(--spacing-5) 0;
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+/* Active filters stay visible and removable (COR-07). */
+.ativos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-5) 0;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 var(--spacing-3);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-amber);
+  background: var(--color-amber-soft);
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.folhaFiltros {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-5);
 }
 
 .chips {
@@ -218,7 +283,11 @@ span.redondo { border: 0; }
 }
 
 .vazio {
-  padding: var(--spacing-5);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  padding: var(--spacing-6) var(--spacing-5);
   font-size: var(--text-base);
   color: var(--color-ink-muted);
 }
@@ -543,39 +612,27 @@ span.redondo { border: 0; }
     flex: none;
   }
 
-  .cab {
-    flex-wrap: nowrap;
-    padding: 0;
+  .cab,
+  .contexto,
+  .resumoLista,
+  .ativos {
+    padding-left: 0;
+    padding-right: 0;
   }
 
-  .cab h1 {
+  .cab {
+    padding-top: 0;
+  }
+
+  .titulo1 h1 {
     font-size: var(--text-2xl);
     font-weight: 800;
     letter-spacing: var(--tracking-display);
   }
 
-  .meses {
-    order: 0;
-    width: auto;
-    padding: 0;
-    gap: var(--spacing-2);
-  }
-
-  .mesTx {
-    flex: none;
-    min-width: 132px;
-  }
-
   .seta::before {
     width: 40px;
     height: 40px;
-  }
-
-  .sub {
-    display: block;
-    margin-top: 2px;
-    font-size: var(--text-sm);
-    color: var(--color-ink-muted);
   }
 
   .chips {
@@ -595,7 +652,7 @@ span.redondo { border: 0; }
   }
 
   .vazio {
-    padding: var(--spacing-5) 0;
+    padding: var(--spacing-6) 0;
   }
 
   .painel {

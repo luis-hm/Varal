@@ -189,7 +189,7 @@ export function Vitrine() {
         <h2>HouseCard</h2>
         <div className={styles.row}>
           <HouseCard label="Casa 1" caption="R$ 1.479,60" caption-2="4 contas em novembro" />
-          <HouseCard label="Casa 2" caption="R$ 0,00" caption-2="0 contas em novembro" onClick={() => setFolha(true)} />
+          <HouseCard label="Luz" icon="luz" caption="R$ 0,00" caption-2="Nada a pagar" href="#" onEditar={() => setFolha(true)} />
         </div>
       </section>
 

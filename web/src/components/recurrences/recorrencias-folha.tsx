@@ -1,5 +1,6 @@
 // Doop: k0kB5dc-Vo / 10 · Grupo + D04, 05 + M01; CU09, Q08-8.
 "use client";
+import { estadoRecorrencia, motivoPausa } from "./estado";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSessao } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
@@ -87,9 +88,9 @@ export function RecorrenciasFolha({ open, espacoId, pessoal, inicial, onClose }:
   return <Folha open={open} onClose={fechar} busy={ocupado} title={selecionado === "nova" ? "Nova recorrência" : selecionado ? "Conta que se repete" : "Recorrências"}>
     {!selecionado ? <>
       {podeCriar && <Button label="Nova recorrência" icon="mais" onClick={nova} />}
-      {lista.isPending ? <p role="status">Carregando recorrências…</p> : lista.error ? <p role="alert">{lista.error.message}</p> : lista.data?.length ? <div className={styles.lista}>{lista.data.map((r) => <RecurringRow key={r.id} text={r.descricao} caption={`Dia ${r.dia_vencimento} · ${r.valor_tipo === "fixo" ? "valor fixo" : "valor muda"} · ${r.estado}`} vl={r.valor_centavos == null ? "Valor a definir" : reais(r.valor_centavos)} onClick={() => { setErro(""); setSelecionado(r.id); }} />)}</div> : <p>Nenhuma conta que se repete neste espaço.</p>}
+      {lista.isPending ? <p role="status">Carregando recorrências…</p> : lista.error ? <p role="alert">{lista.error.message}</p> : lista.data?.length ? <div className={styles.lista}>{lista.data.map((r) => <RecurringRow key={r.id} text={r.descricao} caption={`Dia ${r.dia_vencimento} · ${r.valor_tipo === "fixo" ? "valor fixo" : "valor muda"} · ${estadoRecorrencia(r.estado)}`} vl={r.valor_centavos == null ? "Valor a definir" : reais(r.valor_centavos)} onClick={() => { setErro(""); setSelecionado(r.id); }} />)}</div> : <p>Nenhuma conta que se repete neste espaço.</p>}
     </> : selecionado !== "nova" && !item ? <p role={detalhe.error ? "alert" : "status"}>{detalhe.error?.message ?? "Carregando recorrência…"}</p> : <>
-      {item && <p className={styles.nota}>Estado: {item.estado}{item.motivo_pausa ? ` · ${item.motivo_pausa}` : ""}. Pausar ou encerrar mantém as contas já criadas.</p>}
+      {item && <p className={styles.nota}>Estado: {estadoRecorrencia(item.estado)}{item.motivo_pausa ? ` · ${motivoPausa(item.motivo_pausa)}` : ""}. Pausar ou encerrar mantém as contas já criadas.</p>}
       <form className={styles.form} onSubmit={salvar}>
         <fieldset className={styles.form} disabled={ocupado || !editavel}>
           <Field label="Descrição" value={descricao} onChange={(e) => setDescricao(e.target.value)} maxLength={150} required />
@@ -97,7 +98,7 @@ export function RecorrenciasFolha({ open, espacoId, pessoal, inicial, onClose }:
           <fieldset className={styles.opcoes}><legend>Valor</legend><RadioCard name="valor-recorrencia" title="Valor fixo" text="Mesmo valor a cada mês." state={tipo === "fixo" ? "on" : "off"} onChange={() => setTipo("fixo")} /><RadioCard name="valor-recorrencia" title="Valor muda" text="Cada conta começa com valor a definir." state={tipo === "variavel" ? "on" : "off"} onChange={() => setTipo("variavel")} /></fieldset>
           {tipo === "fixo" && <Field label="Valor fixo" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} required />}
           {!pessoal && grupo.data && <>
-            <div role="group" aria-label="Casa"><b>Casa</b><div className={styles.chips}><Chip label="Sem casa" state={casa === null ? "on" : "off"} onClick={() => setCasa(null)} />{grupo.data.casas.filter((c) => !c.arquivado).map((c) => <Chip key={c.id} label={c.nome} wrap state={casa === c.id ? "on" : "off"} onClick={() => setCasa(c.id)} />)}</div></div>
+            <div role="group" aria-label="Categoria"><b>Categoria</b><div className={styles.chips}><Chip label="Sem categoria" state={casa === null ? "on" : "off"} onClick={() => setCasa(null)} />{grupo.data.casas.filter((c) => !c.arquivado).map((c) => <Chip key={c.id} label={c.nome} wrap state={casa === c.id ? "on" : "off"} onClick={() => setCasa(c.id)} />)}</div></div>
             <div role="group" aria-label="Quem paga"><b>Quem paga</b><div className={styles.chips}><Chip label="Ninguém" state={pagador === null ? "on" : "off"} onClick={() => setPagador(null)} />{membros.filter((m) => m.papel !== "observador").map((m) => <Chip key={m.id} label={m.sou_eu ? "Eu" : m.nome || m.email || ""} state={pagador === m.usuario ? "on" : "off"} onClick={() => setPagador(m.usuario)} />)}</div></div>
             <div role="group" aria-label="Quem vê"><b>Quem vê</b><div className={styles.chips}><Chip label="Todo o grupo" state={visibilidade === "grupo" ? "on" : "off"} onClick={() => setVisibilidade("grupo")} /><Chip label="Só algumas pessoas" state={visibilidade === "restrita" ? "on" : "off"} onClick={() => setVisibilidade("restrita")} /></div></div>
             {visibilidade === "restrita" && <div role="group" aria-label="Quem mais vê"><b>Quem mais vê</b><div className={styles.chips}>{membros.filter((m) => m.papel !== "pagador" && !m.sou_eu).map((m) => <Chip key={m.id} label={m.nome || m.email || ""} state={acesso.includes(m.usuario) ? "on" : "off"} onClick={() => setAcesso(acesso.includes(m.usuario) ? acesso.filter((id) => id !== m.usuario) : [...acesso, m.usuario])} />)}</div></div>}

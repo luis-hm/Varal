@@ -8,6 +8,7 @@ import type { components } from "@/types/api";
 import { espacosDoUsuario, useSessao } from "@/components/layout/app-shell";
 import { SeletorEspaco } from "@/components/layout/side-nav";
 import { HouseCard } from "@/components/groups/house-card";
+import { iconeDe, SEM_CATEGORIA } from "@/lib/categorias/icones";
 import { useResumo } from "@/lib/contas/hooks";
 import { mesAno, nomeMes, partesReais, plural, reais, saudacao, totalConhecido } from "@/lib/contas/formato";
 import { ContaCard } from "./bill-card";
@@ -74,17 +75,17 @@ export function Inicio({ inicial }: { inicial?: { usuario: string; espaco: strin
             <div className={styles.lateral}>{espaco.tipo === "grupo" && (
               <section className={styles.casas} aria-labelledby="casas-t">
                 <div className={`${styles.sec} ${styles.in} ${styles.d2}`}>
-                  <h2 id="casas-t">Por casa</h2>
+                  <h2 id="casas-t">Por categoria</h2>
                   <Link href={`/grupos/${espaco.id}`}>Grupo</Link>
                 </div>
                 {resumo.data.por_casa.length ? (
                   <div className={`${styles.houses} ${styles.in} ${styles.d3}`}>
                     {resumo.data.por_casa.map((c) => (
-                      <HouseCard key={c.id} label={c.nome} caption={`${c.valores_indefinidos_qtd ? "Total conhecido: " : ""}${totalConhecido(c.total_centavos, c.valores_indefinidos_qtd)}`} progress={c.qtd ? c.pagas_qtd / c.qtd * 100 : undefined} caption-2={c.qtd ? `${c.pagas_qtd} de ${c.qtd} pagas em ${nomeMes(resumo.data.mes)}` : `0 contas em ${nomeMes(resumo.data.mes)}`} />
+                      <HouseCard key={c.id ?? SEM_CATEGORIA} label={c.nome} icon={c.id ? iconeDe(c.icone) : "contas"} href={`/grupos/${encodeURIComponent(espaco.id)}/categorias/${encodeURIComponent(c.id ?? SEM_CATEGORIA)}`} caption={`${c.valores_indefinidos_qtd ? "Total conhecido: " : ""}${totalConhecido(c.total_centavos, c.valores_indefinidos_qtd)}`} progress={c.qtd ? c.pagas_qtd / c.qtd * 100 : undefined} caption-2={c.qtd ? `${c.pagas_qtd} de ${c.qtd} pagas em ${nomeMes(resumo.data.mes)}` : c.abertas_qtd ? `${plural(c.abertas_qtd, "conta", "contas")} a pagar` : `Nada em ${nomeMes(resumo.data.mes)}`} />
                     ))}
                   </div>
                 ) : (
-                  <p className={styles.cartao}>Nenhuma conta com casa em {nomeMes(resumo.data.mes)}.</p>
+                  <p className={styles.cartao}>Nenhuma categoria neste grupo ainda.</p>
                 )}
               </section>
             )}

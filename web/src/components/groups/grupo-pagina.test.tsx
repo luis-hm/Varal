@@ -72,14 +72,18 @@ test("ca11/ca18: admin sees the whole page with management actions; name falls b
   detalhe = { status: 200, body: grupo("admin") };
   renderPagina();
   expect(await screen.findByRole("heading", { name: "Família" })).toBeTruthy();
-  expect(screen.getByText(/2 membros · 1 casa · você é admin/)).toBeTruthy();
+  expect(screen.getByText(/2 membros · 1 categoria · você é admin/)).toBeTruthy();
   expect(screen.getByRole("button", { name: "Convidar pessoa" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "+ Nova casa" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "+ Nova categoria" })).toBeTruthy();
+  // COR-11: the card opens the category's bills; editing is its own button.
+  expect(screen.getByRole("link", { name: /Casa 1/ }).getAttribute("href")).toBe("/grupos/g1/categorias/c1");
+  expect(screen.getByRole("button", { name: "Editar Casa 1" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Ver todas as contas do grupo/ }).getAttribute("href")).toBe("/contas?espaco=g1");
   expect(screen.getByRole("button", { name: /Dev \(você\).*Admin/ })).toBeTruthy();
   expect(screen.getByRole("button", { name: /observador@varal\.local.*Observador/ })).toBeTruthy();
   // Q07-7: progress counts visible paid accounts in the due month.
-  expect(await screen.findByText("R$ 1.479,60")).toBeTruthy();
-  expect(screen.getByText("3 de 4 pagas em novembro")).toBeTruthy();
+  expect(await screen.findByText("R$ 1.479,60 em novembro")).toBeTruthy();
+  expect(screen.getByText("3 de 4 pagas")).toBeTruthy();
   expect(screen.getAllByRole("button", { name: "Configurações" }).length).toBeGreaterThan(0);
   expect(screen.getByRole("heading", { name: "Contas que se repetem" })).toBeTruthy();
   expect(screen.queryByText(/Gerenciar papéis/)).toBeNull();
@@ -89,15 +93,24 @@ test("q07-7: a house without visible bills shows zero without a progress bar", a
   detalhe = { status: 200, body: grupo("admin") };
   vi.stubGlobal("fetch", vi.fn(async (input: string) => input === "/api/grupos/g1/" ? json(200, detalhe.body) : input === "/api/espacos/g1/resumo/" ? json(200, { mes: "2026-11", total_centavos: 0, qtd: 0, pagas_qtd: 0, vencidas_qtd: 0, vence_qtd: 0, janela_alerta_dias: 3, atencao: [], por_casa: [] }) : json(200, [])));
   renderPagina();
-  const legenda = await screen.findByText("0 contas em novembro");
+  const legenda = await screen.findByText("Nada a pagar");
   expect(legenda.parentElement?.querySelector(`.${houseStyles.bar}`)).toBeNull();
+});
+
+test("COR-07: bills without category get their own card, even in a group with no categories", async () => {
+  detalhe = { status: 200, body: { ...grupo("membro"), casas: [] } };
+  vi.stubGlobal("fetch", vi.fn(async (input: string) => input === "/api/grupos/g1/" ? json(200, detalhe.body) : input === "/api/espacos/g1/resumo/" ? json(200, { mes: "2026-11", total_centavos: 10000, qtd: 1, pagas_qtd: 0, vencidas_qtd: 0, vence_qtd: 0, janela_alerta_dias: 3, atencao: [], por_casa: [{ id: null, nome: "Sem categoria", icone: null, total_centavos: 10000, qtd: 1, pagas_qtd: 0, abertas_qtd: 2, valores_indefinidos_qtd: 0 }] }) : json(200, [])));
+  renderPagina();
+  const card = await screen.findByRole("link", { name: /Sem categoria/ });
+  expect(card.getAttribute("href")).toBe("/grupos/g1/categorias/sem-categoria");
+  expect(card.textContent).toContain("2 contas a pagar");
 });
 
 test.each(["membro", "observador"] as const)("ca11: %s sees the page with no management action", async (papel) => {
   detalhe = { status: 200, body: grupo(papel) };
   renderPagina();
   await screen.findByRole("heading", { name: "Família" });
-  expect(screen.queryByRole("button", { name: /Convidar|Nova casa|Admin|Observador|Casa 1|Configurações/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Convidar|Nova categoria|Admin|Observador|Editar Casa 1|Configurações/ })).toBeNull();
   expect(screen.getByRole("button", { name: "Sair do grupo" })).toBeTruthy(); // Q3: leaving is about yourself
   expect(chamadas.some((c) => c.url.includes("convites"))).toBe(false);
 });
