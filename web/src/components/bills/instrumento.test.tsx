@@ -34,7 +34,7 @@ beforeEach(() => {
   document.cookie = "csrftoken=t";
   preview = async () => json(200, banco);
   enviados = [];
-  salvarResposta = async () => json(201, { id: "l1", vencimento: "2000-07-03" });
+  salvarResposta = async () => json(201, { id: "l1", vencimento: "2000-07-03", espaco: { id: "p1", nome: "Pessoal", tipo: "pessoal" } });
   vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
     if (url === "/api/boletos/ler/") return preview();
     if ((url === "/api/espacos/p1/lancamentos/" || url === "/api/lancamentos/l1/") && init?.method !== "GET") {

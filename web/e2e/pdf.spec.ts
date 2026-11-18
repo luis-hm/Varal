@@ -3,7 +3,7 @@ import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { expect, type Locator, type Page } from "@playwright/test";
 import { test } from "./rn31-isolation";
-import { ORIGIN, api, criarGrupo, descartarContas, entrarNoGrupo, hoje, logar, novaConta, semBadge } from "./fixtures";
+import { api, criarGrupo, descartarContas, entrarNoGrupo, hoje, logar, novaConta, semBadge } from "./fixtures";
 
 const FIXTURES = path.join(__dirname, "fixtures");
 const SCREENS = path.join(__dirname, "__screens__");
@@ -13,8 +13,9 @@ const OUTRO = "00191234546789012345767890123457210010000012345";
 test.beforeEach(async ({ page }) => { await page.addInitScript(semBadge); });
 test.afterEach(descartarContas);
 
-async function abrir(page: Page) {
-  await page.goto("/");
+/** COR-06: the form starts where it is opened; pass a group screen to save there. */
+async function abrir(page: Page, onde = "/") {
+  await page.goto(onde);
   await page.getByRole("button", { name: "Nova conta" }).filter({ visible: true }).click();
   return page.getByRole("dialog", { name: "Nova conta" });
 }
@@ -112,6 +113,9 @@ test("rn28/rn29: PDF sem código aceita conferência manual e conserva o arquivo
   const form = await abrir(page);
   await enviar(page, form, "manual-sintetico.pdf");
   await expect(form.getByLabel("Beneficiário", { exact: true })).toHaveValue("Exemplo Manual", { timeout: 40_000 });
+  // CU05: no code in the PDF offers pasting it.
+  const semCodigo = form.getByText(/Não achamos o código neste PDF/);
+  await expect(semCodigo.getByRole("button", { name: "Colar código" })).toBeVisible();
   await form.getByLabel("Valor", { exact: true }).fill("42,00");
   await form.getByLabel("Vencimento", { exact: true }).fill(hoje());
   await form.getByLabel("Descrição").fill("PDF manual sintético");
@@ -130,8 +134,7 @@ test("rn06/rn27: múltiplos exigem escolha, arquivo inteiro é compartilhado e u
   const grupo = await criarGrupo(admin);
   await entrarNoGrupo(admin, grupo.id, "membro", membro);
   await logar(page, membro);
-  await page.context().addCookies([{ name: "espaco", value: grupo.id, url: ORIGIN }]);
-  const form = await abrir(page);
+  const form = await abrir(page, `/contas?espaco=${grupo.id}`);
   const docId = await enviar(page, form, "multiplos-sintetico.pdf");
   const escolha = form.getByRole("group", { name: "Escolha a linha do boleto" });
   await expect(escolha.getByRole("button", { name: BANCO })).toBeVisible({ timeout: 40_000 });

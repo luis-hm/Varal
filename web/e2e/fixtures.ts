@@ -171,3 +171,7 @@ export function hoje(dias = 0) {
 }
 /** Current month's name in Fortaleza, as the screens label month numbers (Q9): "novembro". */
 export const mesAtual = () => new Intl.DateTimeFormat("pt-BR", { timeZone: FUSO, month: "long" }).format(new Date());
+
+/** Confirms in the app's own confirmation sheet (useConfirmar), which replaced window.confirm (etapa 12). */
+export const confirmar = (page: Page, acao: string) =>
+  page.getByRole("dialog").last().getByRole("button", { name: acao, exact: true }).click();

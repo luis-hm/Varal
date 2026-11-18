@@ -115,7 +115,10 @@ test("rf01 ca02: cadastro duplicado orienta sem criar outra identidade; senha fr
   await page.getByLabel("Senha", { exact: true }).fill(TEST_PASSWORD);
   await page.getByRole("button", { name: "Criar conta", exact: true }).click();
   await expect(page.getByRole("region", { name: "Acesso à conta" }).filter({ visible: true }).getByRole("alert")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Entrar", exact: true })).toBeVisible();
+  // CU01: the notice offers signing in or recovering the password.
+  const aviso = page.getByText(/Já existe uma conta com este e-mail/).filter({ visible: true });
+  await expect(aviso.getByRole("link", { name: "Entrar", exact: true })).toBeVisible();
+  await expect(aviso.getByRole("link", { name: "recuperar a senha" })).toHaveAttribute("href", "/recuperar-senha");
   await expect(page).toHaveURL(`${ORIGIN}/criar-conta`);
 
   await page.getByLabel("E-mail", { exact: true }).filter({ visible: true }).fill(uniqueEmail());

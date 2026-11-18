@@ -3,7 +3,7 @@
 // Next 16 keeps visited routes mounted but hidden, hence the `visible` filters.
 import path from "node:path";
 import type { Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { ORIGIN, expect, test } from "./fixtures";
 
 const VITRINE = "/dev/componentes";
 const SCREENS = path.join(__dirname, "__screens__");
@@ -37,7 +37,7 @@ test("ca02: Bricolage Grotesque e Inter servidas pelo app, sem requisição ao G
   page.on("request", (req) => {
     const url = new URL(req.url());
     if (/fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) externas.push(req.url());
-    if (req.resourceType() === "font" && url.origin === "http://localhost:3000") fontesLocais.push(req.url());
+    if (req.resourceType() === "font" && url.origin === new URL(ORIGIN).origin) fontesLocais.push(req.url());
   });
 
   await page.goto(VITRINE);
@@ -179,8 +179,8 @@ test("ca18: navegação entre as seções com um único item ativo", async ({ pa
     }
     await menu.getByRole("link", { name: titulo, exact: true }).click();
     await expect(page).toHaveURL(href);
-    // Etapa 04: Início greets by name (D02); Contas and Grupos are real screens.
-    if (href !== "/") await expect(page.getByRole("heading", { level: 1 })).toHaveText(titulo);
+    // Etapa 04: Início greets by name (D02); COR-09: Perfil's h1 is the person; Contas and Grupos are real screens.
+    if (href !== "/" && href !== "/perfil") await expect(page.getByRole("heading", { level: 1 })).toHaveText(titulo);
     if (href === "/perfil") {
       await expect(page.getByRole("heading", { name: "Seus dados" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Preparar exportação" })).toBeVisible();

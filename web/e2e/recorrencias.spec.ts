@@ -4,7 +4,7 @@ import path from "node:path";
 import { expect, type Locator, type Page } from "@playwright/test";
 import { test } from "./rn31-isolation";
 import type { components } from "../src/types/api";
-import { api, criarGrupo, descartarContas, entrarNoGrupo, hoje, logar, me, novaConta, semBadge } from "./fixtures";
+import { confirmar, api, criarGrupo, descartarContas, entrarNoGrupo, hoje, logar, me, novaConta, semBadge } from "./fixtures";
 
 type CriarRecorrencia = components["schemas"]["CriarRecorrencia"];
 async function capturarFolha(page: Page, folha: Locator, nome: string, projeto: string) {
@@ -76,12 +76,13 @@ test("q08-8: gestão pessoal alcança modelo pausado sem ocorrência visível", 
   let folha = page.getByRole("dialog", { name: "Recorrências" });
   await folha.getByRole("button", { name: /Modelo pessoal pausado/ }).click();
   folha = page.getByRole("dialog", { name: "Conta que se repete" });
-  await expect(folha.getByText(/Estado: pausada/)).toBeVisible();
+  await expect(folha.getByText(/Estado: pausada/i)).toBeVisible();
   await folha.getByRole("button", { name: "Retomar" }).click();
   folha = page.getByRole("dialog", { name: "Recorrências" });
   await folha.getByRole("button", { name: /Modelo pessoal pausado/ }).click();
   folha = page.getByRole("dialog", { name: "Conta que se repete" });
   await folha.getByRole("button", { name: "Encerrar" }).click();
+  await confirmar(page, "Encerrar");
   const detalhe = await pessoa.request.get(`/api/lancamentos/${criada.ocorrencia.id}/`);
   expect((await detalhe.json()).status).toBe("cancelada");
   const modelo = await pessoa.request.get(`/api/recorrencias/${criada.recorrencia.id}/`);
@@ -185,9 +186,9 @@ test("q08-6: arquivar casa move visíveis sem expor recorrência restrita", asyn
   const restrita = await criar(membro, "Privada", "restrita");
   await logar(page, admin);
   await page.goto(`/grupos/${grupo.id}`);
-  await page.getByRole("button", { name: /Casa de origem/ }).filter({ visible: true }).click();
-  await page.getByRole("dialog", { name: "Editar casa" }).getByRole("button", { name: "Arquivar casa" }).click();
-  const folha = page.getByRole("dialog", { name: "Arquivar casa" });
+  await page.getByRole("button", { name: "Editar Casa de origem" }).filter({ visible: true }).click();
+  await page.getByRole("dialog", { name: "Editar categoria" }).getByRole("button", { name: "Arquivar categoria" }).click();
+  const folha = page.getByRole("dialog", { name: "Arquivar categoria" });
   await expect(folha.getByText("1 conta · 1 recorrência")).toBeVisible();
   await expect(folha.getByText("Privada")).toHaveCount(0);
   await folha.getByRole("button", { name: "Casa de destino" }).click();

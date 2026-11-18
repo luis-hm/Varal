@@ -23,12 +23,15 @@ until removed == 0
 return total
 `;
 
+// `varaltest` is the isolated Compose project used when the dev volume cannot be used (etapa 12).
+const PROJETOS = ["varal", "varaltest"];
+
 type Isolation = { rn31E2eIsolation: void };
 export const test = base.extend<Isolation>({
   rn31E2eIsolation: [async ({}, use, info) => {
     if (process.env.E2E_RN31_ISOLATED === "1") {
       const id = process.env.E2E_RN31_REDIS_CONTAINER;
-      if (!id || !/^[a-f0-9]{12,64}$/.test(id) || process.env.E2E_RN31_PROJECT !== "varal" || process.env.E2E_RN31_SERVICE !== "redis-e2e" || info.config.workers !== 1) {
+      if (!id || !/^[a-f0-9]{12,64}$/.test(id) || !PROJETOS.includes(process.env.E2E_RN31_PROJECT ?? "") || process.env.E2E_RN31_SERVICE !== "redis-e2e" || info.config.workers !== 1) {
         throw new Error("RN31 isolation requires an explicit Redis container ID, expected project/service and exactly one worker");
       }
       const inspected = await run("docker", ["inspect", id], { maxBuffer: 2 * 1024 * 1024 });
@@ -40,7 +43,7 @@ export const test = base.extend<Isolation>({
       const mountsValidos = item?.Mounts.every((mount) => mount.Type === "tmpfs" && mount.Destination === "/data");
       const tmpfs = Object.keys(item?.HostConfig.Tmpfs ?? {});
       const tmpfsValidos = tmpfs.length === 1 && tmpfs[0] === "/data";
-      if (!item?.State.Running || !item.Id.startsWith(id) || item.Config.Cmd?.[0] !== "redis-server" || labels?.["com.docker.compose.project"] !== "varal" || labels?.["com.docker.compose.service"] !== "redis-e2e" || labels?.["br.varal.e2e.rn31"] !== "isolated" || !mountsValidos || !tmpfsValidos || !item.HostConfig.ReadonlyRootfs || Object.keys(item.HostConfig.PortBindings ?? {}).length !== 0) {
+      if (!item?.State.Running || !item.Id.startsWith(id) || item.Config.Cmd?.[0] !== "redis-server" || labels?.["com.docker.compose.project"] !== process.env.E2E_RN31_PROJECT || labels?.["com.docker.compose.service"] !== "redis-e2e" || labels?.["br.varal.e2e.rn31"] !== "isolated" || !mountsValidos || !tmpfsValidos || !item.HostConfig.ReadonlyRootfs || Object.keys(item.HostConfig.PortBindings ?? {}).length !== 0) {
         throw new Error("Refusing RN31 cleanup: container is not the isolated Redis E2E service");
       }
       const cleared = await run("docker", ["exec", id, "redis-cli", "--raw", "EVAL", script, "0"], { maxBuffer: 1024 });
