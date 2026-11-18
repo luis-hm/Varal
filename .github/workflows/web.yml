@@ -123,6 +123,11 @@ jobs:
         run: npm run build
       - name: Start production web
         run: |
+          # The browser suite's dev server can outlive Playwright and keep port 3000; the
+          # production check would then run against dev mode (showcase 200 instead of 404).
+          for pid in $(ss -ltnpH 'sport = :3000' | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u); do kill "$pid"; done
+          for attempt in $(seq 1 30); do ss -ltnH 'sport = :3000' | grep -q . || break; sleep 1; done
+          if ss -ltnH 'sport = :3000' | grep -q .; then echo "port 3000 still busy" >&2; exit 1; fi
           ./node_modules/.bin/next start > "$RUNNER_TEMP/varal-web-production.log" 2>&1 &
           production_pid=$!
           curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused --retry-all-errors --retry-max-time 60 http://localhost:3000/entrar > /dev/null
