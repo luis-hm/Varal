@@ -3,6 +3,7 @@
 // who sees them; each one gets "Escolher quem vê" or "Cancelar conta", then "Sair" resends with resolucoes.
 "use client";
 
+import { useConfirmar } from "@/components/ui/confirmar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -22,6 +23,7 @@ function orfas(error: unknown): ContaRestritaOrfa | null {
 }
 
 export function SairDoGrupo({ grupoId, grupoNome }: { grupoId: string; grupoNome: string }) {
+  const [pedir, confirmacao] = useConfirmar();
   const router = useRouter();
   const { sair } = useAcoesGrupo(grupoId);
   const [barrada, setBarrada] = useState<ContaRestritaOrfa | null>(null);
@@ -44,8 +46,8 @@ export function SairDoGrupo({ grupoId, grupoNome }: { grupoId: string; grupoNome
     });
   }
 
-  function confirmar() {
-    if (!window.confirm(`Sair de ${grupoNome}? Você perde o acesso ao grupo na hora.`)) return;
+  async function confirmar() {
+    if (!(await pedir(`Sair de ${grupoNome}? Você perde o acesso ao grupo na hora.`, "Sair"))) return;
     setEscolhas({});
     enviar();
   }
@@ -72,6 +74,7 @@ export function SairDoGrupo({ grupoId, grupoNome }: { grupoId: string; grupoNome
 
   return (
     <div className={styles.leave}>
+      {confirmacao}
       <Button tone="ghost" label={sair.isPending && !barrada ? "Saindo…" : "Sair do grupo"} onClick={confirmar} disabled={sair.isPending} />
       {sair.error && !barrada && !orfas(sair.error) && <p className={styles.erro} role="alert">{sair.error.message}</p>}
 

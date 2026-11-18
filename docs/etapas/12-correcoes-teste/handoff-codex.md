@@ -143,24 +143,14 @@ Ao terminar, rode o agente `varal-seguranca` (somente leitura) sobre o diff de C
 
 Itens encontrados na auditoria e ainda abertos. Faça um commit por item.
 
-### 3.1 Trocar `window.confirm` por `Folha` (confirmação acessível e no visual do app)
+### 3.1 Trocar `window.confirm` por `Folha` — **feito** (commit "fix(web): confirmacoes em folha...")
 
-Arquivos e linhas atuais:
-- `web/src/components/groups/grupo-pagina.tsx:252` — remover membro.
-- `web/src/components/groups/sair-do-grupo.tsx:48` — sair do grupo.
-- `web/src/components/recurrences/recorrencias-folha.tsx:110` — encerrar recorrência.
-- `web/src/components/bills/pagamento-acoes.tsx:84` — desfazer pagamento.
-- `web/src/components/bills/conta-folha.tsx:492` — cancelar conta.
-
-Como: crie **um** componente `web/src/components/ui/confirmar.tsx`:
-```tsx
-export function Confirmar({ open, titulo, texto, acao, tom = "danger", busy, onConfirmar, onCancelar }: {...}) {
-  return <Folha open={open} onClose={onCancelar} title={titulo} busy={busy}
-    actions={<><Button tone={tom} label={acao} onClick={onConfirmar} disabled={busy} /><Button tone="ghost" label="Voltar" onClick={onCancelar} disabled={busy} /></>}>
-    <p>{texto}</p></Folha>;
-}
+`web/src/components/ui/confirmar.tsx` (`useConfirmar`) substituiu os 5 `window.confirm` (remover membro, sair do grupo, encerrar recorrência, desfazer pagamento, cancelar conta). O título da folha é a pergunta; o botão vermelho repete a ação ("Remover do grupo", "Sair", "Encerrar", "Desfazer pagamento", "Cancelar conta"); a `Folha` já põe o "Cancelar". **Consequência no E2E:** `page.on("dialog", d => d.accept())` não confirma mais nada; depois do clique, o teste precisa clicar no botão dentro do diálogo, por exemplo:
+```ts
+await page.getByRole("button", { name: "Sair do grupo" }).click();
+await page.getByRole("dialog", { name: /Sair de / }).getByRole("button", { name: "Sair" }).click();
 ```
-(confira as props reais de `Folha` e `Button`). Use os **mesmos textos** que estão hoje no `confirm`; o título é a pergunta curta ("Remover Ana do grupo?"). Ajuste os testes Vitest que fazem `vi.spyOn(window, "confirm")` para clicar no botão da folha. Folha dentro de Folha: confira se `Folha` suporta empilhar (teste no navegador); se não, troque o conteúdo da folha atual por um passo de confirmação.
+Arquivos com `page.on("dialog")`: `e2e/fixtures.ts:123`, `contas.spec.ts:32`, `pagamentos.spec.ts:12`, `solicitacoes.spec.ts:13`, `recorrencias.spec.ts:72`, `grupos.spec.ts:34`.
 
 ### 3.2 Nome do usuário (depende da Q12-2 do dono)
 
@@ -172,7 +162,7 @@ Procure com `grep -rn` em `web/src` e unifique:
 - "5 MB" vs "5 MiB" → use "5 MB" em todo texto de tela.
 - "Eu" vs "Você" para a própria pessoa nas opções de pagador → "Você".
 - "Aguardando boleto" vs "Aguardando conferência" → confira o `StatusBadge` (`components/ui/status-badge.tsx`) e use o mesmo texto do selo em todo lugar.
-- "voltará a ficar pendente" → "volta a ficar pendente".
+- "voltará a ficar pendente" → "volta a ficar pendente" (já trocado em `pagamento-acoes.tsx`; confira se há outros).
 Atualize os testes que citam esses textos (e o E2E).
 
 ### 3.4 Fluxos incompletos do escopo inicial
@@ -180,7 +170,7 @@ Atualize os testes que citam esses textos (e o E2E).
 1. **CU02 — convite depois de criar grupo:** ao criar o grupo (`components/groups/grupos-lista.tsx`), em vez de só navegar, abrir o grupo com a folha de convite (M05) já aberta (`?convidar=1` lido em `grupo-pagina.tsx`).
 2. **CU01 — recuperar senha com e-mail já cadastrado:** na tela de criar conta, quando a API disser que o e-mail já existe, mostrar link "Esqueci minha senha" levando para a recuperação com o e-mail preenchido.
 3. **CU05 — PDF sem código:** quando a leitura do PDF terminar sem linha digitável nem Pix, a conferência (M02) deve oferecer "Colar código" (o mesmo campo da Nova conta) em vez de só mostrar erro. Arquivos em `components/bills/` (procure `instrumento`/`pdf`).
-4. **Recorrência clicada:** em `grupo-pagina.tsx` (linha ~139) todo `RecurringRow` chama `setRecorrencias(true)`; passe o `r.id` e faça `recorrencias-folha.tsx` abrir já no item clicado (ela já tem estado `item`).
+4. **Recorrência clicada — feito:** o grupo passa `inicial={r.id}` para `RecorrenciasFolha`. Falta só um E2E que clique numa recorrência e veja o detalhe dela.
 
 ### 3.5 Limpeza
 

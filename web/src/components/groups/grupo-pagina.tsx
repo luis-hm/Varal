@@ -4,6 +4,7 @@
 // whole group. Observers get the same page with no admin action; the payer never gets here (403).
 "use client";
 
+import { useConfirmar } from "@/components/ui/confirmar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -61,7 +62,7 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
   const [membro, setMembro] = useState<Membro | null>(null);
   const [casa, setCasa] = useState<Casa | "nova" | null>(null);
   const [config, setConfig] = useState(false);
-  const [recorrencias, setRecorrencias] = useState(false);
+  const [recorrencias, setRecorrencias] = useState<string | true | false>(false); // id = open on that recurrence
   const modelos = useRecorrencias(grupo.id);
   const [configN, setConfigN] = useState(0); // fresh form on every opening, kept mounted to return focus
   const abrirConfig = () => {
@@ -136,7 +137,7 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
           </section>
           <section className={`${styles.in} ${styles.d2}`} aria-labelledby="recorrencias-t">
             <div className={styles.sec}><h2 id="recorrencias-t">Contas que se repetem</h2><button type="button" className={styles.secAction} onClick={() => setRecorrencias(true)}>Ver todas</button></div>
-            <div className={styles.card}>{modelos.data?.length ? modelos.data.slice(0, 5).map((r) => <RecurringRow key={r.id} text={r.descricao} caption={`Dia ${r.dia_vencimento} · ${r.valor_tipo === "fixo" ? "valor fixo" : "valor muda"} · ${estadoRecorrencia(r.estado)}`} vl={r.valor_centavos == null ? "Valor a definir" : reais(r.valor_centavos)} onClick={() => setRecorrencias(true)} />) : <p className={styles.empty}>{modelos.isPending ? "Carregando recorrências…" : modelos.error ? "Não foi possível carregar as recorrências." : "Nenhuma conta que se repete."}</p>}</div>
+            <div className={styles.card}>{modelos.data?.length ? modelos.data.slice(0, 5).map((r) => <RecurringRow key={r.id} text={r.descricao} caption={`Dia ${r.dia_vencimento} · ${r.valor_tipo === "fixo" ? "valor fixo" : "valor muda"} · ${estadoRecorrencia(r.estado)}`} vl={r.valor_centavos == null ? "Valor a definir" : reais(r.valor_centavos)} onClick={() => setRecorrencias(r.id)} />) : <p className={styles.empty}>{modelos.isPending ? "Carregando recorrências…" : modelos.error ? "Não foi possível carregar as recorrências." : "Nenhuma conta que se repete."}</p>}</div>
           </section>
         </div>
 
@@ -197,7 +198,7 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
       </div>
 
       <SairDoGrupo grupoId={grupo.id} grupoNome={grupo.nome} />
-      {recorrencias && <RecorrenciasFolha open espacoId={grupo.id} pessoal={false} onClose={() => setRecorrencias(false)} />}
+      {recorrencias && <RecorrenciasFolha open espacoId={grupo.id} pessoal={false} inicial={recorrencias === true ? undefined : recorrencias} onClose={() => setRecorrencias(false)} />}
 
       {admin && (
         <>
@@ -212,6 +213,7 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
 }
 
 function MembroFolha({ grupoId, membro, onClose }: { grupoId: string; membro: Membro | null; onClose: () => void }) {
+  const [pedir, confirmacao] = useConfirmar();
   const router = useRouter();
   const { alterarPapel, remover } = useAcoesGrupo(grupoId);
   const [papel, setPapel] = useState<Papel | null>(null);
@@ -248,8 +250,8 @@ function MembroFolha({ grupoId, membro, onClose }: { grupoId: string; membro: Me
             tone="danger"
             label="Remover do grupo"
             disabled={ocupado}
-            onClick={() => {
-              if (membro && window.confirm(`Remover ${nome} do grupo? A pessoa perde o acesso na hora.`)) remover.mutate(membro.id, { onSuccess: () => depois(true) });
+            onClick={async () => {
+              if (membro && await pedir(`Remover ${nome} do grupo? A pessoa perde o acesso na hora.`, "Remover do grupo")) remover.mutate(membro.id, { onSuccess: () => depois(true) });
             }}
           />
           <Button
@@ -266,6 +268,7 @@ function MembroFolha({ grupoId, membro, onClose }: { grupoId: string; membro: Me
         ))}
       </div>
       {erro && <p className={styles.erro} role="alert">{erro}</p>}
+      {confirmacao}
     </Folha>
   );
 }

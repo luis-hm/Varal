@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { json, me, renderComSessao } from "@/components/bills/teste-sessao";
 import { ContasSimples } from "./contas-simples";
@@ -35,10 +35,10 @@ test("Q10-11: perda de acesso não mantém nome ou contas de grupo revogado", as
 
 test("RF07: pagador pode solicitar saída do grupo no modo simples", async () => {
   document.cookie = "csrftoken=t";
-  vi.stubGlobal("confirm", vi.fn(() => true));
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => url === "/api/grupos/g1/sair/" && init?.method === "POST" ? new Response(null, { status: 204 }) : json(200, { abertas_qtd: 0, pagas_mes_qtd: 0, itens: [] }));
   vi.stubGlobal("fetch", fetchMock);
   renderComSessao(<ContasSimples grupoId="g1" grupoNome="Família" nome="Dev" />, { id: "g1", nome: "Família", tipo: "grupo", papel: "pagador" }, { ...me, grupos: [{ id: "g1", nome: "Família", papel: "pagador" }] });
   fireEvent.click(await screen.findByRole("button", { name: "Sair do grupo" }));
+  fireEvent.click(within(await screen.findByRole("dialog", { name: /Sair de Família/ })).getByRole("button", { name: "Sair" }));
   await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/grupos/g1/sair/", expect.objectContaining({ method: "POST" })));
 });

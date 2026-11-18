@@ -1,6 +1,7 @@
 // Doop: k0kB5dc-Vo / 07 + D03, 08 + M03, 09 + M04; CU08, RN14–RN16.
 "use client";
 
+import { useConfirmar } from "@/components/ui/confirmar";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { PagamentoSucesso } from "./pagamento-sucesso";
 import styles from "./pagamento.module.css";
 
 export function PagamentoAcoes({ conta, modoSimples = false, iniciar = false, aoConcluir, aoCancelar, retorno }: { conta: ContaDetalhe; modoSimples?: boolean; iniciar?: boolean; aoConcluir?: () => void; aoCancelar?: () => void; retorno?: string }) {
+  const [pedir, confirmacao] = useConfirmar();
   const router = useRouter();
   const acoes = useAcoesPagamento();
   const [modo, setModo] = useState<"marcar" | "anexar" | null>(() => iniciar && conta.pode_pagar ? "marcar" : null);
@@ -81,7 +83,7 @@ export function PagamentoAcoes({ conta, modoSimples = false, iniciar = false, ao
     }
   }
   async function desfazer() {
-    if (trava.current || !pagamento || !window.confirm("Desfazer este pagamento? A conta voltará a ficar pendente.")) return;
+    if (trava.current || !pagamento || !(await pedir("Desfazer este pagamento? A conta volta a ficar pendente.", "Desfazer pagamento"))) return;
     trava.current = true; setOcupado(true); setErro("");
     const atual = ++geracao.current;
     try { await acoes.desfazer.mutateAsync({ id: conta.id, pagamento: pagamento.id }); }
@@ -102,6 +104,7 @@ export function PagamentoAcoes({ conta, modoSimples = false, iniciar = false, ao
     finally { acoes.abrir.reset(); if (geracao.current === atual) { trava.current = false; setOcupado(false); } }
   }
   return <>
+    {confirmacao}
     {!modoSimples && conta.pagamentos.length > 0 && <section className={styles.historicoPagamentos} aria-label="Pagamentos registrados">
       <h2>Pagamentos registrados</h2>
       <ul>{conta.pagamentos.map((p) => <li key={p.id}>
