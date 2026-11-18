@@ -20,6 +20,10 @@ from .tasks import enviar_email
 
 
 class AccountAdapter(DefaultAccountAdapter):
+    def save_user(self, request, user, form, commit=True):
+        user.nome = form.cleaned_data.get("nome", "")
+        return super().save_user(request, user, form, commit=commit)
+
     def post_login(self, request, user, **kwargs):
         response = super().post_login(request, user, **kwargs)
         social = (kwargs.get("signal_kwargs") or {}).get("sociallogin")

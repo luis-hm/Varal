@@ -4,10 +4,11 @@ import { renderComSessao } from "@/components/bills/teste-sessao";
 import { ApiError } from "@/lib/grupos/client";
 import { Perfil } from "./perfil";
 
-const mocks = vi.hoisted(() => ({ solicitar: vi.fn(), consultar: vi.fn(), baixar: vi.fn(), intencao: vi.fn(), excluir: vi.fn(), sessao: vi.fn(), senha: vi.fn(), emails: vi.fn(), codigo: vi.fn() }));
+const mocks = vi.hoisted(() => ({ nome: vi.fn(), refresh: vi.fn(), solicitar: vi.fn(), consultar: vi.fn(), baixar: vi.fn(), intencao: vi.fn(), excluir: vi.fn(), sessao: vi.fn(), senha: vi.fn(), emails: vi.fn(), codigo: vi.fn() }));
 vi.mock("@/components/notifications/avisos", () => ({ Preferencias: () => <div>Preferências</div> }));
 vi.mock("@/components/auth/logout-button", () => ({ LogoutButton: () => <button>Sair</button> }));
-vi.mock("@/lib/perfil/client", () => ({ solicitarExportacao: mocks.solicitar, consultarExportacao: mocks.consultar, baixarExportacao: mocks.baixar, criarIntencao: mocks.intencao, excluirConta: mocks.excluir }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
+vi.mock("@/lib/perfil/client", () => ({ editarNome: mocks.nome, solicitarExportacao: mocks.solicitar, consultarExportacao: mocks.consultar, baixarExportacao: mocks.baixar, criarIntencao: mocks.intencao, excluirConta: mocks.excluir }));
 vi.mock("@/lib/auth/client", async (original) => ({ ...await original<typeof import("@/lib/auth/client")>(), sessaoAtual: mocks.sessao, reautenticarSenha: mocks.senha, emailsProprios: mocks.emails, solicitarCodigoReauth: mocks.codigo }));
 beforeEach(() => { vi.clearAllMocks(); });
 
@@ -71,4 +72,34 @@ test("exportação pendente consulta estado e só oferece download quando pronta
   fireEvent.click(screen.getByRole("button", { name: "Preparar exportação" }));
   await screen.findByRole("button", { name: "Baixar exportação" });
   expect(mocks.consultar).toHaveBeenCalledWith("e2");
+});
+
+test("q12-2: nome é editado no próprio cartão, salva, atualiza a sessão e pode ficar em branco", async () => {
+  mocks.nome.mockResolvedValue({});
+  renderComSessao(<Perfil />);
+  expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Dev Martins");
+  fireEvent.click(screen.getByRole("button", { name: "Editar nome" }));
+  const campo = screen.getByLabelText("Nome") as HTMLInputElement;
+  expect(campo.value).toBe("Dev Martins");
+  fireEvent.change(campo, { target: { value: "" } });
+  fireEvent.click(screen.getByRole("button", { name: "Salvar nome" }));
+  await screen.findByText("Nome salvo.");
+  expect(mocks.nome).toHaveBeenCalledWith({ nome: "" });
+  expect(mocks.refresh).toHaveBeenCalled();
+  expect(screen.queryByLabelText("Nome")).toBeNull();
+});
+
+test("q12-2: cancelar descarta o rascunho e erro de salvar mantém a edição", async () => {
+  mocks.nome.mockRejectedValue(new ApiError(429));
+  renderComSessao(<Perfil />);
+  fireEvent.click(screen.getByRole("button", { name: "Editar nome" }));
+  fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Outro" } });
+  fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+  expect(mocks.nome).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Editar nome" }));
+  expect((screen.getByLabelText("Nome") as HTMLInputElement).value).toBe("Dev Martins");
+  fireEvent.click(screen.getByRole("button", { name: "Salvar nome" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("Muitas tentativas");
+  expect(screen.getByLabelText("Nome")).toBeTruthy();
+  expect(mocks.refresh).not.toHaveBeenCalled();
 });

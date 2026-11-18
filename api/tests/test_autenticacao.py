@@ -487,3 +487,52 @@ def test_rnf12_ca15_schema_completo_e_deterministico(tmp_path):
         assert path in text
     assert "test-secret" not in text
     assert "/api/auth/app/" not in text
+
+
+def test_rf01_q12_2_cadastro_aceita_nome_opcional():
+    client = browser()
+    resposta = post(
+        client, "auth/signup", {"email": "ana@example.com", "password": PASSWORD, "nome": " Ana "}
+    )
+    assert resposta.status_code == 200, resposta.content
+    assert resposta.json()["data"]["user"]["display"] == "Ana"
+    assert client.get("/api/me/").json()["nome"] == "Ana"
+    sem_nome = post(browser(), "auth/signup", {"email": "bia@example.com", "password": PASSWORD})
+    assert sem_nome.status_code == 200
+    assert Usuario.objects.get(email="bia@example.com").nome == ""
+    longo = post(
+        browser(),
+        "auth/signup",
+        {"email": "cid@example.com", "password": PASSWORD, "nome": "x" * 151},
+    )
+    assert longo.status_code == 400
+    assert not Usuario.objects.filter(email="cid@example.com").exists()
+
+
+def test_rf01_q12_2_perfil_edita_so_o_proprio_nome():
+    ana = create_user()
+    bia = create_user(email="bia@example.com", nome="Bia")
+    client = browser()
+    login(client)
+    csrf = {"HTTP_X_CSRFTOKEN": client.cookies["csrftoken"].value}
+
+    def patch(data, **extra):
+        return client.patch("/api/me/", json.dumps(data), content_type="application/json", **extra)
+
+    assert patch({"nome": "Ana"}).status_code == 403  # CSRF
+    resposta = patch(
+        {"nome": "  Ana Martins ", "email": "x@example.com", "id": str(bia.id)}, **csrf
+    )
+    assert resposta.status_code == 200, resposta.content
+    assert resposta.json()["nome"] == "Ana Martins"
+    assert resposta["Cache-Control"] == "private, no-store"
+    ana.refresh_from_db()
+    bia.refresh_from_db()
+    assert (ana.nome, ana.email, bia.nome) == ("Ana Martins", "ana@example.com", "Bia")
+    assert patch({"nome": ""}, **csrf).json()["nome"] == ""
+    assert patch({"nome": "x" * 151}, **csrf).status_code == 400
+    assert patch({}, **csrf).json()["nome"] == ""  # PATCH without the field changes nothing
+    assert Client().patch("/api/me/", "{}", content_type="application/json").status_code in (
+        401,
+        403,
+    )

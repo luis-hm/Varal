@@ -130,6 +130,31 @@
   overflow-wrap: anywhere;
 }
 
+/* Q12-2: name row (value + "Editar") and its inline editing state, separated from the e-mail. */
+.linha,
+.edicao {
+  padding-bottom: var(--spacing-3);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.linha > .dados {
+  min-width: 0;
+}
+
+.dados .dica {
+  margin-top: var(--spacing-1);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--color-ink-muted);
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

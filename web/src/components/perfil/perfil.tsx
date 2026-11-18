@@ -1,8 +1,10 @@
-// Doop: k0kB5dc-Vo / shell 02 · Início + D02 · Início; Field, Button, Folha; Q11-11 (no dedicated Perfil frame).
+// Doop: k0kB5dc-Vo / jbgXyOMpqy (14 · Perfil) + GLWxRQP3Lr (D07 · Perfil); Field, Button, Folha.
 // COR-09: redesigned presentation; same flows (preferences, export, delete, re-auth, logout) and protections.
+// Q12-2: the name is optional and edited inline in "Seus dados".
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Preferencias } from "@/components/notifications/avisos";
@@ -15,7 +17,7 @@ import { AuthError, confirmarCodigoReauth, emailsProprios, reautenticarSenha, se
 import { marcarSaidaLocal } from "@/lib/auth/isolamento";
 import { ApiError } from "@/lib/grupos/client";
 import { limparPushAposExclusao } from "@/lib/notificacoes/push";
-import { baixarExportacao, consultarExportacao, criarIntencao, excluirConta, solicitarExportacao, type Exportacao } from "@/lib/perfil/client";
+import { baixarExportacao, consultarExportacao, criarIntencao, editarNome, excluirConta, solicitarExportacao, type Exportacao } from "@/lib/perfil/client";
 import type { components } from "@/types/api";
 import styles from "./perfil.module.css";
 
@@ -41,6 +43,8 @@ function mensagem(error: unknown) {
 export function Perfil() {
   const { user } = useSessao();
   const cache = useQueryClient();
+  const router = useRouter();
+  const [rascunho, setRascunho] = useState<string | null>(null); // null: not editing the name
   const [job, setJob] = useState<Exportacao | null>(null);
   const [intencao, setIntencao] = useState<S["Intencao"] | null>(null);
   const [confirmado, setConfirmado] = useState(false);
@@ -97,6 +101,17 @@ export function Perfil() {
     } catch (error) { setErro(mensagem(error)); }
     finally { latch.current = false; setBusy(false); }
   }
+  async function salvarNome(event: FormEvent) {
+    event.preventDefault();
+    if (latch.current || rascunho === null) return;
+    latch.current = true; setBusy(true); setErro(""); setAviso("");
+    try {
+      await editarNome({ nome: rascunho });
+      setRascunho(null); setAviso("Nome salvo.");
+      router.refresh(); // the session user comes from the server layout
+    } catch (error) { setErro(mensagem(error)); }
+    finally { latch.current = false; setBusy(false); }
+  }
   async function verificarEmail() {
     if (!principal || latch.current) return;
     latch.current = true; setBusy(true); setErro("");
@@ -125,10 +140,13 @@ export function Perfil() {
       <div className={styles.coluna}>
         <section className={styles.cartao} aria-labelledby="dados-t">
           <h2 id="dados-t"><Icon name="perfil" size="md" />Seus dados</h2>
-          <dl className={styles.dados}>
-            <div><dt>Nome</dt><dd title={nome}>{nome || "Não informado"}</dd></div>
-            <div><dt>E-mail</dt><dd title={user.email}>{user.email}</dd></div>
-          </dl>
+          {rascunho === null
+            ? <div className={styles.linha}><dl className={styles.dados}><div><dt>Nome</dt><dd title={nome}>{nome || "Não informado"}</dd></div></dl><button type="button" className={styles.link} onClick={() => { setRascunho(nome); setErro(""); setAviso(""); }} disabled={busy} aria-label={nome ? "Editar nome" : "Adicionar nome"}>{nome ? "Editar" : "Adicionar"}</button></div>
+            : <form className={`${styles.form} ${styles.edicao}`} onSubmit={salvarNome}>
+              <Field label="Nome" name="nome" autoComplete="name" value={rascunho} onChange={(event) => setRascunho(event.target.value)} hint="Aparece para os membros dos seus grupos. Pode deixar em branco." maxLength={150} disabled={busy} autoFocus />
+              <div className={styles.actions}><Button type="submit" label={busy ? "Salvando…" : "Salvar nome"} disabled={busy} /><Button label="Cancelar" tone="ghost" disabled={busy} onClick={() => setRascunho(null)} /></div>
+            </form>}
+          <dl className={styles.dados}><div><dt>E-mail</dt><dd title={user.email}>{user.email}</dd><dd className={styles.dica}>É com ele que você entra no Varal.</dd></div></dl>
         </section>
         <div className={styles.cartao}><Preferencias user={user.id} /></div>
       </div>

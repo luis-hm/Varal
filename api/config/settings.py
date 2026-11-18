@@ -119,6 +119,7 @@ HEADLESS_FRONTEND_URLS = {
 ACCOUNT_ADAPTER = "apps.contas_usuario.adapters.AccountAdapter"
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*"]
+ACCOUNT_SIGNUP_FORM_CLASS = "apps.contas_usuario.forms.SignupForm"
 ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = False

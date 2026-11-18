@@ -31,6 +31,7 @@ export function AuthForm({ mode, resetKey }: { mode: Mode; resetKey?: string }) 
   const requestPassword = useRequestPassword();
   const resetPassword = useResetPassword();
   const queryClient = useQueryClient();
+  const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState("");
@@ -87,7 +88,7 @@ export function AuthForm({ mode, resetKey }: { mode: Mode; resetKey?: string }) 
     try {
       if (mode === "login" || mode === "signup") {
         const geracao = iniciarAutenticacao();
-        const tentar = () => mode === "login" ? login.mutateAsync({ email, password }) : signup.mutateAsync({ email, password });
+        const tentar = () => mode === "login" ? login.mutateAsync({ email, password }) : signup.mutateAsync({ nome, email, password });
         let result;
         try { result = await tentar(); }
         catch (error) {
@@ -184,6 +185,7 @@ export function AuthForm({ mode, resetKey }: { mode: Mode; resetKey?: string }) 
         </>
       ) : (
         <form className={styles.fields} onSubmit={submit} aria-label={titles[mode]} aria-busy={!hydrated || mutation.isPending || authBusy}>
+          {mode === "signup" && <Field label="Nome (opcional)" name="nome" autoComplete="name" placeholder="Como os grupos vão ver você" value={nome} onChange={(event) => { setNome(event.target.value); mutation.reset(); }} error={fieldError("nome")} disabled={!hydrated || mutation.isPending || authBusy} maxLength={150} />}
           {mode !== "reset" && <Field label="E-mail" name="email" type="email" autoComplete="email" placeholder="voce@email.com" value={email} onChange={(event) => { setEmail(event.target.value); mutation.reset(); }} error={fieldError("email")} disabled={!hydrated || mutation.isPending || authBusy} required />}
           {mode !== "request" && <Field label={mode === "reset" ? "Nova senha" : "Senha"} name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} placeholder="••••••••" value={password} onChange={(event) => { setPassword(event.target.value); mutation.reset(); }} error={fieldError("password")} hint={mode === "signup" || mode === "reset" ? "Use pelo menos 8 caracteres. Evite senhas comuns e senhas feitas só de números." : undefined} trailing={mode === "login" ? <Link className={`${styles.link} ${styles.forgot}`} href="/recuperar-senha">Esqueci</Link> : undefined} disabled={!hydrated || mutation.isPending || authBusy} required minLength={mode === "login" ? undefined : 8} />}
           <Button type="submit" width="full" label={mutation.isPending || authBusy ? "Aguarde…" : mode === "request" ? "Enviar link" : mode === "reset" ? "Salvar nova senha" : titles[mode]} disabled={!hydrated || mutation.isPending || authBusy || (mode === "reset" && keyStatus.isPending)} />

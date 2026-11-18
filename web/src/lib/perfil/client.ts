@@ -7,6 +7,7 @@ export type Exportacao = S["Exportacao"];
 export const solicitarExportacao = (body: S["ExportacaoPedido"]) => call<Exportacao>("me/exportacoes/", "POST", body);
 export const consultarExportacao = (id: string) => call<Exportacao>(`me/exportacoes/${encodeURIComponent(id)}/`);
 export const criarIntencao = () => call<S["Intencao"]>("me/exclusao/intencoes/", "POST");
+export const editarNome = (body: S["PatchedMeNome"]) => call<S["Me"]>("me/", "PATCH", body);
 export const excluirConta = (body: S["ConfirmacaoExclusao"]) => call<null>("me/", "DELETE", body);
 
 export async function baixarExportacao(id: string) {

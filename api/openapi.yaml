@@ -1418,6 +1418,9 @@ components:
       properties:
         email:
           $ref: '#/components/schemas/AllauthEmail'
+        nome:
+          maxLength: 150
+          type: string
       required:
       - email
       type: object
@@ -3894,6 +3897,12 @@ components:
           type: string
         visibilidade:
           $ref: '#/components/schemas/VisibilidadeEnum'
+      type: object
+    PatchedMeNome:
+      properties:
+        nome:
+          maxLength: 150
+          type: string
       type: object
     PatchedPapel:
       properties:
@@ -7647,6 +7656,30 @@ paths:
                       papel: admin
                     id: 6fd32f1c-6f80-4b01-b491-25aeb00a180e
                     nome: Ana
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+      security:
+      - cookieAuth: []
+      tags:
+      - me
+    patch:
+      operationId: me_editar_nome
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMeNome'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMeNome'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMeNome'
+      responses:
+        '200':
+          content:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Me'
           description: ''

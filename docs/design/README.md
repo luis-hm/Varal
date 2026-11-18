@@ -63,8 +63,9 @@ Em qualquer tamanho: alvo mínimo 44px, botões 52px. Número-herói 48px no mob
 | 11 · Convidar membro | `bkv_O9ohNO` | M05 · Convidar membro (modal) | `8XSFrkwy2d` | 03 |
 | 12 · Pedir para alguém pagar | `MFZW3LUORq` | M06 · Pedir para alguém pagar (modal) | `3OQOmTm6BG` | 10 |
 | 13 · Modo simples (pagador) | `mIvLheR2TS` | D05 · Modo simples (pagador) | `YTtAtGSyCI` | 10 |
+| 14 · Perfil | `jbgXyOMpqy` | D07 · Perfil | `GLWxRQP3Lr` | 12 (Q12-2) |
 
-Tamanhos: telas mobile 390×844 (06: 390×1090; 07: 390×1220; 10: 390×944); telas desktop 1440×900; gaveta D06 440×900; modais no tamanho da janela (M01 560×590, M02 1040×660, M03 520×450, M04 480×520, M05 560×480, M06 560×530).
+Tamanhos: telas mobile 390×844 (06: 390×1090; 07: 390×1220; 10: 390×944; 14: 390×1120); telas desktop 1440×900; gaveta D06 440×900; modais no tamanho da janela (M01 560×590, M02 1040×660, M03 520×450, M04 480×520, M05 560×480, M06 560×530).
 
 ### Componentes (página 04)
 
@@ -184,6 +185,7 @@ A partir de 1024px, a barra inferior dá lugar a um menu lateral fixo (SideNav, 
 | D04 | Grupo | 10 | Casas, membros e papéis, recorrentes em colunas |
 | D05 | Modo simples | 13 | Contas do pagador em cards grandes, com Copiar, Já paguei e Baixar PDF |
 | D06 | Avisos | 04 | Gaveta lateral de 440px aberta pelo sino |
+| D07 | Perfil | 14 | Identidade, seus dados com nome editável, notificações, exportar e excluir |
 | M01 | Nova conta | 05 | Janela com a área de enviar PDF e as outras formas |
 | M02 | Conferir conta | 06 | Prévia do PDF ao lado dos campos, com os dados lidos destacados |
 | M03 | Marcar como paga | 08 | Data e comprovante opcional |
