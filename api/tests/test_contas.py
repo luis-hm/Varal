@@ -533,6 +533,8 @@ def test_d2_cancelada_fora_de_tudo_menos_do_filtro_canceladas(f):
         {
             "id": str(f.casa.pk),
             "nome": "Casa da praia",
+            "icone": "casa",
+            "abertas_qtd": 1,
             "total_centavos": 1000,
             "qtd": 1,
             "pagas_qtd": 0,
@@ -555,7 +557,7 @@ def test_rf13_filtros_mes_status_casa_pagador_e_contagens(f):
     dezembro = nova(a, f.grupo, vencimento=date(2026, 12, 5), valor_centavos=4000)
     nova(a, f.grupo, vencimento=date(2026, 10, 5), valor_centavos=800)
     client = cliente(f.u["observador"])
-    novembro = lista(client, f.grupo)
+    novembro = lista(client, f.grupo, mes="2026-11")
     assert novembro["mes"] == "2026-11" and novembro["total_centavos"] == 3800
     assert novembro["contagens"] == {
         "todas": 4,
@@ -570,20 +572,35 @@ def test_rf13_filtros_mes_status_casa_pagador_e_contagens(f):
         str(solta.pk),
         str(paga.pk),
     ]
-    assert novembro["opcoes"]["casas"] == [{"id": str(f.casa.pk), "nome": "Casa da praia"}]
+    assert novembro["opcoes"]["casas"] == [
+        {"id": str(f.casa.pk), "nome": "Casa da praia", "icone": "casa"}
+    ]
+    assert novembro["opcoes"]["sem_categoria"] is True
     assert [p["nome"] for p in novembro["opcoes"]["pagadores"]] == ["Membro"]
     assert novembro["opcoes"]["sem_pagador"] is True
-    assert ids(lista(client, f.grupo, status="vencidas")["itens"]) == {str(vencida.pk)}
-    assert ids(lista(client, f.grupo, status="pagas")["itens"]) == {str(paga.pk)}
+    assert ids(lista(client, f.grupo, status="vencidas", mes="2026-11")["itens"]) == {
+        str(vencida.pk)
+    }
+    assert ids(lista(client, f.grupo, status="pagas", mes="2026-11")["itens"]) == {str(paga.pk)}
     dez = lista(client, f.grupo, mes="2026-12")
     assert ids(dez["itens"]) == {str(dezembro.pk)} and dez["total_centavos"] == 4000
-    por_casa = lista(client, f.grupo, subgrupo=str(f.casa.pk))
+    por_casa = lista(client, f.grupo, subgrupo=str(f.casa.pk), mes="2026-11")
     assert ids(por_casa["itens"]) == {str(casa.pk)} and por_casa["contagens"]["todas"] == 1
-    sem = lista(client, f.grupo, pagador="nenhum")
+    sem = lista(client, f.grupo, pagador="nenhum", mes="2026-11")
     assert ids(sem["itens"]) == {str(solta.pk), str(paga.pk)}
-    do_membro = lista(client, f.grupo, pagador=str(m), status="a_pagar")
+    do_membro = lista(client, f.grupo, pagador=str(m), status="a_pagar", mes="2026-11")
     assert ids(do_membro["itens"]) == {str(casa.pk), str(vencida.pk)}
     assert do_membro["total_centavos"] == 1500
+    # COR-02: no month means every period; COR-07: `nenhum` isolates bills without category.
+    todas = lista(client, f.grupo)
+    assert todas["mes"] is None and todas["contagens"]["todas"] == 6
+    assert todas["total_centavos"] == 3800 + 4000 + 800
+    a_pagar_dez = lista(client, f.grupo, status="a_pagar", mes="2026-12")
+    assert ids(a_pagar_dez["itens"]) == {str(dezembro.pk)}
+    sem_categoria = lista(client, f.grupo, subgrupo="nenhum", mes="2026-11")
+    assert ids(sem_categoria["itens"]) == {str(solta.pk), str(vencida.pk), str(paga.pk)}
+    vazio = lista(client, f.grupo, mes="2027-01", subgrupo=str(f.casa.pk))
+    assert vazio["itens"] == [] and vazio["opcoes"]["casas"]  # options survive an empty month
     for params in ({"mes": "2026-13"}, {"mes": "nov"}, {"status": "x"}, {"subgrupo": "x"}):
         assert client.get(lista_url(f.grupo), params).status_code == 400
 
@@ -604,11 +621,24 @@ def test_rf13_resumo_total_do_mes_atencao_e_por_casa(f):
         {
             "id": str(f.casa.pk),
             "nome": "Casa da praia",
+            "icone": "casa",
+            "abertas_qtd": 1,
             "total_centavos": 200,
             "qtd": 1,
             "pagas_qtd": 0,
             "valores_indefinidos_qtd": 0,
-        }
+        },
+        # COR-07: the part without category is never dropped from the distribution.
+        {
+            "id": None,
+            "nome": "Sem categoria",
+            "icone": None,
+            "abertas_qtd": 3,
+            "total_centavos": 300,
+            "qtd": 1,
+            "pagas_qtd": 0,
+            "valores_indefinidos_qtd": 0,
+        },
     ]
     assert corpo["pagas_qtd"] == 0  # Q23 delivered in stage 07
     nova(a, f.pessoal["admin"])
@@ -1203,13 +1233,13 @@ def test_rn12_rf13_vencidas_abertas_por_data_sem_mudar_selo(f, relogio):
         Lancamento.objects.filter(pk=outra.pk).update(status=status_)
     restrita(f.u["membro"], f.grupo, vencimento=dias(-1))
     client = cliente(a)
-    body = lista(client, f.grupo, status="vencidas")
+    body = lista(client, f.grupo, status="vencidas", mes="2026-11")
     assert body["contagens"]["vencidas"] == resumo(client, f.grupo)["vencidas_qtd"] == 2
     assert ids(body["itens"]) == {str(c.pk) for c in vencidas}
     assert {c["status_exibido"] for c in body["itens"]} == {"vencida", "aguardando"}
     assert Lancamento.objects.get(pk=vencidas[1].pk).status == "aguardando"
     relogio.base += timedelta(days=1)
-    body = lista(client, f.grupo, status="vencidas")
+    body = lista(client, f.grupo, status="vencidas", mes="2026-11")
     assert body["contagens"]["vencidas"] == resumo(client, f.grupo)["vencidas_qtd"] == 3
     assert str(hoje.pk) in ids(body["itens"])
 

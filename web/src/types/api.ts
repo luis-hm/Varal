@@ -1531,7 +1531,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Contas do espaço por mês, com contagens dos chips (RF13; só o que você vê) */
+        /** Contas do espaço, com mês opcional e contagens dos chips (RF13, COR-02) */
         get: operations["lancamentos_listar"];
         put?: never;
         /** Nova conta manual; nasce pendente (RF10, RF11, RN11; dono, admin, membro) */
@@ -2874,8 +2874,15 @@ export interface components {
         };
         Casa: {
             arquivado?: boolean;
+            icone?: components["schemas"]["IconeEnum"];
             /** Format: uuid */
             readonly id: string;
+            nome: string;
+        };
+        CategoriaRef: {
+            icone: string;
+            /** Format: uuid */
+            id: string;
             nome: string;
         };
         Chaves: {
@@ -2904,7 +2911,7 @@ export interface components {
             readonly pagador: components["schemas"]["Pessoa"] | null;
             status: components["schemas"]["StatusEnum"];
             status_exibido: components["schemas"]["StatusExibidoEnum"];
-            subgrupo: components["schemas"]["Ref"] | null;
+            subgrupo: components["schemas"]["CategoriaRef"] | null;
             valor_centavos: number | null;
             /** Format: date */
             vencimento: string;
@@ -2943,7 +2950,7 @@ export interface components {
             readonly solicitacao_ativa: components["schemas"]["SolicitacaoResumo"] | null;
             status: components["schemas"]["StatusEnum"];
             status_exibido: components["schemas"]["StatusExibidoEnum"];
-            subgrupo: components["schemas"]["Ref"] | null;
+            subgrupo: components["schemas"]["CategoriaRef"] | null;
             valor_centavos: number | null;
             /** Format: date */
             vencimento: string;
@@ -2997,7 +3004,7 @@ export interface components {
             readonly pode_pagar: boolean;
             status: components["schemas"]["StatusEnum"];
             status_exibido: components["schemas"]["StatusExibidoEnum"];
-            subgrupo: components["schemas"]["Ref"] | null;
+            subgrupo: components["schemas"]["CategoriaRef"] | null;
             valor_centavos: number | null;
             /** Format: date */
             vencimento: string;
@@ -3216,6 +3223,24 @@ export interface components {
          * @enum {string}
          */
         HistoricoAcaoEnum: "criada" | "editada" | "cancelada" | "pagador_removido" | "acesso_removido" | "cancelada_automaticamente" | "acesso_preservado" | "paga" | "pagamento_desfeito" | "comprovante_anexado";
+        /**
+         * @description * `casa` - Casa
+         *     * `luz` - Luz
+         *     * `agua` - Água
+         *     * `internet` - Internet
+         *     * `telefone` - Telefone
+         *     * `carro` - Carro
+         *     * `mercado` - Mercado
+         *     * `saude` - Saúde
+         *     * `educacao` - Educação
+         *     * `cartao` - Cartão
+         *     * `trabalho` - Trabalho
+         *     * `lazer` - Lazer
+         *     * `pet` - Pet
+         *     * `contas` - Outras
+         * @enum {string}
+         */
+        IconeEnum: "casa" | "luz" | "agua" | "internet" | "telefone" | "carro" | "mercado" | "saude" | "educacao" | "cartao" | "trabalho" | "lazer" | "pet" | "contas";
         InscricaoEntrada: {
             endpoint: string;
             /** Format: uuid */
@@ -3280,11 +3305,11 @@ export interface components {
         Lista: {
             contagens: components["schemas"]["Contagens"];
             itens: components["schemas"]["Conta"][];
-            /** @description AAAA-MM do total e das contagens */
-            mes: string;
-            /** @description Casas e pagadores das contas visíveis do mês */
+            /** @description AAAA-MM do recorte; null = todos os períodos (COR-02) */
+            mes: string | null;
+            /** @description Categorias e pagadores; não dependem do mês (COR-07) */
             opcoes: components["schemas"]["Opcoes"];
-            /** @description Valor conhecido não cancelado do mês */
+            /** @description Valor conhecido não cancelado do recorte */
             total_centavos: number;
             valores_indefinidos_qtd: number;
         };
@@ -3361,9 +3386,12 @@ export interface components {
             vencimento: string;
         };
         Opcoes: {
-            casas: components["schemas"]["Ref"][];
+            /** @description Categorias ativas do grupo */
+            casas: components["schemas"]["CategoriaRef"][];
             ex_membro: boolean;
             pagadores: components["schemas"]["Pessoa"][];
+            /** @description Há conta visível sem categoria */
+            sem_categoria: boolean;
             sem_pagador: boolean;
         };
         Pagamento: {
@@ -3396,6 +3424,7 @@ export interface components {
             arquivado?: boolean;
             /** Format: uuid */
             destino_subgrupo?: string | null;
+            icone?: components["schemas"]["IconeEnum"];
             /** Format: uuid */
             readonly id?: string;
             nome?: string;
@@ -3461,8 +3490,14 @@ export interface components {
             nome: string;
         };
         PorCasa: {
-            /** Format: uuid */
-            id: string;
+            /** @description A pagar em qualquer mês */
+            abertas_qtd: number;
+            icone: string | null;
+            /**
+             * Format: uuid
+             * @description null = Sem categoria (COR-07)
+             */
+            id: string | null;
             nome: string;
             pagas_qtd: number;
             qtd: number;
@@ -4541,13 +4576,13 @@ export interface operations {
     lancamentos_listar: {
         parameters: {
             query?: {
-                /** @description AAAA-MM; padrão: mês atual */
+                /** @description AAAA-MM; sem mês = todos os períodos */
                 mes?: string;
                 /** @description id de usuário ou `nenhum` */
                 pagador?: string;
                 /** @description Padrão: todas; vencidas inclui abertas aguardando pela data. */
                 status?: "a_pagar" | "canceladas" | "pagas" | "todas" | "vencidas";
-                /** @description casa */
+                /** @description id da categoria ou `nenhum` */
                 subgrupo?: string;
             };
             header?: never;

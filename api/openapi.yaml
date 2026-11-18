@@ -2351,6 +2351,8 @@ components:
       properties:
         arquivado:
           type: boolean
+        icone:
+          $ref: '#/components/schemas/IconeEnum'
         id:
           format: uuid
           readOnly: true
@@ -2359,6 +2361,20 @@ components:
           maxLength: 150
           type: string
       required:
+      - id
+      - nome
+      type: object
+    CategoriaRef:
+      properties:
+        icone:
+          type: string
+        id:
+          format: uuid
+          type: string
+        nome:
+          type: string
+      required:
+      - icone
       - id
       - nome
       type: object
@@ -2421,7 +2437,7 @@ components:
           $ref: '#/components/schemas/StatusExibidoEnum'
         subgrupo:
           allOf:
-          - $ref: '#/components/schemas/Ref'
+          - $ref: '#/components/schemas/CategoriaRef'
           nullable: true
         valor_centavos:
           nullable: true
@@ -2549,7 +2565,7 @@ components:
           $ref: '#/components/schemas/StatusExibidoEnum'
         subgrupo:
           allOf:
-          - $ref: '#/components/schemas/Ref'
+          - $ref: '#/components/schemas/CategoriaRef'
           nullable: true
         valor_centavos:
           nullable: true
@@ -2723,7 +2739,7 @@ components:
           $ref: '#/components/schemas/StatusExibidoEnum'
         subgrupo:
           allOf:
-          - $ref: '#/components/schemas/Ref'
+          - $ref: '#/components/schemas/CategoriaRef'
           nullable: true
         valor_centavos:
           nullable: true
@@ -3267,6 +3283,50 @@ components:
       - pagamento_desfeito
       - comprovante_anexado
       type: string
+    IconeEnum:
+      description: '* `casa` - Casa
+
+        * `luz` - Luz
+
+        * `agua` - Água
+
+        * `internet` - Internet
+
+        * `telefone` - Telefone
+
+        * `carro` - Carro
+
+        * `mercado` - Mercado
+
+        * `saude` - Saúde
+
+        * `educacao` - Educação
+
+        * `cartao` - Cartão
+
+        * `trabalho` - Trabalho
+
+        * `lazer` - Lazer
+
+        * `pet` - Pet
+
+        * `contas` - Outras'
+      enum:
+      - casa
+      - luz
+      - agua
+      - internet
+      - telefone
+      - carro
+      - mercado
+      - saude
+      - educacao
+      - cartao
+      - trabalho
+      - lazer
+      - pet
+      - contas
+      type: string
     InscricaoEntrada:
       properties:
         endpoint:
@@ -3433,14 +3493,15 @@ components:
             $ref: '#/components/schemas/Conta'
           type: array
         mes:
-          description: AAAA-MM do total e das contagens
+          description: AAAA-MM do recorte; null = todos os períodos (COR-02)
+          nullable: true
           type: string
         opcoes:
           allOf:
           - $ref: '#/components/schemas/Opcoes'
-          description: Casas e pagadores das contas visíveis do mês
+          description: Categorias e pagadores; não dependem do mês (COR-07)
         total_centavos:
-          description: Valor conhecido não cancelado do mês
+          description: Valor conhecido não cancelado do recorte
           type: integer
         valores_indefinidos_qtd:
           type: integer
@@ -3647,8 +3708,9 @@ components:
     Opcoes:
       properties:
         casas:
+          description: Categorias ativas do grupo
           items:
-            $ref: '#/components/schemas/Ref'
+            $ref: '#/components/schemas/CategoriaRef'
           type: array
         ex_membro:
           type: boolean
@@ -3656,12 +3718,16 @@ components:
           items:
             $ref: '#/components/schemas/Pessoa'
           type: array
+        sem_categoria:
+          description: Há conta visível sem categoria
+          type: boolean
         sem_pagador:
           type: boolean
       required:
       - casas
       - ex_membro
       - pagadores
+      - sem_categoria
       - sem_pagador
       type: object
     Pagamento:
@@ -3732,6 +3798,8 @@ components:
           nullable: true
           type: string
           writeOnly: true
+        icone:
+          $ref: '#/components/schemas/IconeEnum'
         id:
           format: uuid
           readOnly: true
@@ -3882,8 +3950,16 @@ components:
       type: object
     PorCasa:
       properties:
+        abertas_qtd:
+          description: A pagar em qualquer mês
+          type: integer
+        icone:
+          nullable: true
+          type: string
         id:
+          description: null = Sem categoria (COR-07)
           format: uuid
+          nullable: true
           type: string
         nome:
           type: string
@@ -3896,6 +3972,8 @@ components:
         valores_indefinidos_qtd:
           type: integer
       required:
+      - abertas_qtd
+      - icone
       - id
       - nome
       - pagas_qtd
@@ -5757,7 +5835,7 @@ paths:
         schema:
           format: uuid
           type: string
-      - description: 'AAAA-MM; padrão: mês atual'
+      - description: AAAA-MM; sem mês = todos os períodos
         in: query
         name: mes
         schema:
@@ -5778,11 +5856,10 @@ paths:
           - todas
           - vencidas
           type: string
-      - description: casa
+      - description: id da categoria ou `nenhum`
         in: query
         name: subgrupo
         schema:
-          format: uuid
           type: string
       responses:
         '200':
@@ -5847,8 +5924,7 @@ paths:
             e invisível (RN06).
       security:
       - cookieAuth: []
-      summary: Contas do espaço por mês, com contagens dos chips (RF13; só o que você
-        vê)
+      summary: Contas do espaço, com mês opcional e contagens dos chips (RF13, COR-02)
       tags:
       - espacos
     post:

@@ -4,7 +4,6 @@ from datetime import date, timedelta
 from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
-from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiParameter,
@@ -56,6 +55,10 @@ class RefSerializer(serializers.Serializer):
     nome = serializers.CharField()
 
 
+class CategoriaRefSerializer(RefSerializer):
+    icone = serializers.CharField()
+
+
 class EspacoRefSerializer(RefSerializer):
     tipo = serializers.ChoiceField(Espaco.Tipo.choices)
 
@@ -90,7 +93,7 @@ class ContaSerializer(serializers.Serializer):
     status = serializers.ChoiceField(Status.choices)
     status_exibido = serializers.ChoiceField(STATUS_EXIBIDOS)
     dias_para_vencer = serializers.SerializerMethodField()
-    subgrupo = RefSerializer(allow_null=True)
+    subgrupo = CategoriaRefSerializer(allow_null=True)
     pagador = serializers.SerializerMethodField()
     visibilidade = serializers.ChoiceField(Vis.choices)
     criado_em = serializers.DateTimeField()
@@ -398,22 +401,29 @@ class ContagensSerializer(serializers.Serializer):
 
 
 class OpcoesSerializer(serializers.Serializer):
-    casas = RefSerializer(many=True)
+    casas = CategoriaRefSerializer(many=True, help_text="Categorias ativas do grupo")
+    sem_categoria = serializers.BooleanField(help_text="Há conta visível sem categoria")
     pagadores = PessoaSerializer(many=True)
     sem_pagador = serializers.BooleanField()
     ex_membro = serializers.BooleanField()
 
 
 class ListaSerializer(serializers.Serializer):
-    mes = serializers.CharField(help_text="AAAA-MM do total e das contagens")
-    total_centavos = serializers.IntegerField(help_text="Valor conhecido não cancelado do mês")
+    mes = serializers.CharField(
+        allow_null=True, help_text="AAAA-MM do recorte; null = todos os períodos (COR-02)"
+    )
+    total_centavos = serializers.IntegerField(help_text="Valor conhecido não cancelado do recorte")
     valores_indefinidos_qtd = serializers.IntegerField()
     contagens = ContagensSerializer()
-    opcoes = OpcoesSerializer(help_text="Casas e pagadores das contas visíveis do mês")
+    opcoes = OpcoesSerializer(help_text="Categorias e pagadores; não dependem do mês (COR-07)")
     itens = ContaSerializer(many=True)
 
 
-class PorCasaSerializer(RefSerializer):
+class PorCasaSerializer(serializers.Serializer):
+    id = serializers.UUIDField(allow_null=True, help_text="null = Sem categoria (COR-07)")
+    nome = serializers.CharField()
+    icone = serializers.CharField(allow_null=True)
+    abertas_qtd = serializers.IntegerField(help_text="A pagar em qualquer mês")
     total_centavos = serializers.IntegerField()
     qtd = serializers.IntegerField()
     pagas_qtd = serializers.IntegerField()
@@ -520,8 +530,11 @@ def _filtros_status():
     }
 
 
-def _mes(texto):
-    """'AAAA-MM' (default: this month in Fortaleza) -> (label, first day, last day)."""
+def _mes(texto, opcional=False):
+    """'AAAA-MM' (default: this month in Fortaleza) -> (label, first day, last day).
+    `opcional`: no month means every period (COR-02) -> (None, None, None)."""
+    if opcional and not texto:
+        return None, None, None
     try:
         ano, mes = map(int, texto.split("-")) if texto else timezone.localdate().timetuple()[:2]
         inicio = date(ano, mes, 1)
@@ -578,16 +591,16 @@ def _detalhe(request, conta_id, espaco, codigo=status.HTTP_200_OK, apos_escrita=
 class LancamentosView(APIView):
     @extend_schema(
         operation_id="lancamentos_listar",
-        summary="Contas do espaço por mês, com contagens dos chips (RF13; só o que você vê)",
+        summary="Contas do espaço, com mês opcional e contagens dos chips (RF13, COR-02)",
         parameters=[
-            OpenApiParameter("mes", str, description="AAAA-MM; padrão: mês atual"),
+            OpenApiParameter("mes", str, description="AAAA-MM; sem mês = todos os períodos"),
             OpenApiParameter(
                 "status",
                 str,
                 enum=list(FILTRO_STATUS),
                 description="Padrão: todas; vencidas inclui abertas aguardando pela data.",
             ),
-            OpenApiParameter("subgrupo", OpenApiTypes.UUID, description="casa"),
+            OpenApiParameter("subgrupo", str, description="id da categoria ou `nenhum`"),
             OpenApiParameter("pagador", str, description="id de usuário ou `nenhum`"),
         ],
         responses={200: ListaSerializer, **_erros(400, 404)},
@@ -616,14 +629,16 @@ class LancamentosView(APIView):
     )
     def get(self, request, espaco_id):
         espaco = espaco_ou_404(request.user, espaco_id)
-        rotulo, inicio, fim = _mes(request.query_params.get("mes"))
+        rotulo, inicio, fim = _mes(request.query_params.get("mes"), opcional=True)
         filtros = _filtros_status()
         filtro = request.query_params.get("status") or "todas"
         if filtro not in FILTRO_STATUS:
             raise ValidationError({"status": [f"Use um de: {', '.join(FILTRO_STATUS)}."]})
-        do_mes = lancamentos_visiveis(request.user, espaco).filter(vencimento__range=(inicio, fim))
-        contas = do_mes
-        if casa := _uuid(request, "subgrupo"):
+        visiveis = lancamentos_visiveis(request.user, espaco)
+        contas = visiveis.filter(vencimento__range=(inicio, fim)) if rotulo else visiveis
+        if request.query_params.get("subgrupo") == "nenhum":
+            contas = contas.filter(subgrupo__isnull=True)
+        elif casa := _uuid(request, "subgrupo"):
             contas = contas.filter(subgrupo_id=casa)
         membros_atuais = membros_ids(espaco)
         if request.query_params.get("pagador") == "ex_membro":
@@ -637,24 +652,28 @@ class LancamentosView(APIView):
             indefinidos=Count("pk", filter=NAO_CANCELADA & Q(valor_centavos__isnull=True)),
             **{nome: Count("pk", filter=q) for nome, q in filtros.items()},
         )
+        # ponytail: no pagination; a household has hundreds of bills, not thousands. Add a cursor
+        # (vencimento, id) when one space passes ~1000 visible bills.
         itens = contas.filter(filtros[filtro]).select_related(*COM_DADOS)
-        com_casa = do_mes.filter(subgrupo__isnull=False).select_related("subgrupo")
-        com_pagador = do_mes.filter(pagador__isnull=False).select_related("pagador")
-        casas = {c.subgrupo for c in com_casa}
+        # COR-07: options never depend on the month, so an active filter can always be undone.
+        categorias = espaco.subgrupos.filter(arquivado=False).order_by("nome")
+        com_pagador = visiveis.filter(pagador__isnull=False).select_related("pagador")
         pagadores = {c.pagador for c in com_pagador if c.pagador_id in membros_atuais}
-        contexto = {"request": request, "membros": membros_ids(espaco)}
+        contexto = {"request": request, "membros": membros_atuais}
         corpo = {
             "mes": rotulo,
             "total_centavos": numeros.pop("total"),
             "valores_indefinidos_qtd": numeros.pop("indefinidos"),
             "contagens": numeros,
             "opcoes": {
-                "casas": [{"id": c.pk, "nome": c.nome} for c in sorted(casas, key=str)],
+                "casas": [{"id": c.pk, "nome": c.nome, "icone": c.icone} for c in categorias],
+                "sem_categoria": espaco.tipo == Espaco.Tipo.GRUPO
+                and visiveis.filter(subgrupo__isnull=True).exists(),
                 "pagadores": sorted(
                     (_pessoa(u, contexto) for u in pagadores), key=lambda p: p["nome"]
                 ),
-                "sem_pagador": do_mes.filter(pagador__isnull=True).exists(),
-                "ex_membro": do_mes.filter(pagador__isnull=False)
+                "sem_pagador": visiveis.filter(pagador__isnull=True).exists(),
+                "ex_membro": visiveis.filter(pagador__isnull=False)
                 .exclude(pagador_id__in=membros_atuais)
                 .exists(),
             },
@@ -726,18 +745,48 @@ class ResumoView(APIView):
         )
         por_casa = []
         if espaco.tipo == Espaco.Tipo.GRUPO:
-            por_casa = [
-                {"id": c["subgrupo"], "nome": c["subgrupo__nome"], **c}
-                for c in do_mes.filter(subgrupo__isnull=False)
-                .values("subgrupo", "subgrupo__nome")
-                .annotate(
+            # COR-07: every category (even empty) plus "Sem categoria" when it holds bills, so no
+            # part of the total disappears from the cards.
+            numeros_casa = {
+                c["subgrupo"]: c
+                for c in do_mes.values("subgrupo").annotate(
                     total_centavos=Sum("valor_centavos", default=0),
                     qtd=Count("pk"),
                     valores_indefinidos_qtd=Count("pk", filter=Q(valor_centavos__isnull=True)),
                     pagas_qtd=Count("pk", filter=Q(status__in=(Status.PAGA, Status.CONFIRMADA))),
                 )
-                .order_by("subgrupo__nome")
+            }
+            abertas = dict(
+                visiveis.filter(status__in=ABERTOS)
+                .values("subgrupo")
+                .annotate(n=Count("pk"))
+                .values_list("subgrupo", "n")
+            )
+            vazio = {"total_centavos": 0, "qtd": 0, "valores_indefinidos_qtd": 0, "pagas_qtd": 0}
+
+            def linha(id_, nome, icone):
+                numeros_ = {k: numeros_casa.get(id_, vazio)[k] for k in vazio}
+                return {
+                    "id": id_,
+                    "nome": nome,
+                    "icone": icone,
+                    **numeros_,
+                    "abertas_qtd": abertas.get(id_, 0),
+                }
+
+            por_casa = [
+                linha(c.pk, c.nome, c.icone)
+                for c in espaco.subgrupos.filter(arquivado=False).order_by("nome")
             ]
+            # Archived categories keep their paid bills: still counted, after the active ones.
+            vistas = {c["id"] for c in por_casa}
+            sobras = (set(numeros_casa) | set(abertas)) - vistas - {None}
+            por_casa += [
+                linha(c.pk, c.nome, c.icone)
+                for c in espaco.subgrupos.filter(pk__in=sobras).order_by("nome")
+            ]
+            if None in numeros_casa or None in abertas:
+                por_casa.append(linha(None, "Sem categoria", None))
         corpo = {
             "mes": rotulo,
             "janela_alerta_dias": espaco.janela_alerta_dias,
