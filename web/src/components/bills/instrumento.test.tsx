@@ -151,7 +151,7 @@ test.each(["criar", "editar"] as const)("rn22: pending %s cannot reset or send t
   expect(screen.getByRole("button", { name: "Colar código" }).getAttribute("aria-pressed")).toBe("true");
   expect((textoCodigo() as HTMLTextAreaElement).value).toBe(CODIGO);
   expect((screen.getByRole("button", { name: "Salvando…" }) as HTMLButtonElement).disabled).toBe(true);
-  await act(async () => responder(json(201, { id: "l1", vencimento: "2000-07-03" })));
+  await act(async () => responder(json(201, { id: "l1", vencimento: "2000-07-03", espaco: { id: "p1", nome: "Pessoal", tipo: "pessoal" } })));
   await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   expect(enviados).toHaveLength(1);
   if (acao === "criar") expect(push).toHaveBeenCalledOnce();

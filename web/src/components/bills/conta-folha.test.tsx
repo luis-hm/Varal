@@ -43,7 +43,7 @@ function preencher() {
 }
 
 test("ca28: restricted bill with another payer warns before saving; observer is not a payer option", async () => {
-  renderComSessao(<ContaFolha open onClose={() => {}} />);
+  renderComSessao(<ContaFolha open onClose={() => {}} destino={{ espaco: "g1" }} />);
   const mae = await grupoCarregado();
   expect(screen.getByRole("button", { name: "Eu" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.queryByText(AVISO_VISIBILIDADE)).toBeNull();
@@ -60,7 +60,7 @@ test("ca28: restricted bill with another payer warns before saving; observer is 
 test("q19b: the API's 400 message shows next to Quem vê and nothing navigates", async () => {
   const msg = "Você é a única pessoa que vê esta conta. Escolha outra pessoa antes de sair da lista.";
   criar = { status: 400, body: { acesso: [msg] } };
-  renderComSessao(<ContaFolha open onClose={() => {}} />);
+  renderComSessao(<ContaFolha open onClose={() => {}} destino={{ espaco: "g1" }} />);
   await grupoCarregado();
   preencher();
   fireEvent.click(screen.getByRole("button", { name: "Salvar conta" }));
@@ -68,13 +68,13 @@ test("q19b: the API's 400 message shows next to Quem vê and nothing navigates",
   expect(push).not.toHaveBeenCalled();
 });
 
-test("creating sends cents and opens the new bill in its month", async () => {
-  criar = { status: 201, body: { id: "n1", vencimento: "2026-11-20" } };
-  renderComSessao(<ContaFolha open onClose={() => {}} />);
+test("creating sends cents and opens the new bill in its group context", async () => {
+  criar = { status: 201, body: { id: "n1", vencimento: "2026-11-20", espaco: { id: "g1", nome: "Família", tipo: "grupo" } } };
+  renderComSessao(<ContaFolha open onClose={() => {}} destino={{ espaco: "g1" }} />);
   await grupoCarregado();
   preencher();
   fireEvent.click(screen.getByRole("button", { name: "Salvar conta" }));
-  await waitFor(() => expect(push).toHaveBeenCalledWith("/contas/n1?mes=2026-11"));
+  await waitFor(() => expect(push).toHaveBeenCalledWith("/contas/n1?espaco=g1"));
   expect(enviados[0]).toMatchObject({ valor_centavos: 28743, vencimento: "2026-11-20", descricao: "Energia", pagador: "u1", visibilidade: "grupo" });
 });
 
@@ -89,8 +89,8 @@ test("PDF sem código permite conferir manualmente antes de vincular", async () 
     if (input === "/api/boletos/pdfs/pdf1/arquivo/") return json(200, { url: "http://storage.example/conta.pdf", expira_em: "2026-11-16T12:00:00Z" });
     return anterior(input, init);
   });
-  criar = { status: 201, body: { id: "n1", vencimento: "2026-11-20" } };
-  renderComSessao(<ContaFolha open onClose={() => {}} />);
+  criar = { status: 201, body: { id: "n1", vencimento: "2026-11-20", espaco: { id: "g1", nome: "Família", tipo: "grupo" } } };
+  renderComSessao(<ContaFolha open onClose={() => {}} destino={{ espaco: "g1" }} />);
   await grupoCarregado();
   const file = new File(["%PDF-"], "conta.pdf", { type: "application/pdf" });
   fireEvent.change(screen.getByLabelText(/Escolha ou arraste/), { target: { files: [file] } });
@@ -111,7 +111,7 @@ test("PDF com várias linhas exige escolha e informa acesso ao arquivo inteiro",
     if (input === "/api/boletos/pdfs/pdf2/") return json(200, { id: "pdf2", estado: "lido", nome: "contas.pdf", tamanho: 5, resultado: { candidatos: [{ codigo: "111" }, { codigo: "222" }] }, avisos: [] });
     return anterior(input, init);
   });
-  renderComSessao(<ContaFolha open onClose={() => {}} />);
+  renderComSessao(<ContaFolha open onClose={() => {}} destino={{ espaco: "g1" }} />);
   await grupoCarregado();
   fireEvent.change(screen.getByLabelText(/Escolha ou arraste/), { target: { files: [new File(["%PDF-"], "contas.pdf")] } });
   expect(await screen.findByText(/O arquivo inteiro ficará disponível/)).toBeTruthy();
@@ -127,20 +127,20 @@ function onde() {
   return chips.map((b) => `${b.textContent}${b.getAttribute("aria-pressed") === "true" ? "*" : ""}`);
 }
 
-test("ajuste 30: in the personal space, Pessoal comes first and selected", () => {
-  renderComSessao(<ContaFolha open onClose={() => {}} />, { id: "p1", nome: "Pessoal", tipo: "pessoal" });
+test("COR-06: without a destination the bill is personal, even if the session points at a group", () => {
+  renderComSessao(<ContaFolha open onClose={() => {}} />);
   expect(onde()).toEqual(["Pessoal*", "Família"]);
 });
 
-test("ajuste 30: in a group, that group comes first and selected; the others keep their order", async () => {
+test("COR-06: opened from a group, that group comes first and selected; the others keep their order", async () => {
   const user = { ...me, grupos: [{ id: "g0", nome: "Trabalho", papel: "membro" as const }, ...me.grupos] };
-  renderComSessao(<ContaFolha open onClose={() => {}} />, { id: "g1", nome: "Família", tipo: "grupo", papel: "admin" }, user);
+  renderComSessao(<ContaFolha open onClose={() => {}} destino={{ espaco: "g1" }} />, undefined, user);
   expect(onde()).toEqual(["Família*", "Pessoal", "Trabalho"]);
   await grupoCarregado();
 });
 
-test("ajuste 30: in a group where you only observe, the order stays and the first is selected", () => {
+test("COR-06: opened from a group where you only observe, the order stays and the first is selected", () => {
   const user = { ...me, grupos: [...me.grupos, { id: "g2", nome: "Condomínio", papel: "observador" as const }] };
-  renderComSessao(<ContaFolha open onClose={() => {}} />, { id: "g2", nome: "Condomínio", tipo: "grupo", papel: "observador" }, user);
+  renderComSessao(<ContaFolha open onClose={() => {}} destino={{ espaco: "g2" }} />, undefined, user);
   expect(onde()).toEqual(["Pessoal*", "Família"]);
 });

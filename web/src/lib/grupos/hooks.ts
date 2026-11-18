@@ -37,7 +37,7 @@ export function useAcoesGrupo(id: string) {
     configurar: useMutation({ mutationFn: (janela: number) => api.configurarGrupo(id, janela), ...opts }),
     alterarPapel: useMutation({ mutationFn: ({ membro, papel }: { membro: string; papel: api.Papel }) => api.alterarPapel(id, membro, papel), ...opts }),
     remover: useMutation({ mutationFn: (membro: string) => api.removerMembro(id, membro), ...opts }),
-    criarCasa: useMutation({ mutationFn: (nome: string) => api.criarCasa(id, nome), ...opts }),
+    criarCasa: useMutation({ mutationFn: (body: Parameters<typeof api.criarCasa>[1]) => api.criarCasa(id, body), ...opts }),
     alterarCasa: useMutation({ mutationFn: ({ casa, ...body }: { casa: string } & Parameters<typeof api.alterarCasa>[2]) => api.alterarCasa(id, casa, body), ...opts }),
     // The invite URL carries a bearer token (RN31): keep it in memory only, drop it at once.
     criarConvite: useMutation({ mutationFn: (papel: api.Papel) => api.criarConvite(id, papel), gcTime: 0, ...opts }),

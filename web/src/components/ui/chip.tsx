@@ -1,4 +1,5 @@
 // Doop: k0kB5dc-Vo / componente Chip
+import { Icon, type IconName } from "./icon";
 import styles from "./chip.module.css";
 
 type Props = {
@@ -7,10 +8,12 @@ type Props = {
   count?: string | number;
   /** Space/house labels may wrap; the selected or focused choice reveals the full name (Q04-39). */
   wrap?: boolean;
+  /** Category chips show their icon (COR-04). */
+  icon?: IconName;
   onClick: () => void;
 };
 
-export function Chip({ state = "off", label, count, wrap = false, onClick }: Props) {
+export function Chip({ state = "off", label, count, wrap = false, icon, onClick }: Props) {
   return (
     <button
       type="button"
@@ -22,6 +25,7 @@ export function Chip({ state = "off", label, count, wrap = false, onClick }: Pro
     >
       {/* The pill is 40px like the Doop; the button around it keeps the 44px touch target (RNF08). */}
       <span className={styles.pill}>
+        {icon && <Icon name={icon} size="sm" />}
         {/* People's names remain one line; spaces and houses can use two (Q04-39). */}
         <span className={styles.lbl} title={label}>
           {label}

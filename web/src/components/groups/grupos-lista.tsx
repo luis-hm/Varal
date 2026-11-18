@@ -19,7 +19,7 @@ export const hrefDoGrupo = (g: { id: string; papel: GrupoLista["papel"] }) => (g
 function detalhe(g: GrupoLista) {
   const papel = `você é ${papeis[g.papel].title.toLowerCase()}`;
   if (g.membros_qtd == null || g.casas_qtd == null) return papel; // the payer sees only the name (RN07)
-  return `${g.membros_qtd} ${g.membros_qtd === 1 ? "membro" : "membros"} · ${g.casas_qtd} ${g.casas_qtd === 1 ? "casa" : "casas"} · ${papel}`;
+  return `${g.membros_qtd} ${g.membros_qtd === 1 ? "membro" : "membros"} · ${g.casas_qtd} ${g.casas_qtd === 1 ? "categoria" : "categorias"} · ${papel}`;
 }
 
 export function GruposLista() {
@@ -63,7 +63,7 @@ export function GruposLista() {
           ))}
         </ul>
       ) : (
-        <p className={styles.muted}>Você ainda não participa de nenhum grupo. Crie um para dividir as contas da casa com a família.</p>
+        <p className={styles.muted}>Você ainda não participa de nenhum grupo. Crie um para organizar contas que você divide com alguém ou só quer separar, como “Contas de luz” ou “Viagem”.</p>
       )}
       <CriarGrupoFolha open={criando} onClose={() => setCriando(false)} />
     </div>
@@ -103,25 +103,25 @@ function CriarGrupoFolha({ open, onClose }: { open: boolean; onClose: () => void
       open={open}
       onClose={fechar}
       title="Criar grupo"
-      subtitle="Você será o admin. Dá para convidar as pessoas depois."
+      subtitle="Você será o admin. Pode ser só para você; convidar pessoas é opcional."
       actions={<Button type="submit" form="grupo-form" label={criar.isPending ? "Criando…" : "Criar grupo"} disabled={criar.isPending || !nome.trim()} />}
     >
       <form id="grupo-form" className={styles.form} onSubmit={enviar}>
-        <Field label="Nome do grupo" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={150} required autoFocus placeholder="Família Martins" />
+        <Field label="Nome do grupo" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={150} required autoFocus placeholder="Casa, Viagem, Contas de luz…" />
         {casas.map((casa, i) => (
           <Field
             key={i}
-            label={`Casa ${i + 1}`}
-            hint={i === 0 ? "Opcional. Separe as contas por casa, se houver mais de uma." : undefined}
+            label={`Categoria ${i + 1}`}
+            hint={i === 0 ? "Opcional. Separe as contas do grupo por assunto; o ícone você escolhe depois." : undefined}
             value={casa}
             maxLength={150}
-            placeholder={i === 0 ? "Casa da praia" : undefined}
+            placeholder={i === 0 ? "Luz, Internet, Aluguel…" : undefined}
             onChange={(e) => setCasas(casas.map((c, j) => (j === i ? e.target.value : c)))}
           />
         ))}
         {casas.length < 20 && (
           <button type="button" className={styles.add} onClick={() => setCasas([...casas, ""])}>
-            + Adicionar casa
+            + Adicionar categoria
           </button>
         )}
         {criar.error && <p className={styles.erro} role="alert">{criar.error.message}</p>}

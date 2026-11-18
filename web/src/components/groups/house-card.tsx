@@ -1,23 +1,28 @@
-// Doop: k0kB5dc-Vo / componente HouseCard (10 · Grupo, D04 · Grupo, D02 · Início)
+// Doop: k0kB5dc-Vo / componente HouseCard (10 · Grupo, D04 · Grupo, D02 · Início), now a category card (COR-04/11):
+// the card opens the category's bills; editing is a separate small button, never the main click.
+import Link from "next/link";
 import type { CSSProperties } from "react";
-import { Icon } from "@/components/ui/icon";
+import { Icon, type IconName } from "@/components/ui/icon";
 import styles from "./house-card.module.css";
 
 type Props = {
   label: string;
   caption: string;
   "caption-2"?: string;
-  /** Paid share 0–100. Without it there is no bar (a house with no bills yet, stage 03). */
+  icon?: IconName;
+  /** Paid share 0–100. Without it there is no bar. */
   progress?: number;
-  /** Admin only: opens the house's edit sheet. Stage 04 adds the Doop `house-link`. */
-  onClick?: () => void;
+  /** Where the card goes: the category's bills. */
+  href?: string;
+  /** Admin only: opens the category's edit sheet. */
+  onEditar?: () => void;
 };
 
-export function HouseCard({ label, caption, "caption-2": caption2, progress, onClick }: Props) {
+export function HouseCard({ label, caption, "caption-2": caption2, icon = "casa", progress, href, onEditar }: Props) {
   const content = (
     <>
       <span className={styles.ib}>
-        <Icon name="casa" size="md" />
+        <Icon name={icon} size="md" />
       </span>
       <b className={styles.lb}>{label}</b>
       <small>{caption}</small>
@@ -29,11 +34,20 @@ export function HouseCard({ label, caption, "caption-2": caption2, progress, onC
       {caption2 && <small>{caption2}</small>}
     </>
   );
-  return onClick ? (
-    <button type="button" className={styles.house} onClick={onClick} aria-haspopup="dialog">
-      {content}
-    </button>
-  ) : (
-    <div className={styles.house}>{content}</div>
+  return (
+    <div className={styles.wrap}>
+      {href ? (
+        <Link href={href} className={styles.house}>
+          {content}
+        </Link>
+      ) : (
+        <div className={styles.house}>{content}</div>
+      )}
+      {onEditar && (
+        <button type="button" className={styles.editar} onClick={onEditar} aria-label={`Editar ${label}`} aria-haspopup="dialog">
+          <Icon name="manual" size="sm" />
+        </button>
+      )}
+    </div>
   );
 }

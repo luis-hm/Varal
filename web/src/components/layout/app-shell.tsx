@@ -32,6 +32,23 @@ export function useSessao() {
   return sessao;
 }
 
+/** COR-06: a new bill starts where the person is looking: a group page or category, or Contas filtered by a
+ * group (?espaco=). Anywhere else it is personal. The form always shows and lets you change the destination. */
+export type Destino = { espaco?: string; categoria?: string | null; base?: string };
+export function destinoDaTela(pathname: string, search: string): Destino | undefined {
+  const grupo = pathname.match(/^\/grupos\/([^/]+)(?:\/categorias\/([^/]+))?/);
+  if (grupo && grupo[1] !== "novo") {
+    const categoria = grupo[2] ? decodeURIComponent(grupo[2]) : undefined;
+    return {
+      espaco: decodeURIComponent(grupo[1]),
+      categoria: categoria === "sem-categoria" ? null : categoria,
+      base: categoria ? `/grupos/${grupo[1]}/categorias/${grupo[2]}` : undefined,
+    };
+  }
+  if (pathname.startsWith("/contas")) return { espaco: new URLSearchParams(search).get("espaco") ?? undefined };
+  return undefined;
+}
+
 // Selector options come from /api/me/ (no extra request): personal space plus each group with the role.
 export function espacosDoUsuario(user: Me, atual?: string): EspacoOpcao[] {
   return [
@@ -56,10 +73,11 @@ export function AppShell({ children, user, espaco }: { children: ReactNode; user
   const [gaveta, setGaveta] = useState(false);
   const [chave, setChave] = useState(0); // a fresh form on every opening
   const [origemConta, setOrigemConta] = useState<HTMLElement | null>(null);
+  const [destino, setDestino] = useState<Destino | undefined>(undefined);
   const [origemAvisos, setOrigemAvisos] = useState<HTMLElement | null>(null);
   const active = secaoAtiva(pathname);
   // Ajuste 28: the bill detail is a stacked screen below 1024px (07 has TopBar with Back, no TabBar).
-  const empilhada = /^\/contas\/[^/]+/.test(pathname) || pathname === "/avisos";
+  const empilhada = /^\/contas\/[^/]+/.test(pathname) || /^\/grupos\/[^/]+\/categorias\/[^/]+\/[^/]+/.test(pathname) || pathname === "/avisos";
   const simples = /^\/grupos\/[^/]+\/simples\/?$/.test(pathname);
   const espacos = user ? espacosDoUsuario(user, espaco?.id) : undefined;
   const name = user?.nome || user?.email.split("@")[0] || "";
@@ -90,11 +108,14 @@ export function AppShell({ children, user, espaco }: { children: ReactNode; user
   function escolherEspaco(o: EspacoOpcao) {
     if (o.papel === "pagador") return router.push(`/grupos/${o.id}/simples`);
     gravarEspaco(o.id);
-    if (pathname !== "/" && pathname !== "/contas") router.push(pathname.startsWith("/contas") ? "/contas" : "/");
+    // COR-05: Contas reads its context from the URL (personal by default), Início from the cookie.
+    if (pathname.startsWith("/contas")) router.push(user && o.id !== user.espaco_pessoal.id ? `/contas?espaco=${encodeURIComponent(o.id)}` : "/contas");
+    else if (pathname !== "/") router.push("/");
     router.refresh(); // the shell reads the cookie on the server
   }
   const novaConta = (origem?: HTMLElement) => {
     setOrigemConta(origem ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null));
+    setDestino(destinoDaTela(pathname, window.location.search));
     setChave((k) => k + 1);
     setNova(true);
   };
@@ -126,7 +147,7 @@ export function AppShell({ children, user, espaco }: { children: ReactNode; user
     <Sessao.Provider value={{ user, espaco, novaConta, escolherEspaco, abrirAvisos }}>
       {shell}
       {gaveta && <Suspense fallback={<Folha open title="Avisos" onClose={fecharAvisos} returnFocusTo={origemAvisos} restoreFocusOnUnmount><p role="status">Carregando avisos…</p></Folha>}><AvisosGaveta onClose={fecharAvisos} onNavigate={navegarAviso} returnFocusTo={origemAvisos} /></Suspense>}
-      {chave > 0 && <Suspense fallback={nova ? <Folha open title="Nova conta" onClose={() => setNova(false)} returnFocusTo={origemConta} restoreFocusOnUnmount><p role="status">Carregando formulário…</p></Folha> : null}><ContaFolha key={chave} open={nova} onClose={() => setNova(false)} returnFocusTo={origemConta} /></Suspense>}
+      {chave > 0 && <Suspense fallback={nova ? <Folha open title="Nova conta" onClose={() => setNova(false)} returnFocusTo={origemConta} restoreFocusOnUnmount><p role="status">Carregando formulário…</p></Folha> : null}><ContaFolha key={chave} open={nova} onClose={() => setNova(false)} returnFocusTo={origemConta} destino={destino} /></Suspense>}
     </Sessao.Provider>
   );
 }

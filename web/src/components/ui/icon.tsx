@@ -152,6 +152,66 @@ const paths = {
       <path d="M5 20h14" />
     </>
   ),
+  // COR-04: category icons (same 24px grid, 2px stroke, round caps as the Doop "Ícones" frame).
+  luz: <path d="M13 2L4.5 13.5H11L10 22l8.5-11.5H12z" />,
+  agua: <path d="M12 3s6.5 7 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10 12 3 12 3z" />,
+  internet: (
+    <>
+      <path d="M2.5 9a14 14 0 0 1 19 0" />
+      <path d="M5.5 12.5a9.5 9.5 0 0 1 13 0" />
+      <path d="M8.5 16a5 5 0 0 1 7 0" />
+      <path d="M12 19.5h.01" />
+    </>
+  ),
+  telefone: (
+    <>
+      <rect x="6.5" y="2.5" width="11" height="19" rx="2.5" />
+      <path d="M11 18h2" />
+    </>
+  ),
+  carro: (
+    <>
+      <path d="M5 16V11.5L7 6.5h10l2 5V16" />
+      <rect x="3" y="11.5" width="18" height="5.5" rx="1.5" />
+      <path d="M6.5 17v2.5M17.5 17v2.5M7 14h.01M17 14h.01" />
+    </>
+  ),
+  mercado: (
+    <>
+      <path d="M3 4h2.5l2 11h10.5l2-8H6.5" />
+      <circle cx="9" cy="19.5" r="1.3" />
+      <circle cx="17" cy="19.5" r="1.3" />
+    </>
+  ),
+  saude: <path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z" />,
+  educacao: (
+    <>
+      <path d="M2.5 9L12 4.5 21.5 9 12 13.5z" />
+      <path d="M6.5 11v5c0 1.5 2.5 3 5.5 3s5.5-1.5 5.5-3v-5" />
+    </>
+  ),
+  cartao: (
+    <>
+      <rect x="3" y="5.5" width="18" height="13" rx="2.5" />
+      <path d="M3 10h18M7 15h3" />
+    </>
+  ),
+  trabalho: (
+    <>
+      <rect x="3" y="7.5" width="18" height="12" rx="2.5" />
+      <path d="M9 7.5V5.5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5.5v2M3 13h18" />
+    </>
+  ),
+  lazer: <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" />,
+  pet: (
+    <>
+      <circle cx="7" cy="9" r="1.8" />
+      <circle cx="17" cy="9" r="1.8" />
+      <circle cx="10" cy="5.5" r="1.8" />
+      <circle cx="14" cy="5.5" r="1.8" />
+      <path d="M12 12c-3 0-5.5 3.5-5.5 5.5 0 1.5 1.2 2 2.5 2 1.2 0 2-.6 3-.6s1.8.6 3 .6c1.3 0 2.5-.5 2.5-2 0-2-2.5-5.5-5.5-5.5z" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof paths;

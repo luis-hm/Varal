@@ -105,10 +105,86 @@
   outline-offset: 2px;
 }
 
+/* Two columns on a phone keep long category names and both captions readable (COR-08). */
 .houses {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--spacing-2);
+}
+
+.todas {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  min-height: 52px;
+  margin-top: var(--spacing-2);
+  padding: 0 var(--spacing-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  color: var(--color-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.todas span {
+  flex: 1;
+}
+
+.todas:hover {
+  border-color: var(--color-ink-subtle);
+}
+
+.todas:focus-visible,
+.icone:focus-within {
+  outline: 3px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+/* Category icon picker (COR-04): a grid of 48px radio tiles. */
+.icones {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.icones legend {
+  margin-bottom: var(--spacing-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.iconesGrade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: var(--spacing-2);
+}
+
+.icone {
+  position: relative;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.icone input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.icone[data-on] {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-surface);
 }
 
 .card {
@@ -353,12 +429,21 @@
     gap: var(--spacing-3);
   }
 
-  .colB > * + * {
+  .todas {
     margin-top: var(--spacing-3);
   }
 
-  .colB > section + section {
-    margin-top: var(--spacing-6);
+  /* COR-08: the same 24px between sections in both columns (colA had none). */
+  .colA,
+  .colB {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-6);
+    min-width: 0;
+  }
+
+  .houses {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .privacy {

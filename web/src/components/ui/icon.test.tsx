@@ -2,8 +2,8 @@ import { render } from "@testing-library/react";
 import { expect, test } from "vitest";
 import { Icon, iconNames } from "./icon";
 
-test("ca03: the 29 Doop icons render a 24x24 svg with currentColor, hidden from AT", () => {
-  expect(iconNames).toHaveLength(29);
+test("ca03/COR-04: the 29 Doop icons plus 12 category icons render a 24x24 svg with currentColor, hidden from AT", () => {
+  expect(iconNames).toHaveLength(41);
   for (const name of iconNames) {
     const { container, unmount } = render(<Icon name={name} />);
     const svg = container.querySelector("svg")!;
