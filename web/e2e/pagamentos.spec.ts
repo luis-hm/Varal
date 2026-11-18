@@ -3,7 +3,7 @@ import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { expect, type APIRequestContext } from "@playwright/test";
 import { test } from "./rn31-isolation";
-import { ORIGIN, api, criarGrupo, csrf, descartarContas, entrarNoGrupo, hoje, logar, me, mesAtual, novaConta, semBadge, type Conta } from "./fixtures";
+import { confirmar, ORIGIN, api, criarGrupo, csrf, descartarContas, entrarNoGrupo, hoje, logar, me, mesAtual, novaConta, semBadge, type Conta } from "./fixtures";
 
 const SCREENS = path.join(__dirname, "__screens__");
 const FOTO = path.join(__dirname, "fixtures", "comprovante-sintetico.png");
@@ -80,6 +80,7 @@ test("rf15/rn14/rn16: marca integral, progresso de mês, desfaz e mantém histó
   await expect(progressoPago).toHaveAttribute("aria-valuemax", "1");
   await page.goto(`/contas/${conta.id}`);
   await page.getByRole("button", { name: "Desfazer pagamento" }).filter({ visible: true }).click();
+  await confirmar(page, "Desfazer pagamento");
   await expect.poll(async () => (await detalhe(eu.request, conta.id)).status).toBe("pendente");
   const reaberta = await detalhe(eu.request, conta.id);
   expect(reaberta.status).toBe("pendente");

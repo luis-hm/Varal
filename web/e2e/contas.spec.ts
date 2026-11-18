@@ -8,6 +8,7 @@ import type { APIRequestContext, Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 import { test } from "./rn31-isolation";
 import {
+  confirmar,
   ORIGIN,
   api,
   criarGrupo,
@@ -93,7 +94,8 @@ test("ca01/ca16/ca17/ca31 rf10/rf13 rn11 q12/q23: nova conta pelo FAB ou pelo Si
   // Q07-7: no empty progress bar when there are no bills.
   await expect(hero(page).locator("[role=progressbar], [style*='--progress']")).toHaveCount(0);
 
-  // CA31: the form opens with the current space marked; "Eu" pre-selected; observers cannot pay.
+  // CA31 / COR-06: from the group's Contas the form opens on that group; "Eu" pre-selected; observers cannot pay.
+  await page.goto(`/contas?espaco=${grupo.id}`);
   const abrir = botaoNovaConta(page);
   await abrir.click();
   const form = page.getByRole("dialog", { name: "Nova conta" });
@@ -115,7 +117,7 @@ test("ca01/ca16/ca17/ca31 rf10/rf13 rn11 q12/q23: nova conta pelo FAB ou pelo Si
   await form.getByLabel("Descrição", { exact: true }).fill("Energia · Casa 3");
   await form.getByRole("button", { name: "Salvar conta" }).click();
   await expect(form).toBeHidden();
-  await expect(page).toHaveURL(new RegExp(`/contas/[\\da-f-]{36}\\?mes=${hoje().slice(0, 7)}$`));
+  await expect(page).toHaveURL(new RegExp(`/contas/[\\da-f-]{36}\\?espaco=${grupo.id}$`));
   await expect(page.getByRole("heading", { level: 1, name: "Energia · Casa 3" })).toBeVisible();
   await expect(texto(page, /Você criou a conta/)).toBeVisible();
 
@@ -133,8 +135,8 @@ test("ca01/ca16/ca17/ca31 rf10/rf13 rn11 q12/q23: nova conta pelo FAB ou pelo Si
   await expect(progresso).toHaveAttribute("aria-valuenow", "0");
   await expect(progresso).toHaveAttribute("aria-valuemax", "1");
   await expect(link(atencao(page), /Energia · Casa 3.*Vence em breve.*R\$ 287,43/)).toBeVisible();
-  await page.goto("/contas");
-  await expect(texto(page, new RegExp(`^Total de ${mes}: R\\$ 287,43`))).toBeVisible();
+  await page.goto(`/contas?espaco=${grupo.id}`);
+  await expect(texto(page, /^Total de todos os meses: R\$ 287,43/)).toBeVisible();
   await expect(link(page, /Energia · Casa 3/)).toBeVisible();
   await expect(visivel(page, /^Todas 1$/)).toHaveAttribute("aria-pressed", "true");
 });
@@ -152,8 +154,7 @@ test("ca07/ca08/ca09/ca28 rn06/rn07: restrita com aviso de quem paga; admin não
 
   // CA28: the notice shows up before saving, only for "Só algumas pessoas" with someone else paying.
   await logar(page, membro);
-  await usarEspaco(page, grupo.id);
-  await page.goto("/contas");
+  await page.goto(`/contas?espaco=${grupo.id}`);
   await botaoNovaConta(page).click();
   const form = page.getByRole("dialog", { name: "Nova conta" });
   const aviso = form.getByText(AVISO);
@@ -179,7 +180,7 @@ test("ca07/ca08/ca09/ca28 rn06/rn07: restrita com aviso de quem paga; admin não
   const escolhidos = form.getByRole("group", { name: "Quem mais vê" });
   await expect(escolhidos.getByRole("button", { name: pagador.email })).toHaveCount(0);
   await escolhidos.getByRole("button", { name: observador.email }).click();
-  await form.getByRole("group", { name: "Casa" }).getByRole("button", { name: "Casa da praia" }).click();
+  await form.getByRole("group", { name: "Categoria" }).getByRole("button", { name: "Casa da praia" }).click();
   await form.getByLabel("Valor", { exact: true }).fill("150,00");
   await form.getByLabel("Vencimento", { exact: true }).fill(hoje());
   await form.getByLabel("Descrição", { exact: true }).fill("Presente surpresa");
@@ -208,11 +209,11 @@ test("ca07/ca08/ca09/ca28 rn06/rn07: restrita com aviso de quem paga; admin não
     await expect(link(atencao(abaAdmin), /Água/)).toBeVisible();
     await expect(texto(abaAdmin, /Presente surpresa/)).toHaveCount(0);
     if (desktop(info)) {
-      const porCasa = abaAdmin.getByRole("region", { name: "Por casa" });
+      const porCasa = abaAdmin.getByRole("region", { name: "Por categoria" });
       await expect(porCasa).toContainText("R$ 50,00");
       await expect(porCasa).toContainText(`0 de 1 pagas em ${mes}`);
     }
-    await abaAdmin.goto("/contas");
+    await abaAdmin.goto(`/contas?espaco=${grupo.id}`);
     await expect(visivel(abaAdmin, /^Todas 1$/)).toBeVisible();
     await expect(link(abaAdmin, /Água/)).toBeVisible();
     await expect(texto(abaAdmin, /Presente surpresa/)).toHaveCount(0);
@@ -220,8 +221,8 @@ test("ca07/ca08/ca09/ca28 rn06/rn07: restrita com aviso de quem paga; admin não
     await expect(abaAdmin.getByRole("alert").filter({ visible: true, hasText: /\S/ })).toContainText("Conta não encontrada");
     await expect(texto(abaAdmin, /Presente surpresa/)).toHaveCount(0);
     await abaAdmin.goto(`/grupos/${grupo.id}`);
-    await expect(visivel(abaAdmin, /Casa da praia/)).toContainText("R$ 50,00");
-    await expect(visivel(abaAdmin, /Casa da praia/)).toContainText(`0 de 1 pagas em ${mes}`);
+    await expect(link(abaAdmin, /Casa da praia/)).toContainText("R$ 50,00");
+    await expect(link(abaAdmin, /Casa da praia/)).toContainText("1 conta a pagar");
   } finally {
     await abaAdmin.context().close();
   }
@@ -272,6 +273,7 @@ test("ca12/ca13/ca14 rn22 d2: editar com histórico; cancelar tira do Início e 
   // CA13: cancel from the edit form (window.confirm accepted); stays in the database, no Editar any more.
   await visivel(page, "Editar conta").click();
   await form.getByRole("button", { name: "Cancelar conta" }).click();
+  await confirmar(page, "Cancelar conta");
   await expect(form).toBeHidden();
   const detalhe = page.getByRole("article", { name: "Detalhe da conta" }).filter({ visible: true });
   await expect(detalhe.getByText("Cancelada", { exact: true })).toBeVisible();
@@ -284,7 +286,7 @@ test("ca12/ca13/ca14 rn22 d2: editar com histórico; cancelar tira do Início e 
   await expect(hero(page)).toContainText("R$ 0,00");
   await expect(texto(page, /Internet fibra/)).toHaveCount(0);
   await page.goto("/contas");
-  await expect(texto(page, `Nenhuma conta em ${mesAtual()}.`)).toBeVisible();
+  await expect(texto(page, "Nenhuma conta por aqui ainda.")).toBeVisible();
   await expect(visivel(page, /^Todas 0$/)).toBeVisible();
   await visivel(page, /^Canceladas 1$/).click();
   await expect(page).toHaveURL(/\/contas\?status=canceladas$/);
@@ -305,8 +307,7 @@ test("ca15 rf13 q14: filtros de status, casa e quem paga na URL; Voltar restaura
   await criarConta(admin, grupo.id, { descricao: "Gás solto", pagador: null });
   await cancelar(admin, await criarConta(admin, grupo.id, { descricao: "Água cancelada" }));
   await logar(page, admin);
-  await usarEspaco(page, grupo.id);
-  await page.goto("/contas");
+  await page.goto(`/contas?espaco=${grupo.id}`);
 
   await expect(visivel(page, /^Todas 2$/)).toHaveAttribute("aria-pressed", "true");
   await expect(visivel(page, /^A pagar 2$/)).toBeVisible();
@@ -314,11 +315,11 @@ test("ca15 rf13 q14: filtros de status, casa e quem paga na URL; Voltar restaura
   await expect(visivel(page, /^Pagas 0$/)).toBeVisible();
   await expect(visivel(page, /^Canceladas 1$/)).toBeVisible();
   await visivel(page, /^A pagar/).click();
-  await expect(page).toHaveURL(/\?status=a_pagar$/);
+  await expect(page).toHaveURL(/&status=a_pagar$/);
   await expect(visivel(page, /^A pagar/)).toHaveAttribute("aria-pressed", "true");
 
-  // Casa and Quem paga: chip menus on desktop, the "Filtros" sheet on mobile (Q14).
-  async function filtrar(grupoNome: "Casa" | "Quem paga", opcao: string) {
+  // Categoria and Quem paga: chip menus on desktop, the "Filtros" sheet on mobile (Q14).
+  async function filtrar(grupoNome: "Categoria" | "Quem paga", opcao: string) {
     if (desktop(info)) {
       await visivel(page, new RegExp(`^${grupoNome} `)).click();
       await page.getByRole("group", { name: grupoNome }).getByRole("button", { name: opcao }).click();
@@ -332,8 +333,8 @@ test("ca15 rf13 q14: filtros de status, casa e quem paga na URL; Voltar restaura
     await expect(folha).toBeHidden();
   }
 
-  await filtrar("Casa", "Casa da praia");
-  await expect(page).toHaveURL(new RegExp(`\\?status=a_pagar&casa=${casa}$`));
+  await filtrar("Categoria", "Casa da praia");
+  await expect(page).toHaveURL(new RegExp(`&status=a_pagar&casa=${casa}$`));
   await expect(link(page, /Luz da casa/)).toBeVisible();
   await expect(texto(page, /Gás solto/)).toHaveCount(0);
 
@@ -343,18 +344,18 @@ test("ca15 rf13 q14: filtros de status, casa e quem paga na URL; Voltar restaura
 
   // Back restores each step.
   await page.goBack();
-  await expect(page).toHaveURL(new RegExp(`\\?status=a_pagar&casa=${casa}$`));
+  await expect(page).toHaveURL(new RegExp(`&status=a_pagar&casa=${casa}$`));
   await expect(link(page, /Luz da casa/)).toBeVisible();
   await page.goBack();
-  await expect(page).toHaveURL(/\?status=a_pagar$/);
+  await expect(page).toHaveURL(/&status=a_pagar$/);
   await expect(link(page, /Luz da casa/)).toBeVisible();
   await expect(link(page, /Gás solto/)).toBeVisible();
 
   // A shared URL opens with its filters.
-  await page.goto(`/contas?pagador=${membroId}`);
+  await page.goto(`/contas?espaco=${grupo.id}&pagador=${membroId}`);
   await expect(link(page, /Luz da casa/)).toBeVisible();
   await expect(texto(page, /Gás solto/)).toHaveCount(0);
-  await page.goto("/contas?status=canceladas");
+  await page.goto(`/contas?espaco=${grupo.id}&status=canceladas`);
   await expect(link(page, /Água cancelada/)).toBeVisible();
 });
 
@@ -401,6 +402,7 @@ test("ca19/ca22/ca23 rn32 adr0007: saída barrada mostra a folha com as contas; 
   await page.goto(`/grupos/${grupo.id}`);
 
   await visivel(page, "Sair do grupo").click();
+  await confirmar(page, "Sair");
   const folha = page.getByRole("dialog", { name: `Antes de sair de ${grupo.nome}` });
   await expect(folha).toContainText("escolha outra pessoa");
   await expect(folha.getByRole("link", { name: "Presente" })).toHaveAttribute("href", `/contas/${presente.id}`);
@@ -438,6 +440,7 @@ test("ca20/ca21/ca22 rn32/rn06: remoção pelo admin nunca é barrada e não mos
   await visivel(page, new RegExp(membro.email)).click();
   const gestao = page.getByRole("dialog", { name: membro.email });
   await gestao.getByRole("button", { name: "Remover do grupo" }).click();
+  await confirmar(page, "Remover do grupo");
   await expect(gestao).toBeHidden();
   await expect(visivel(page, new RegExp(membro.email))).toHaveCount(0);
   await expect(page.getByRole("alert").filter({ visible: true, hasText: /\S/ })).toHaveCount(0);
@@ -515,7 +518,11 @@ test("ca27 q4/q5 rn07: seletor grava o cookie e troca Início e Contas; persiste
   expect(await cookie()).toBe(familia.id);
   await page.reload();
   await expect(link(atencao(page), /Conta da família/)).toBeVisible();
+  // COR-05: Contas opens personal whatever the selector says; ?espaco= picks the group.
   await page.goto("/contas");
+  await expect(link(page, /Conta pessoal/)).toBeVisible();
+  await expect(texto(page, /Conta da família/)).toHaveCount(0);
+  await page.goto(`/contas?espaco=${familia.id}`);
   await expect(link(page, /Conta da família/)).toBeVisible();
   await expect(texto(page, /Conta pessoal/)).toHaveCount(0);
 
@@ -570,7 +577,7 @@ test("ca32 rnf08: 360px sem rolagem horizontal e alvos ≥ 44px em Início, Cont
   await page.goto("/");
   await expect(link(atencao(page), /Energia/)).toBeVisible();
   await semRolagemEAlvos44(page);
-  await page.goto("/contas");
+  await page.goto(`/contas?espaco=${grupo.id}`);
   await expect(link(page, /Energia/)).toBeVisible();
   await semRolagemEAlvos44(page);
   await visivel(page, "Filtros").click();
@@ -638,7 +645,7 @@ test("ca29: screenshots de 02/D02, 03/D03 (com e sem painel), 07 e formulário (
   await expect(link(atencao(page), /Energia/)).toBeVisible();
   await foto("inicio");
 
-  await page.goto("/contas");
+  await page.goto(`/contas?espaco=${grupo.id}`);
   await expect(link(page, /Energia/)).toBeVisible();
   await foto("contas");
 
@@ -648,9 +655,9 @@ test("ca29: screenshots de 02/D02, 03/D03 (com e sem painel), 07 e formulário (
   if (desktop(info)) await expect(link(page, /Energia/)).toHaveAttribute("aria-current", "true");
   await foto("conta-detalhe");
 
-  // Decision 28: the stacked 07 has no TabBar (no FAB), so the form opens from Início.
-  await page.goto("/");
-  await expect(link(atencao(page), /Energia/)).toBeVisible();
+  // Decision 28: the stacked 07 has no TabBar (no FAB), so the form opens from the group's list (COR-06 destination).
+  await page.goto(`/contas?espaco=${grupo.id}`);
+  await expect(link(page, /Energia/)).toBeVisible();
   await botaoNovaConta(page).click();
   const form = page.getByRole("dialog", { name: "Nova conta" });
   await expect(form.getByRole("group", { name: "Quem paga" })).toBeVisible();
@@ -667,9 +674,9 @@ test("dec28: abaixo de 1024px /contas/[id] não tem TabBar e tem TopBar com volt
   const { admin, grupo, energia } = await grupoComContas(playwright);
   await logar(page, admin);
   await usarEspaco(page, grupo.id);
-  await page.goto("/contas");
+  await page.goto(`/contas?espaco=${grupo.id}`);
   await link(page, /Energia/).click();
-  await expect(page).toHaveURL(`${ORIGIN}/contas/${energia.id}`);
+  await expect(page).toHaveURL(`${ORIGIN}/contas/${energia.id}?espaco=${grupo.id}`);
   await expect(page.getByRole("heading", { level: 1, name: "Energia · Casa 3" })).toBeVisible();
 
   if (!desktop(info)) {
@@ -677,7 +684,7 @@ test("dec28: abaixo de 1024px /contas/[id] não tem TabBar e tem TopBar com volt
     await expect(botaoNovaConta(page)).toHaveCount(0);
     await expect(page.getByRole("heading", { level: 1, name: "Conta", exact: true })).toBeVisible();
     await link(page, "Voltar").click();
-    await expect(page).toHaveURL(`${ORIGIN}/contas`);
+    await expect(page).toHaveURL(`${ORIGIN}/contas?espaco=${grupo.id}`);
     await expect(tabBar(page)).toBeVisible();
     await expect(link(page, /Energia/)).toBeVisible();
   } else {
@@ -687,7 +694,7 @@ test("dec28: abaixo de 1024px /contas/[id] não tem TabBar e tem TopBar com volt
     await expect(link(page, "Voltar")).toHaveCount(0);
     await expect(botaoNovaConta(page)).toBeVisible();
     await link(page, "Fechar detalhe").click();
-    await expect(page).toHaveURL(`${ORIGIN}/contas`);
+    await expect(page).toHaveURL(`${ORIGIN}/contas?espaco=${grupo.id}`);
     await expect(texto(page, "Escolha uma conta para ver os detalhes.")).toBeVisible();
   }
 });
@@ -717,7 +724,7 @@ test("dec29: e-mail longo sem nome fica em uma linha no BillCard, em Quem paga e
   if (!desktop(info)) await page.setViewportSize({ width: 360, height: 800 });
   const escapado = longo.replace(/[.-]/g, "\\$&");
 
-  await page.goto("/contas");
+  await page.goto(`/contas?espaco=${grupo.id}`);
   await cortadoEmUmaLinha(link(page, /Luz/).locator("[title$=' paga']"), new RegExp(`^Vence \\d{2}/\\d{2} · ${escapado} paga$`));
   await semRolagemHorizontal(page);
 
@@ -733,16 +740,15 @@ test("dec29: e-mail longo sem nome fica em uma linha no BillCard, em Quem paga e
   await semRolagemHorizontal(page);
 });
 
-test("dec30: Nova conta abre com o espaço atual primeiro e selecionado: cada grupo a partir dele, Pessoal a partir do pessoal", async ({ page, playwright }) => {
+test("dec30 cor06: Nova conta abre com o destino da tela primeiro e selecionado: o grupo em Contas do grupo, Pessoal no Início", async ({ page, playwright }) => {
   const eu = await novaConta(playwright);
   const primeiro = await criarGrupo(eu);
   const segundo = await criarGrupo(eu);
   await logar(page, eu);
 
-  const confere = async (espaco: string, nome: string) => {
-    await usarEspaco(page, espaco);
-    await page.goto("/");
-    await expect(hero(page)).toBeVisible();
+  const confere = async (url: string, nome: string) => {
+    await page.goto(url);
+    await expect(botaoNovaConta(page)).toBeVisible();
     await botaoNovaConta(page).click();
     const onde = page.getByRole("dialog", { name: "Nova conta" }).getByRole("group", { name: /Onde fica/ });
     const chips = onde.getByRole("button");
@@ -752,9 +758,11 @@ test("dec30: Nova conta abre com o espaço atual primeiro e selecionado: cada gr
     await expect(onde.locator("[aria-pressed=true]")).toHaveCount(1);
     await page.keyboard.press("Escape");
   };
-  await confere(primeiro.id, primeiro.nome);
-  await confere(segundo.id, segundo.nome);
-  await confere((await me(eu.request)).espaco_pessoal.id, "Pessoal");
+  await confere(`/contas?espaco=${primeiro.id}`, primeiro.nome);
+  await confere(`/contas?espaco=${segundo.id}`, segundo.nome);
+  // DEC-06: Início is not a group screen, so even with a group in the selector the bill starts personal.
+  await usarEspaco(page, segundo.id);
+  await confere("/", "Pessoal");
 });
 
 test("dec23 rn30: quem saiu do grupo aparece como Ex-membro em Criada por e o e-mail dele não aparece na página", async ({ page, playwright }, info) => {

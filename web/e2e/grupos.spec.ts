@@ -8,6 +8,7 @@ import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 import { test } from "./rn31-isolation";
 import {
+  confirmar,
   ORIGIN,
   TEST_PASSWORD,
   convidar,
@@ -16,7 +17,6 @@ import {
   entrarNoGrupo,
   logar,
   me,
-  mesAtual,
   novaConta,
   outraAba,
   semBadge,
@@ -55,38 +55,42 @@ test("ca01/ca04/ca05/ca17 rf04/rf05/rf07 rn04/rn24/rn31: admin cria grupo e casa
   await visivel(page, "Criar grupo").click();
   const criar = page.getByRole("dialog", { name: "Criar grupo" });
   await criar.getByLabel("Nome do grupo").fill(nome);
-  await criar.getByLabel("Casa 1").fill("Casa da praia");
+  await criar.getByLabel("Categoria 1").fill("Casa da praia");
   await criar.getByRole("button", { name: "Criar grupo" }).click();
   await expect(page).toHaveURL(/\/grupos\/[\da-f-]{36}$/);
+  // CU02: the invite opens right after creating the group.
+  await expect(page.getByRole("dialog", { name: "Convidar para o grupo" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Convidar para o grupo" })).toBeHidden();
   const grupoId = page.url().split("/").pop()!;
   await expect(titulo(page, nome)).toBeVisible();
-  await expect(texto(page, "1 membro · 1 casa · você é admin")).toBeVisible();
-  // Q07-7: an empty house has no progress denominator or division by zero.
-  await expect(texto(page, `0 contas em ${mesAtual()}`)).toHaveCount(1);
+  await expect(texto(page, "1 membro · 1 categoria · você é admin")).toBeVisible();
+  // Q07-7: an empty category has no progress denominator or division by zero.
+  await expect(texto(page, "Nada a pagar")).toHaveCount(1);
   expect((await me(admin.request)).grupos).toEqual([{ id: grupoId, nome, papel: "admin" }]);
 
-  // RF07: + Nova casa.
-  await visivel(page, "+ Nova casa").click();
-  const casa = page.getByRole("dialog", { name: "Nova casa" });
-  await casa.getByLabel("Nome da casa").fill("Apartamento centro");
+  // RF07: + Nova categoria.
+  await visivel(page, "+ Nova categoria").click();
+  const casa = page.getByRole("dialog", { name: "Nova categoria" });
+  await casa.getByLabel("Nome da categoria").fill("Apartamento centro");
   await casa.getByRole("button", { name: "Criar", exact: true }).click();
   await expect(casa).toBeHidden();
   await expect(visivel(page, /Apartamento centro/)).toBeVisible();
-  await expect(texto(page, `0 contas em ${mesAtual()}`)).toHaveCount(2);
+  await expect(texto(page, "Nada a pagar")).toHaveCount(2);
 
   // CA19: Pagador comes checked; the link is shortened on screen and whole in the copy.
   await botaoConvidar(page).click();
   const convite = page.getByRole("dialog", { name: "Convidar para o grupo" });
   await expect(convite.getByRole("radio", { name: /Pagador/ })).toBeChecked();
   const curto = convite.locator("b").filter({ hasText: /\/c\// });
-  await expect(curto).toHaveText(/^localhost:3000\/c\/[\w-]{8}…[\w-]{4}$/);
+  await expect(curto).toHaveText(new RegExp(`^${new URL(ORIGIN).host}/c/[\\w-]{8}…[\\w-]{4}$`));
   await expect(convite.getByText("Expira em 7 dias · vale para 1 pessoa")).toBeVisible();
   await convite.getByRole("button", { name: "Link do convite, copiar" }).click();
   await expect(convite.getByRole("status")).toHaveText("Link copiado.");
   const url = await page.evaluate(() => navigator.clipboard.readText());
-  expect(url).toMatch(/^http:\/\/localhost:3000\/c\/[\w-]{43}$/);
+  expect(url).toMatch(new RegExp(`^${ORIGIN}/c/[\\w-]{43}$`));
   const token = url.split("/c/")[1];
-  expect(await curto.textContent()).toBe(`localhost:3000/c/${token.slice(0, 8)}…${token.slice(-4)}`);
+  expect(await curto.textContent()).toBe(`${new URL(ORIGIN).host}/c/${token.slice(0, 8)}…${token.slice(-4)}`);
   await page.keyboard.press("Escape");
   await expect(convite).toBeHidden();
   // Copied, so closing keeps it: it shows as pending (admin only).
@@ -138,9 +142,9 @@ test("ca01/ca04/ca05/ca17 rf04/rf05/rf07 rn04/rn24/rn31: admin cria grupo e casa
 
   // CA17: the list shows counts and role; the used invite left the pending list.
   await page.goto("/grupos");
-  await expect(page.getByRole("link", { name: new RegExp(`${nome}.*2 membros · 2 casas · você é admin`) })).toBeVisible();
+  await expect(page.getByRole("link", { name: new RegExp(`${nome}.*2 membros · 2 categorias · você é admin`) })).toBeVisible();
   await page.goto(`/grupos/${grupoId}`);
-  await expect(texto(page, "2 membros · 2 casas · você é admin")).toBeVisible();
+  await expect(texto(page, "2 membros · 2 categorias · você é admin")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Convites pendentes" })).toHaveCount(0);
 });
 
@@ -155,9 +159,9 @@ test("ca09/ca11/ca15/ca17 rn01/rn05/rn07 rnf01: admin com ações, membro e obse
   await logar(page, admin);
   await page.goto(url);
   await expect(titulo(page, grupo.nome)).toBeVisible();
-  await expect(texto(page, "4 membros · 1 casa · você é admin")).toBeVisible();
+  await expect(texto(page, "4 membros · 1 categoria · você é admin")).toBeVisible();
   await expect(botaoConvidar(page)).toHaveCount(1);
-  await expect(visivel(page, "+ Nova casa")).toBeVisible();
+  await expect(visivel(page, "+ Nova categoria")).toBeVisible();
   await expect(visivel(page, new RegExp(`${observador.email}.*Observador`))).toBeVisible();
   await expect(visivel(page, /Casa da praia/)).toBeVisible();
 
@@ -166,12 +170,12 @@ test("ca09/ca11/ca15/ca17 rn01/rn05/rn07 rnf01: admin com ações, membro e obse
     try {
       await aba.goto(url);
       await expect(titulo(aba, grupo.nome)).toBeVisible();
-      await expect(texto(aba, `4 membros · 1 casa · você é ${papel}`)).toBeVisible();
+      await expect(texto(aba, `4 membros · 1 categoria · você é ${papel}`)).toBeVisible();
       await expect(aba.getByText(admin.email, { exact: true })).toBeVisible();
-      await expect(texto(aba, `0 contas em ${mesAtual()}`)).toBeVisible();
+      await expect(texto(aba, "Nada a pagar")).toBeVisible();
       // Reading recurring models is available; management remains unavailable.
       await expect(botaoConvidar(aba)).toHaveCount(0);
-      await expect(visivel(aba, "+ Nova casa")).toHaveCount(0);
+      await expect(visivel(aba, "+ Nova categoria")).toHaveCount(0);
       await expect(aba.locator("main [aria-haspopup=dialog]:visible")).toHaveCount(0);
       await expect(aba.getByRole("heading", { name: "Convites pendentes" })).toHaveCount(0);
       expect(await aba.locator("main button:visible").allTextContents()).toEqual(["Ver todas", "Sair do grupo"]);
@@ -255,10 +259,12 @@ test("ca12/ca14 rf06 rn04/rn21: admin muda papel e remove; último admin não se
   await eu.getByRole("button", { name: "Salvar papel" }).click();
   await expect(eu.getByRole("alert")).toHaveText(RN04);
   await eu.getByRole("button", { name: "Remover do grupo" }).click();
+  await confirmar(page, "Remover do grupo");
   await expect(eu.getByRole("alert")).toHaveText(RN04);
   await page.keyboard.press("Escape");
   await expect(eu).toBeHidden();
   await visivel(page, "Sair do grupo").click();
+  await confirmar(page, "Sair");
   await expect(page.getByRole("alert").filter({ visible: true, hasText: /\S/ })).toHaveText(RN04);
   const sair = await api(admin.request, "POST", `/api/grupos/${grupo.id}/sair/`);
   expect(sair.status()).toBe(409);
@@ -273,8 +279,9 @@ test("ca12/ca14 rf06 rn04/rn21: admin muda papel e remove; último admin não se
     await page.reload();
     await visivel(page, new RegExp(membro.email)).click();
     await page.getByRole("dialog", { name: membro.email }).getByRole("button", { name: "Remover do grupo" }).click();
+    await confirmar(page, "Remover do grupo");
     await expect(visivel(page, new RegExp(membro.email))).toHaveCount(0);
-    await expect(texto(page, "1 membro · 1 casa · você é admin")).toBeVisible();
+    await expect(texto(page, "1 membro · 1 categoria · você é admin")).toBeVisible();
     expect((await membro.request.get(`/api/grupos/${grupo.id}/`)).status()).toBe(404);
     expect((await me(membro.request)).grupos).toEqual([]);
     await removido.reload();
@@ -403,8 +410,8 @@ test("ca20 rnf08/rnf09: 360px sem rolagem horizontal e alvos ≥ 44px em grupos,
   await expect(page.getByRole("dialog", { name: admin.email })).toBeVisible();
   await semRolagemEAlvos44(page);
   await page.keyboard.press("Escape");
-  await visivel(page, /Casa da praia/).click();
-  await expect(page.getByRole("dialog", { name: "Editar casa" })).toBeVisible();
+  await page.getByRole("button", { name: "Editar Casa da praia" }).filter({ visible: true }).click();
+  await expect(page.getByRole("dialog", { name: "Editar categoria" })).toBeVisible();
   await semRolagemEAlvos44(page);
 
   const visitante = await outraAba(browser, page);
