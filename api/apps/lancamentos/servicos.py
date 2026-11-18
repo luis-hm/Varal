@@ -141,8 +141,9 @@ def _historico(conta, usuario, acao, dados=None):
 
 
 def _pagar_por_si(usuario, papel_, subgrupo_id, pagador):
-    """COR-10: the assigned payer may pay (RN07), so naming oneself payer needs "pagar" in the
-    category; otherwise "criar"/"editar" would be a way around it."""
+    """COR-10: the assigned payer may pay (RN07), so taking over someone else's bill as payer
+    needs "pagar" in the category. Creating a bill with yourself as payer is allowed (owner,
+    18/11/2026): the creator is born payer until they name someone else."""
     if pagador and str(pagador) == str(usuario.pk):
         if not pode_na(usuario, papel_, subgrupo_id, "pagar"):
             raise PermissionDenied("Você não pode pagar contas desta categoria.")
@@ -177,7 +178,6 @@ def criar(usuario, espaco, dados, capacidade="criar"):
         # COR-10: the grant is per category (read after locking it against permission edits).
         if not pode_na(usuario, espaco.meu_papel, dados.get("subgrupo"), capacidade):
             raise PermissionDenied()
-        _pagar_por_si(usuario, espaco.meu_papel, dados.get("subgrupo"), dados.get("pagador"))
         dados = dict(dados)
         pdf = pdf_servicos.preparar_pdf(usuario, espaco, dados)
         instrumento = instrumentos.preparar(dados)

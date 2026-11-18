@@ -215,19 +215,11 @@ def aceitar_convite(usuario, token):
 
 
 def _ajustar_permissoes(membro):
-    """COR-10: a new role never keeps category grants above its default (membro -> observador
-    keeps only "ver"); a promotion widens nothing. The payer role has no category grants."""
-    from .acesso import CAPACIDADES, PADRAO, PERSONALIZAVEIS
+    """COR-10: a new role brings that role's default permissions in every category (owner,
+    18/11/2026): the old per-category grants are dropped; no row = the role default."""
     from .models import PermissaoCategoria
 
-    linhas = PermissaoCategoria.objects.filter(membro=membro)
-    if membro.papel not in PERSONALIZAVEIS:
-        if membro.papel != Papel.ADMIN:
-            linhas.delete()
-        return
-    acima = {c: False for c in CAPACIDADES if c not in PADRAO[membro.papel]}
-    if acima:
-        linhas.update(**acima)
+    PermissaoCategoria.objects.filter(membro=membro).delete()
 
 
 def alterar_papel(grupo, membro_id, papel):

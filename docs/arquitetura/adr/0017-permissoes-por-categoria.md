@@ -12,7 +12,7 @@ O dono pediu que o admin configure, por categoria, quem pode ver, cadastrar, edi
 ## Proposta
 
 1. **Sem configuração, nada muda.** Categoria nova ou existente nasce no modo "padrão do papel": vale exatamente a regra de hoje. Nenhuma migração abre ou fecha acesso.
-2. O admin pode mudar uma categoria para **"personalizada"**. Aí cada membro (papéis `membro` e `observador`) tem um conjunto de capacidades naquela categoria:
+2. O admin pode mudar uma categoria para **"personalizada"**. Aí cada membro (papéis `membro` e `observador`) tem um conjunto de capacidades naquela categoria (sem linha própria, vale o padrão do papel):
    `ver`, `criar`, `editar`, `pagar` (pagar qualquer conta da categoria), `recorrencias`.
    - `pagar` sem `ver` é inválido (a API recusa). `criar`, `editar` e `recorrencias` exigem `ver`.
    - Ao ligar "personalizada", a tela já vem preenchida com o padrão do papel de cada pessoa (o admin vê o que vai valer antes de salvar; nada amplo é aplicado em silêncio).
@@ -32,12 +32,12 @@ O dono pediu que o admin configure, por categoria, quem pode ver, cadastrar, edi
 - Observador sem concessão continua sem criar; com `criar`/`recorrencias` em alguma categoria, passa pela checagem do espaço e o serviço confere a categoria exata. Na Nova conta, o grupo do observador só aparece a partir das telas daquele grupo.
 - `Subgrupo.personalizada=False` volta à regra anterior; as linhas de `PermissaoCategoria` são apagadas ao desligar.
 - Consultas de contas usam `EXISTS` (não join) na checagem de categoria, porque são travadas com `FOR UPDATE`.
-- Lacunas fechadas após a revisão de segurança (18/11/2026), a confirmar pelo dono (Q12-4 da etapa 12):
-  - mudar o papel nunca deixa concessão acima do novo papel (membro → observador fica só com `ver`); promover não amplia nada; virar pagador apaga as concessões;
-  - pôr a si mesmo como pagador exige `pagar` na categoria (senão `criar`/`editar` virariam pagamento);
+- Regras completadas após a revisão de segurança, **confirmadas pelo dono em 18/11/2026**:
+  - numa categoria personalizada, quem não tem linha (entrou no grupo depois, ou mudou de papel) recebe o **padrão do papel**;
+  - mudar o papel descarta as concessões antigas da pessoa: ela passa a ter o padrão do novo papel (rebaixar reduz, promover amplia);
+  - quem cria a conta pode nascer como pagador sem `pagar`; **trocar** o pagador de uma conta existente para si mesmo exige `pagar` na categoria;
   - pedir para alguém pagar exige `criar` sem categoria (a cópia nasce sem categoria);
   - "cancelar os próximos" deixa abertas as ocorrências de categorias sem `editar`;
-  - quem entra no grupo depois que a categoria foi personalizada começa sem acesso a ela;
   - a geração automática de uma recorrência continua mesmo se o criador perder `recorrencias` (só a próxima ação manual é barrada).
 
 ## Consequências

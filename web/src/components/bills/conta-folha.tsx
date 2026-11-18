@@ -190,9 +190,10 @@ export function ContaFolha({ open, onClose, conta, returnFocusTo, destino }: Pro
   const api = erro instanceof ApiError ? erro.campos : {};
   // COR-06: a category the group no longer has (archived while the form was open) is not sent silently.
   const casaValida = casa === null ? podeSemCategoria : casas.some((c) => c.id === casa);
-  // COR-10: the assigned payer may pay, so naming yourself payer needs "pagar" in the category.
+  // COR-10: the assigned payer may pay, so taking over an existing bill as payer needs "pagar" in its
+  // category. Creating, you are born payer (owner, 18/11/2026).
   const pagoNaCategoria = casa === null || (grupo.data?.casas.find((c) => c.id === casa)?.capacidades.includes("pagar") ?? true);
-  const euSemPagar = emGrupo && pagador === user.id && !pagoNaCategoria && conta?.pagador?.id !== user.id;
+  const euSemPagar = emGrupo && !!conta && pagador === user.id && !pagoNaCategoria && conta.pagador?.id !== user.id;
   const SEM_PAGAR = "Você não pode pagar contas desta categoria. Escolha outra pessoa.";
   const erros = {
     valor: local.valor ?? api.valor_centavos,

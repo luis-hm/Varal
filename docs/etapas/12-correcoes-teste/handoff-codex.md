@@ -35,7 +35,7 @@
 | `1f7e9ba` | Web: ícones de categoria (`web/src/lib/categorias/icones.ts`, 12 ícones novos em `components/ui/icon.tsx`), Contas sem mês e com `?espaco=`, tela da categoria (`components/groups/categoria-pagina.tsx`, rotas `app/(app)/grupos/[id]/categorias/[categoria]/...`), Nova conta com destino (`destinoDaTela` em `components/layout/app-shell.tsx`), cards de categoria no grupo. |
 | `905a43a` | Perfil redesenhado (COR-09), espaçamento do Início e do detalhe. |
 
-Situação: API 568 testes verdes; web 170 testes verdes; `tsc` e lint limpos. **E2E não foi rodado** depois das mudanças (seção 4).
+Situação: API 569 testes verdes; web 170 testes verdes; `tsc` e lint limpos. **E2E não foi rodado** depois das mudanças (seção 4).
 
 ## 2. COR-10 — Permissões por categoria — **feito** (ADR 0017 aprovado em 18/11/2026)
 
@@ -46,7 +46,7 @@ Não reimplemente. O que existe:
 - **Serviços:** `lancamentos.servicos.criar/editar/cancelar`, `recorrencias.servicos.criar/editar_modelo`, `pagamentos.servicos.pode_pagar`.
 - **API:** `GET/PUT /api/grupos/{id}/subgrupos/{casa}/permissoes/` (admin; versão antiga dá 409); `casas[].capacidades` e `casas[].personalizada` no detalhe do grupo.
 - **Web:** `web/src/components/groups/permissoes-folha.tsx` (aberta por "Quem pode fazer o quê" dentro de "Editar categoria"); a Nova conta só oferece categorias com `criar` e as recorrências só com `recorrencias`; o grupo do observador aparece na Nova conta só a partir das telas daquele grupo.
-- **Testes:** `api/tests/test_permissoes_categoria.py` (22, com os achados da revisão de segurança), `grupo-pagina.test.tsx` e `conta-folha.test.tsx` (casos COR-10).
+- **Testes:** `api/tests/test_permissoes_categoria.py` (23, com os achados da revisão de segurança), `grupo-pagina.test.tsx` e `conta-folha.test.tsx` (casos COR-10).
 
 **O que falta (E2E, seção 4):** um teste que, nas duas larguras, faça o admin personalizar "Energia" tirando "Ver" do membro, e confira que o membro não vê a categoria nem a conta e que `GET /api/lancamentos/{id}/` dá 404 para ele.
 
@@ -135,7 +135,7 @@ Guarde as capturas em `docs/etapas/12-correcoes-teste/evidencias/`.
 
 ## 8. Pronto quando
 
-- [ ] `docker compose -p varaltest ... pytest -q` verde (568 testes em 18/11/2026).
+- [ ] `docker compose -p varaltest ... pytest -q` verde (569 testes em 18/11/2026).
 - [ ] `npx vitest run`, `npx tsc --noEmit`, `npm run lint` verdes em `web/`.
 - [ ] `make types` sem diff.
 - [ ] `make e2e` verde nas duas larguras.

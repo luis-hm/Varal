@@ -24,7 +24,7 @@ def permissoes_url(f, casa):
 
 
 def salvar(f, casa, personalizada=True, nome="admin", versao=None, **por_pessoa):
-    """`por_pessoa`: membro=dict(...), observador=dict(...); left out = no grant."""
+    """`por_pessoa`: membro=dict(...), observador=dict(...); left out = the role default."""
     casa.refresh_from_db()
     corpo = {
         "personalizada": personalizada,
@@ -86,7 +86,7 @@ def test_cor10_observador_pode_criar_se_admin_permitir(f, energia):
 
 def test_cor10_membro_sem_ver_nao_lista_nem_abre_detalhe(f, energia):
     conta = nova(f.u["admin"], f.grupo, subgrupo=energia.pk, valor_centavos=4321)
-    personalizar(f, energia, observador={"ver": True})
+    personalizar(f, energia, membro=NADA, observador={"ver": True})
     membro = cliente(f.u["membro"])
     dados = lista(membro, f.grupo)
     assert all(c["id"] != str(conta.pk) for c in dados["itens"])
@@ -113,7 +113,7 @@ def test_cor10_ver_nao_abre_restrita(f, energia):
 def test_cor10_criador_e_pagador_sempre_veem(f, energia):
     criada = nova(f.u["membro"], f.grupo, subgrupo=energia.pk)
     paga_por = nova(f.u["admin"], f.grupo, subgrupo=energia.pk, pagador=f.u["membro"].pk)
-    personalizar(f, energia)  # nobody has anything
+    personalizar(f, energia, membro=NADA, observador=NADA)
     membro = cliente(f.u["membro"])
     assert membro.get(url(criada)).status_code == 200
     assert membro.get(url(paga_por)).status_code == 200
@@ -210,7 +210,7 @@ def test_cor10_revogar_vale_na_proxima_consulta_e_nos_avisos(f, energia):
     membro = cliente(f.u["membro"])
     assert membro.get(url(conta)).status_code == 200
     assert f.u["membro"].pk in quem_ve(conta)
-    personalizar(f, energia, observador={"ver": True})
+    personalizar(f, energia, membro=NADA, observador={"ver": True})
     assert membro.get(url(conta)).status_code == 404
     assert f.u["membro"].pk not in quem_ve(conta)  # reminders and notices use quem_ve
     personalizar(f, energia, personalizada=False)
@@ -240,23 +240,29 @@ def test_cor10_capacidades_na_categoria(f, energia):
 # ---- security review (18/11/2026) -----------------------------------------------------------
 
 
-def test_cor10_rebaixar_papel_reduz_concessoes(f, energia):
-    personalizar(f, energia, membro=TUDO)
+def test_cor10_trocar_papel_traz_o_padrao_do_novo_papel(f, energia):
+    personalizar(f, energia, membro={"ver": True}, observador=NADA)
     admin = cliente(f.u["admin"])
     rota = f"/api/grupos/{f.grupo.pk}/membros/{f.m['membro'].pk}/"
+    # Demoted: the observer default (only "ver"); the old grant is gone.
     assert admin.patch(rota, {"papel": "observador"}, content_type=JSON).status_code == 200
-    linha = energia.permissoes.get()
-    assert (linha.ver, linha.criar, linha.editar, linha.pagar, linha.recorrencias) == (
-        True,
-        False,
-        False,
-        False,
-        False,
-    )
+    assert not energia.permissoes.filter(membro=f.m["membro"]).exists()
     assert criar_api(f, "membro", energia).status_code == 403
-    # Promoting back widens nothing on its own.
+    assert cliente(f.u["membro"]).get(f"/api/grupos/{f.grupo.pk}/").status_code == 200
+    # Promoted: the member default (everything), even in the personalised category.
     assert admin.patch(rota, {"papel": "membro"}, content_type=JSON).status_code == 200
-    assert criar_api(f, "membro", energia).status_code == 403
+    assert criar_api(f, "membro", energia).status_code == 201
+
+
+def test_cor10_membro_novo_recebe_o_padrao_do_papel(f, energia):
+    personalizar(f, energia, membro=NADA, observador=NADA)
+    novo = test_contas.entrar(f, "novo", papel="observador")
+    conta = nova(f.u["admin"], f.grupo, subgrupo=energia.pk)
+    assert cliente(novo).get(url(conta)).status_code == 200
+    estado = cliente(f.u["admin"]).get(permissoes_url(f, energia)).json()
+    linha = next(m for m in estado["membros"] if m["membro_id"] == str(f.m["novo"].pk))
+    assert {c: linha[c] for c in NADA} == {**NADA, "ver": True}
+    assert cliente(f.u["membro"]).get(url(conta)).status_code == 404
 
 
 def test_cor10_editar_nao_vira_pagar_por_se_atribuir(f, energia):
@@ -265,8 +271,9 @@ def test_cor10_editar_nao_vira_pagar_por_se_atribuir(f, energia):
     membro = cliente(f.u["membro"])
     eu = {"pagador": str(f.u["membro"].pk)}
     assert membro.patch(url(conta), eu, content_type=JSON).status_code == 403
-    assert criar_api(f, "membro", energia, **eu).status_code == 403
     assert pagar(f, conta, "membro").status_code == 403
+    # Creating, the creator is born payer (owner, 18/11/2026).
+    assert criar_api(f, "membro", energia, **eu).status_code == 201
     # Naming someone else still works.
     outro = {"pagador": str(f.u["admin"].pk)}
     assert membro.patch(url(conta), outro, content_type=JSON).status_code == 200
@@ -303,7 +310,7 @@ def test_cor10_recorrencias_e_comprovante_sem_ver(f, energia):
     criada = admin.post(f"/api/espacos/{f.grupo.pk}/recorrencias/", corpo, content_type=JSON)
     assert criada.status_code == 201, criada.content
     modelo = criada.json()["recorrencia"]["id"]
-    personalizar(f, energia, observador={"ver": True})
+    personalizar(f, energia, membro=NADA, observador={"ver": True})
     membro = cliente(f.u["membro"])
     lista_rec = membro.get(f"/api/espacos/{f.grupo.pk}/recorrencias/").json()
     assert all(r["id"] != modelo for r in lista_rec)
@@ -337,7 +344,7 @@ def test_cor10_cancelar_proximos_pula_conta_sem_editar(f, energia):
 
 
 def test_cor10_lista_de_grupos_conta_so_categorias_visiveis(f, energia):
-    personalizar(f, energia, observador={"ver": True})
+    personalizar(f, energia, membro=NADA, observador={"ver": True})
     grupos = cliente(f.u["membro"]).get("/api/grupos/").json()
     assert next(g for g in grupos if g["id"] == str(f.grupo.pk))["casas_qtd"] == 1
     grupos = cliente(f.u["admin"]).get("/api/grupos/").json()

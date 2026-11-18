@@ -15,7 +15,7 @@
 | COR-07 | "Sem categoria" no resumo, filtro e tela própria; filtro ativo continua visível e removível. |
 | COR-08 | Grupo, Início, Contas, Detalhe e Perfil com 24px entre seções. |
 | COR-09 | Perfil redesenhado (identidade, dados, preferências, exportar, zona de perigo; reautenticação em folha). |
-| COR-10 | Permissões por categoria ([ADR 0017](../../arquitetura/adr/0017-permissoes-por-categoria.md)): modelo, regra central em `acesso.py`, endpoint do admin com versão e histórico, folha "Quem pode fazer o quê", Nova conta e recorrências só oferecem categorias permitidas. 22 testes de API (`test_permissoes_categoria.py`), incluindo os achados da revisão de segurança (sem bloqueantes; 4 importantes corrigidos). |
+| COR-10 | Permissões por categoria ([ADR 0017](../../arquitetura/adr/0017-permissoes-por-categoria.md)): modelo, regra central em `acesso.py`, endpoint do admin com versão e histórico, folha "Quem pode fazer o quê", Nova conta e recorrências só oferecem categorias permitidas. 23 testes de API (`test_permissoes_categoria.py`), incluindo os achados da revisão de segurança (sem bloqueantes; 4 importantes corrigidos). |
 | COR-11 | Grupos → grupo → categoria → contas → detalhe. |
 | COR-12 | Referrer `strict-origin` em `/entrar` e `/criar-conta` (Next e edge). Falta a URI no Google Console (dono). |
 
@@ -30,7 +30,7 @@
 
 ## Testes
 
-- API (projeto `varaltest`): 568/568 em 18/11/2026.
+- API (projeto `varaltest`): 569/569 em 18/11/2026.
 - Web: 170/170 Vitest, `tsc` e lint limpos.
 - E2E: **não rodado**; pontos que vão quebrar estão no [handoff §4](handoff-codex.md#4-e2e-playwright).
 

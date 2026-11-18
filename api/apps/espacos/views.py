@@ -27,7 +27,7 @@ from .acesso import (
     espacos_do_usuario,
     pode,
 )
-from .models import Espaco, Membro, Papel, Subgrupo
+from .models import Espaco, Membro, Papel, PermissaoCategoria, Subgrupo
 
 GRUPO_ID = "1b4e28ba-2fa1-11d2-883f-0016d3cca427"
 MEMBRO_ID = "6fd32f1c-6f80-4b01-b491-25aeb00a180e"
@@ -285,6 +285,10 @@ class GruposView(APIView):
         ],
     )
     def get(self, request):
+        # COR-10: categories where this user's "ver" was taken away are not counted.
+        ocultas = PermissaoCategoria.objects.filter(
+            membro__usuario=request.user, subgrupo__personalizada=True, ver=False
+        ).values("subgrupo")
         grupos = (
             espacos_do_usuario(request.user)
             .filter(tipo=Espaco.Tipo.GRUPO)
@@ -294,14 +298,7 @@ class GruposView(APIView):
                 casas_qtd=Count(
                     "subgrupos",
                     filter=Q(subgrupos__arquivado=False)
-                    & (
-                        ~Q(meu_papel__in=PERSONALIZAVEIS)
-                        | Q(subgrupos__personalizada=False)
-                        | Q(
-                            subgrupos__permissoes__membro__usuario=request.user,
-                            subgrupos__permissoes__ver=True,
-                        )
-                    ),
+                    & ~(Q(meu_papel__in=PERSONALIZAVEIS) & Q(subgrupos__in=ocultas)),
                     distinct=True,
                 ),
             )
@@ -693,7 +690,8 @@ def _permissoes(casa):
     ):
         linha = linhas.get(m.pk)
         caps = {
-            c: (bool(linha and getattr(linha, c)) if casa.personalizada else c in PADRAO[m.papel])
+            # No row (joined later, role changed) = the role default, also when personalised.
+            c: getattr(linha, c) if casa.personalizada and linha else c in PADRAO[m.papel]
             for c in CAPACIDADES
         }
         membros.append({"membro_id": m.pk, "papel": m.papel, **caps})
