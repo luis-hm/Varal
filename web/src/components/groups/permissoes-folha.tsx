@@ -63,7 +63,7 @@ export function PermissoesFolha({ grupo, casa, onClose }: { grupo: GrupoDetalhe;
           </label>
           {!valor.personalizada ? <p className={styles.nota}>Vale o padrão de cada papel: membros fazem tudo, observadores só veem.</p> : !valor.membros.length ? <p className={styles.nota}>Este grupo ainda não tem membros nem observadores.</p> : (
             <>
-              <p className={styles.nota}>Quem criou ou paga uma conta sempre a vê. Contas com &quot;Só algumas pessoas&quot; continuam restritas.</p>
+              <p className={styles.nota}>Quem criou ou paga uma conta sempre a vê. Contas com &quot;Só algumas pessoas&quot; continuam restritas. Quem entrar no grupo ou mudar de papel recebe o padrão do papel.</p>
               {valor.membros.map((m) => (
                 <fieldset key={m.membro_id} className={styles.permissao}>
                   <legend>{nomes.get(m.membro_id) || "Pessoa"} <span>· {papeis[m.papel].title}</span></legend>

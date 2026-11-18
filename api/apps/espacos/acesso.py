@@ -47,7 +47,9 @@ DA_CATEGORIA = {"criar_conta": "criar", "editar_conta": "editar", "pagar_qualque
 
 def capacidades(usuario, papel_, subgrupo_id):
     """What `usuario` may do with bills of one category. Owner/admin: everything; payer: nothing
-    (RN07 covers their own bills); no category or a non-personalised one: the role default."""
+    (RN07 covers their own bills); no category or a non-personalised one: the role default.
+    In a personalised category, a member without a row (joined later, or whose role changed)
+    gets their role default too (owner, 18/11/2026)."""
     padrao = PADRAO.get(papel_, frozenset())
     if papel_ not in PERSONALIZAVEIS or not subgrupo_id:
         return padrao
@@ -57,8 +59,8 @@ def capacidades(usuario, papel_, subgrupo_id):
         PermissaoCategoria.objects.filter(subgrupo_id=subgrupo_id, membro__usuario=usuario)
         .values(*CAPACIDADES)
         .first()
-    ) or {}
-    return frozenset(c for c in CAPACIDADES if linha.get(c))
+    )
+    return padrao if linha is None else frozenset(c for c in CAPACIDADES if linha[c])
 
 
 def pode_na(usuario, papel_, subgrupo_id, acao):
@@ -71,17 +73,19 @@ def pode_na(usuario, papel_, subgrupo_id, acao):
 
 
 def _categoria_visivel(usuario, chave="subgrupo"):
-    """Q: the category is not personalised, or this user was granted "ver" in it."""
-    concedida = Exists(
-        PermissaoCategoria.objects.filter(
-            subgrupo=OuterRef(chave or "pk"), membro__usuario=usuario, ver=True
+    """Q for membro/observador: hidden only where a personalised category took "ver" away from
+    this user (both roles see by default, so no row = sees). EXISTS, not a join: bill queries
+    are locked with FOR UPDATE (no outer joins)."""
+    return ~Q(
+        Exists(
+            PermissaoCategoria.objects.filter(
+                subgrupo=OuterRef(chave or "pk"),
+                subgrupo__personalizada=True,
+                membro__usuario=usuario,
+                ver=False,
+            )
         )
     )
-    if chave is None:  # over Subgrupo itself
-        return Q(personalizada=False) | Q(concedida)
-    # EXISTS instead of a join: bill queries are locked with FOR UPDATE (no outer joins).
-    personalizada = Exists(Subgrupo.objects.filter(pk=OuterRef(chave), personalizada=True))
-    return ~Q(personalizada) | Q(concedida)
 
 
 def categorias_visiveis(usuario, espaco, papel_=None):

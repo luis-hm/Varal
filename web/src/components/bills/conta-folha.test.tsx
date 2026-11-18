@@ -160,12 +160,11 @@ test("COR-10: opened from a group where you observe, it is offered (the admin ma
   expect(onde()).toEqual(["Condomínio*", "Pessoal", "Família"]);
 });
 
-test("COR-10: without Pagar in the category, choosing yourself as payer is refused before saving", async () => {
+test("COR-10: creating without Pagar in the category, you are still born payer", async () => {
   casasDoGrupo = [{ id: "c1", nome: "Casa 1", capacidades: ["ver", "criar"] }];
   renderComSessao(<ContaFolha open onClose={() => {}} destino={{ espaco: "g1", categoria: "c1" }} />);
   await grupoCarregado();
-  expect(await screen.findByText("Você não pode pagar contas desta categoria. Escolha outra pessoa.")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Mãe" }));
+  expect(screen.getByRole("button", { name: "Eu" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.queryByText("Você não pode pagar contas desta categoria. Escolha outra pessoa.")).toBeNull();
 });
 
