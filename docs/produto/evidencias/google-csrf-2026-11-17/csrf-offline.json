@@ -1,0 +1,59 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "case": "origin_valid_cookie_body_match",
+      "status": 200,
+      "expected": 200,
+      "rejection_category": null
+    },
+    {
+      "case": "origin_null_cookie_body_match",
+      "status": 403,
+      "expected": 403,
+      "rejection_category": "Origin checking failed - null does not match any trusted origins."
+    },
+    {
+      "case": "origin_absent_referer_absent_https",
+      "status": 403,
+      "expected": 403,
+      "rejection_category": "Referer checking failed - no Referer."
+    },
+    {
+      "case": "origin_absent_referer_same_origin",
+      "status": 200,
+      "expected": 200,
+      "rejection_category": null
+    },
+    {
+      "case": "origin_foreign_cookie_body_match",
+      "status": 403,
+      "expected": 403,
+      "rejection_category": "Origin checking failed - https://invalid.example does not match any trusted origins."
+    },
+    {
+      "case": "cookie_rotated_old_body",
+      "status": 403,
+      "expected": 403,
+      "rejection_category": "CSRF token from POST incorrect."
+    },
+    {
+      "case": "cookie_missing_valid_body",
+      "status": 403,
+      "expected": 403,
+      "rejection_category": "CSRF cookie not set."
+    },
+    {
+      "case": "empty_body_valid_header",
+      "status": 200,
+      "expected": 200,
+      "rejection_category": null
+    },
+    {
+      "case": "wrong_nonempty_body_valid_header",
+      "status": 403,
+      "expected": 403,
+      "rejection_category": "CSRF token from POST incorrect."
+    }
+  ]
+}
