@@ -91,7 +91,7 @@ function CriarGrupoFolha({ open, onClose }: { open: boolean; onClose: () => void
       {
         onSuccess(grupo) {
           fechar();
-          router.push(`/grupos/${grupo.id}`);
+          router.push(`/grupos/${grupo.id}?convidar=1`); // CU02: offer the invite right after creating
           router.refresh(); // the space selector reads the groups from /api/me/
         },
       },

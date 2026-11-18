@@ -158,6 +158,14 @@ test("ca19/rn31: invite starts as Pagador, shows the short link, copies the full
   await waitFor(() => expect(chamadas.filter((c) => c.method === "DELETE").map((c) => c.url)).toContain("/api/grupos/g1/convites/cv3/"));
 });
 
+test("CU02: a group created just now opens the invite once and drops ?convidar=1", async () => {
+  detalhe = { status: 200, body: grupo("admin") };
+  window.history.replaceState(null, "", "/grupos/g1?convidar=1");
+  renderPagina();
+  expect(await screen.findByRole("dialog", { name: "Convidar para o grupo" })).toBeTruthy();
+  expect(window.location.search).toBe("");
+});
+
 test("q10/rn13: admin sets the alert window from 1 to 7 days", async () => {
   detalhe = { status: 200, body: grupo("admin") };
   renderPagina();

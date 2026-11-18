@@ -58,6 +58,13 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
   const admin = grupo.meu_papel === "admin";
   const acoes = useAcoesGrupo(grupo.id);
   const convite = useConvite(grupo.id);
+  const abrirConvite = useRef(convite.abrir);
+  useEffect(() => {
+    // CU02: a freshly created group arrives with ?convidar=1 and opens the invite once.
+    if (!admin || new URLSearchParams(window.location.search).get("convidar") !== "1") return;
+    window.history.replaceState(window.history.state, "", window.location.pathname);
+    abrirConvite.current();
+  }, [admin]);
   const pendentes = useConvitesPendentes(grupo.id, admin);
   const [membro, setMembro] = useState<Membro | null>(null);
   const [casa, setCasa] = useState<Casa | "nova" | null>(null);
