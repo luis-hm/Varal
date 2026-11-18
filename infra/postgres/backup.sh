@@ -3,6 +3,8 @@
 # Restore: docs/arquitetura/backup-restauracao.md
 set -eu -o pipefail
 arquivo=/tmp/varal-backup.enc
+# PID 1 ignores SIGTERM without a handler; sleep in the background so `docker stop` is instant.
+trap 'exit 0' TERM INT
 while :; do
     if [ -z "${BACKUP_PASSPHRASE:-}" ]; then
         echo "backup skipped: BACKUP_PASSPHRASE is not set" >&2
@@ -17,10 +19,10 @@ while :; do
         else
             echo "backup failed; retrying in 1 hour" >&2
             rm -f "$arquivo"
-            sleep 3600
+            sleep 3600 & wait $!
             continue
         fi
         rm -f "$arquivo"
     fi
-    sleep 86400
+    sleep 86400 & wait $!
 done
