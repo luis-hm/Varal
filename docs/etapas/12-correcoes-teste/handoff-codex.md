@@ -164,7 +164,7 @@ Só se o dono aprovar: campo "Seu nome" opcional no cadastro (`web/src/component
 
 ### 3.4 Fluxos incompletos do escopo inicial
 
-1. **CU02 — convite depois de criar grupo:** ao criar o grupo (`components/groups/grupos-lista.tsx`), em vez de só navegar, abrir o grupo com a folha de convite (M05) já aberta (`?convidar=1` lido em `grupo-pagina.tsx`).
+1. **CU02 — convite depois de criar grupo — feito:** criar grupo navega para `/grupos/{id}?convidar=1` e a folha de convite abre uma vez (teste em `grupo-pagina.test.tsx`). Falta o E2E (`grupos.spec.ts` que cria grupo deve fechar ou usar essa folha).
 2. **CU01 — recuperar senha com e-mail já cadastrado:** na tela de criar conta, quando a API disser que o e-mail já existe, mostrar link "Esqueci minha senha" levando para a recuperação com o e-mail preenchido.
 3. **CU05 — PDF sem código:** quando a leitura do PDF terminar sem linha digitável nem Pix, a conferência (M02) deve oferecer "Colar código" (o mesmo campo da Nova conta) em vez de só mostrar erro. Arquivos em `components/bills/` (procure `instrumento`/`pdf`).
 4. **Recorrência clicada — feito:** o grupo passa `inicial={r.id}` para `RecorrenciasFolha`. Falta só um E2E que clique numa recorrência e veja o detalhe dela.
