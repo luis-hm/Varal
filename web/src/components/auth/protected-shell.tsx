@@ -12,7 +12,7 @@ async function SessionShell({ children }: { children: ReactNode }) {
   const user = await requireUser();
   // Q4: the current space is checked against /api/me/; anything else falls back to the personal space.
   const espaco = resolverEspaco(user, (await cookies()).get(COOKIE_ESPACO)?.value);
-  return <><div key={user.id} data-sessao-privada data-usuario={user.id} hidden suppressHydrationWarning><script dangerouslySetInnerHTML={{ __html: bootstrap }} /><SessaoGuard usuario={user.id}><AppShell user={user} espaco={espaco}>{children}</AppShell></SessaoGuard></div><p data-sessao-status role="status">Verificando sua sessão. Conecte-se para continuar. <a href="/entrar">Entrar</a></p></>;
+  return <><div key={user.id} data-sessao-privada data-usuario={user.id} hidden suppressHydrationWarning><script dangerouslySetInnerHTML={{ __html: bootstrap }} /><SessaoGuard usuario={user.id}><AppShell user={user} espaco={espaco}>{children}</AppShell></SessaoGuard></div><p data-sessao-status role="status"><span data-sessao-texto>Sua sessão terminou. Entre de novo para continuar.</span> <a href="/entrar">Entrar</a></p></>;
 }
 
 export function ProtectedShell({ children }: { children: ReactNode }) {

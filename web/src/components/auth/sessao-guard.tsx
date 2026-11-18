@@ -1,64 +1,103 @@
 "use client";
+// COR-01: switching tabs never asks for a new login. The private tree is masked only when the identity
+// actually changed (local logout, another account in another tab, server says the session ended) and on
+// pagehide, so a BFCache snapshot never shows data before a fresh check. A same-user return just revalidates.
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
-import { bloquearSessao, iniciarIdentidade } from "@/lib/auth/isolamento";
+import { bloquearSessao, cookie, desbloquearSessao, iniciarIdentidade, marcaValida } from "@/lib/auth/isolamento";
 
-const abaOculta = () => document.visibilityState === "hidden";
+type Motivo = "verificando" | "encerrada";
+const TEXTOS: Record<Motivo, string> = {
+  verificando: "Verificando sua sessão…",
+  encerrada: "Sua sessão terminou. Entre de novo para continuar.",
+};
+
+function mascarar(motivo: Motivo) {
+  document.querySelector<HTMLElement>("[data-sessao-privada]")?.setAttribute("hidden", "");
+  document.documentElement.setAttribute("data-sessao-oculta", "");
+  const status = document.querySelector<HTMLElement>("[data-sessao-status]");
+  if (status) {
+    status.dataset.motivo = motivo;
+    const texto = status.querySelector("[data-sessao-texto]");
+    if (texto) texto.textContent = TEXTOS[motivo];
+  }
+}
+
+function revelar() {
+  document.querySelector<HTMLElement>("[data-sessao-privada]")?.removeAttribute("hidden");
+  document.documentElement.removeAttribute("data-sessao-oculta");
+}
 
 export function SessaoGuard({ usuario, children }: { usuario: string; children: ReactNode }) {
   const cache = useQueryClient();
   useState(() => { if (typeof window !== "undefined") iniciarIdentidade(usuario); return null; });
   useEffect(() => {
     let vigente = true;
-    let sequencia = 0;
-    let restaurando = false;
-    let novaRestauracao = false;
     let controlador: AbortController | null = null;
-    function ocultar() {
-      sequencia++;
+
+    function encerrar() {
       controlador?.abort();
       bloquearSessao();
       void cache.cancelQueries();
       cache.clear();
-      document.querySelector<HTMLElement>("[data-sessao-privada]")?.setAttribute("hidden", "");
-      document.documentElement.setAttribute("data-sessao-oculta", "");
+      mascarar("encerrada");
     }
-    async function restaurar() {
-      if (restaurando) { novaRestauracao = true; return; }
-      novaRestauracao = false;
-      ocultar();
-      restaurando = true;
-      const atual = sequencia;
+
+    async function revalidar() {
+      if (!marcaValida(usuario)) return encerrar();
+      revelar();
+      controlador?.abort();
       controlador = new AbortController();
+      let response: Response;
       try {
-        const response = await fetch("/api/me/", { credentials: "same-origin", cache: "no-store", signal: controlador.signal, headers: { "X-Varal-Identidade-Esperada": usuario } });
-        if (!vigente || atual !== sequencia || abaOculta()) return;
-        if (!response.ok || response.headers.get("X-Varal-Identidade") !== usuario) return;
-        const data: unknown = await response.json();
-        if (!vigente || atual !== sequencia || abaOculta() || !data || typeof data !== "object" || !("id" in data) || data.id !== usuario) return;
-        const hint = document.cookie.split("; ").find((v) => v.startsWith("varal_owner="))?.slice("varal_owner=".length);
-        if (hint !== usuario || document.cookie.split("; ").some((v) => v.startsWith("varal_local_locked="))) return;
-        // A fresh server render replaces stale state; no private snapshot is revealed in between.
-        window.location.reload();
-      } catch { /* offline remains masked; no financial replay */ }
-      finally {
-        restaurando = false; controlador = null;
-        if (novaRestauracao && vigente && document.visibilityState !== "hidden") { novaRestauracao = false; void restaurar(); }
+        response = await fetch("/api/me/", { credentials: "same-origin", cache: "no-store", signal: controlador.signal, headers: { "X-Varal-Identidade-Esperada": usuario } });
+      } catch {
+        return; // Offline or aborted: same identity, keep working; queries show their own errors.
       }
+      if (!vigente) return;
+      if (response.status === 401 || response.status === 403) return encerrar();
+      if (!response.ok) return; // 5xx: transient, keep the screen.
+      const data: unknown = await response.json().catch(() => null);
+      if (!vigente) return;
+      const id = data && typeof data === "object" && "id" in data ? data.id : null;
+      if (id !== usuario) {
+        // Another account owns this browser now: a fresh server render replaces every private byte.
+        encerrar();
+        window.location.reload();
+        return;
+      }
+      desbloquearSessao();
+      void cache.invalidateQueries();
     }
-    const pagehide = () => ocultar();
-    const pageshow = (event: PageTransitionEvent) => { if (event.persisted) void restaurar(); };
-    const storage = (event: StorageEvent) => { if (event.key === "varal.sessao.evento" || event.key === "varal.auth.geracao.v1") ocultar(); };
-    const visibilidade = () => { if (document.visibilityState === "hidden") ocultar(); else void restaurar(); };
+
+    // First paint: the server rendered for `usuario`; remember it as this browser's owner hint.
+    if (marcaValida(usuario)) {
+      if (!cookie("varal_owner")) document.cookie = `varal_owner=${encodeURIComponent(usuario)}; Path=/; SameSite=Lax; Max-Age=1209600`;
+      revelar();
+    } else encerrar();
+
+    const pagehide = () => mascarar("verificando");
+    const pageshow = (event: PageTransitionEvent) => { if (event.persisted) { mascarar("verificando"); void revalidar(); } };
+    const visibilidade = () => { if (document.visibilityState === "visible") void revalidar(); };
+    const outraAba = () => { if (!marcaValida(usuario)) encerrar(); else void revalidar(); };
+    const storage = (event: StorageEvent) => { if (event.key === "varal.sessao.evento" || event.key === "varal.auth.geracao.v1") outraAba(); };
     const channel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel("varal-sessao-v1");
-    if (channel) channel.onmessage = () => ocultar();
+    if (channel) channel.onmessage = outraAba;
     window.addEventListener("pagehide", pagehide);
     window.addEventListener("pageshow", pageshow);
     window.addEventListener("storage", storage);
-    window.addEventListener("varal-sessao-bloqueada", ocultar);
+    window.addEventListener("varal-sessao-bloqueada", encerrar);
     document.addEventListener("visibilitychange", visibilidade);
-    if (!abaOculta() && document.documentElement.hasAttribute("data-sessao-oculta")) void restaurar();
-    return () => { vigente = false; controlador?.abort(); channel?.close(); window.removeEventListener("pagehide", pagehide); window.removeEventListener("pageshow", pageshow); window.removeEventListener("storage", storage); window.removeEventListener("varal-sessao-bloqueada", ocultar); document.removeEventListener("visibilitychange", visibilidade); };
+    return () => {
+      vigente = false;
+      controlador?.abort();
+      channel?.close();
+      window.removeEventListener("pagehide", pagehide);
+      window.removeEventListener("pageshow", pageshow);
+      window.removeEventListener("storage", storage);
+      window.removeEventListener("varal-sessao-bloqueada", encerrar);
+      document.removeEventListener("visibilitychange", visibilidade);
+    };
   }, [cache, usuario]);
   return children;
 }

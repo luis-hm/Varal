@@ -14,6 +14,17 @@ export function iniciarIdentidade(id: string) {
   usuario = id;
 }
 export const identidadeAtual = () => usuario;
+export function cookie(nome: string) {
+  if (typeof document === "undefined") return "";
+  const par = document.cookie.split("; ").find((v) => v.startsWith(`${nome}=`));
+  return par ? decodeURIComponent(par.slice(nome.length + 1)) : "";
+}
+/** COR-01: the local fence passes unless this browser logged out or another account signed in. A missing
+ * hint (browser restarted while the server session is still valid) is not a reason to hide anything. */
+export function marcaValida(id: string) {
+  const dono = cookie("varal_owner");
+  return !cookie("varal_local_locked") && (!dono || dono === id);
+}
 export const sessaoBloqueada = () => bloqueada;
 export function desbloquearSessao() { bloqueada = false; }
 export function bloquearSessao() {
@@ -42,7 +53,7 @@ export function concluirAutenticacao(id: string, geracao: string | null, limparC
   bloquearSessao();
   window.dispatchEvent(new Event("varal-sessao-bloqueada"));
   limparCache();
-  document.cookie = `varal_owner=${encodeURIComponent(id)}; Path=/; SameSite=Lax`;
+  document.cookie = `varal_owner=${encodeURIComponent(id)}; Path=/; SameSite=Lax; Max-Age=1209600`;
   iniciarIdentidade(id);
   sessionStorage.removeItem(OAUTH_GERACAO);
   limparBloqueioLocal();

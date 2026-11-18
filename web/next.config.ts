@@ -14,7 +14,10 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: [{ key: "X-Frame-Options", value: "DENY" }] },
       // Pages that may carry an invite token in the URL never send it as Referer.
       { source: "/c/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
-      { source: "/(entrar|criar-conta)/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
+      // COR-12: the Google button is a native form POST; with no-referrer the browser sends `Origin: null` and
+      // Django's CSRF check rejects it. strict-origin sends only the origin (never path/query). The more
+      // specific /entrar/retorno rule below overrides this one (last match wins).
+      { source: "/(entrar|criar-conta)/:path*", headers: [{ key: "Referrer-Policy", value: "strict-origin" }] },
       { source: "/entrar/retorno", headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "Referrer-Policy", value: "no-referrer" }] },
       { source: "/confirmar-email/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "private, no-store" }] },
       ...["/", "/contas/:path*", "/grupos/:path*", "/avisos/:path*", "/perfil/:path*"].map((source) => ({ source, headers: [{ key: "Cache-Control", value: "private, no-store" }] })),
