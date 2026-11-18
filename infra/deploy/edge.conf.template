@@ -3,6 +3,7 @@ error_log /dev/null crit;
 pid /tmp/nginx.pid;
 events { worker_connections 512; }
 http {
+    map $upstream_http_referrer_policy $varal_referrer { "" no-referrer; default $upstream_http_referrer_policy; }
     access_log off;
     client_body_temp_path /tmp/client;
     proxy_temp_path /tmp/proxy;
@@ -18,7 +19,9 @@ http {
     server {
         listen 8080;
         server_name ${VARAL_DOMAIN};
-        add_header Referrer-Policy no-referrer always;
+        # COR-12: the app (Next) owns the policy per page; the edge only fills the default.
+        proxy_hide_header Referrer-Policy;
+        add_header Referrer-Policy $varal_referrer always;
         proxy_set_header Host ${VARAL_DOMAIN};
         proxy_set_header X-Real-IP "";
         proxy_set_header Forwarded "";

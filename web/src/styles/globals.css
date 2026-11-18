@@ -22,6 +22,7 @@ body {
 [data-sessao-status] { display: none; }
 html[data-sessao-oculta] [data-sessao-privada] { display: none !important; }
 html[data-sessao-oculta] [data-sessao-status] { display: block; padding: var(--spacing-6); }
+[data-sessao-status][data-motivo="verificando"] a { display: none; }
 
 button,
 input {
