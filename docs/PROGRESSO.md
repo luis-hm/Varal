@@ -61,6 +61,18 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 
 Ordem cronológica inversa.
 
+### 17/11/2026 — COR-12: checklist Google Cloud documentado
+
+- Acrescentado ao [item de correções do login Google](produto/correcoes-teste-inicial-2026-11-16.md#configuração-google-cloud-a-executar-pelo-dono) o preenchimento de Branding, público-alvo, escopos mínimos e cliente OAuth, com callbacks exatos HMG/local/produção, responsabilidades do dono e validação futura.
+- Capturas do Console registradas como contexto, sem comprovar configuração salva. Checklist pendente, correção CSRF ainda necessária e produção parada; atualização documental sem alterar código, credenciais, Console ou deploy.
+
+### 17/11/2026 — COR-12: dois bloqueios do login Google reproduzidos
+
+- Captura do dono incorporada ao [backlog](produto/correcoes-teste-inicial-2026-11-16.md#11-cor-12--login-google-bloqueado-por-csrf). Browser anônimo HMG reproduziu403 com cookie/campo CSRF iguais, `Origin:null` e semReferer; entrada recebe `no-referrer` de Next e edge. Matriz HTTP confirma origem própria302/nula403; nove asserts de middleware isolado aprovados. [Evidências e probes](produto/evidencias/google-csrf-2026-11-17/README.md).
+- Contrafactual alterando somente a meta referrer do DOM para `strict-origin` removeu403 e levou à página Google com `redirect_uri_mismatch`. Não foi medido302 intermediário pelo browser nem inspecionado o Console. URI esperada HMG: `https://hmgvaral.codehub.systems/accounts/google/login/callback/`.
+- Correção futura: alinhar política escopada de entrada/cadastro nas duas camadas, preservar proteção de URLs sensíveis e validar cadastro do retorno no cliente OAuth correto. Não aceitar origem nula/desligarCSRF. Acrescentar regressão do formulário real; os testes atuais não cobrem esse caminho sob os headers produtivos.
+- Entrega somente de análise/documentação, sem autenticar conta Google, alterar código/configuração/deploy, push ou encerrar CA. COR-01–11 e alterações paralelas preservadas. Fluxo completo segue sem validação.
+
 ### 17/11/2026 — HMG publicado no Coolify; produção preparada e parada
 
 - Projeto Varal com `hmgvaral`/develop e `varal`/main configurados; branchdevelop criada via gh e infraestrutura publicada nas duas branches. Deploy HMG `hpdxo0th1prppjqtkdcekijy` terminou no SHA `3395d75` pelo webhook HMAC real, com commit explícito. HTTPS válido em entrar/health/ready200 e HTTP redirecionando paraHTTPS. [Runbook](arquitetura/coolify-varal.md), [evidência](etapas/11-acabamento-deploy/evidencias/coolify-hmg-2026-11-17.json).
@@ -68,6 +80,19 @@ Ordem cronológica inversa.
 - Corrigidas colisão de IPs baixos e temporários Nginx fora de/tmp; filesystem somente leitura preservado. Aliases privados por stack evitaram ambiguidade de nomes; não foi capturada resolução DNS antiga para afirmar causa conclusiva do503 anterior. Sete imagens,11 verificações init, cinco grupos de proxy/DNS e cinco grupos HTTP locais aprovados. Coolify raw agregado observado `running:unknown`; saúde funcional comprovada pelas rotas/operações, sem alegar agregadohealthy.
 - Workflows com CI antes do webhook, segredos HMAC exclusivos, ambientes GitHub restritos às próprias branches. Produção: gatefalse, auto-deployfalse, execução porpush44007795245skipped e histórico de implantação vazio. Tokens de API fornecidos tinham leitura cruzada entre recursos e ficaram fora doActions. IA não ativada. SMTP indisponível/push desativado; Google requer origem/callback HMG no Console do provedor.
 - CI não integralmente verde: API inicial aprovada; web/CI reutilizado apresentaram falhas em verificações de navegador/HTTP produtivo e o deploy automático foi bloqueado. Não afrouxar testes nem declarar CA13/16/18 ou etapa11 concluídas. Produção não iniciada. Alterações paralelas de backlog/documentação preservadas.
+
+### 17/11/2026 — Categorias com permissões e navegação de contas solicitadas
+
+- Dono esclareceu que **categoria substitui a atual casa dentro do grupo**, e pediu que o admin configure quem pode fazer cada ação por categoria. DEC-01 do [backlog](produto/correcoes-teste-inicial-2026-11-16.md) deixa de estar aberta; a proposta inicial de eliminar o segundo nível foi superada.
+- Acrescentadas COR-10 (permissões por categoria) e COR-11 (Grupos → grupo → categoria → contas → detalhe/pagamento), com telas de consulta/administração, revisão das telas existentes, impacto backend/frontend e aceites futuros. Matriz, defaults, precedência com restritas/papéis e tratamento de sem categoria ainda precisam ser detalhados.
+- Atualização documental, sem implementar permissões/telas, migrar dados, alterar o Doop ou executar novos testes de produto. Evidências anteriores de COR-07 preservadas; nenhuma CA da Etapa 11 encerrada. Nova política exige ADR e conciliação das fontes na preparação da implementação.
+
+### 17/11/2026 — Diagnóstico de “Sem casa” e ampliação do backlog visual
+
+- Complementado o [documento de correções](produto/correcoes-teste-inicial-2026-11-16.md) com COR-07 (contas sem casa/filtros), COR-08 (design e código do frontend) e COR-09 (redesenho de Perfil funcional). Incorporada a correção do dono: consultar suas contas a pagar nos grupos já existe; preservar e melhorar o acesso.
+- Reprodução real dos endpoints com fixtures sintéticas e rollback: conta sem casa grava com 201 e aparece no grupo/filtro do próprio pagador. Resumo `por_casa` omite a parcela sem casa; filtro explícito de casa nula não existe; mês vazio retorna opções vazias. Modo simples inclui abertas de outros meses. Nenhuma conta real inspecionada ou modificada.
+- Componentes reais em Vitest reproduziram três lacunas duas vezes: grupo sem caminho local para Contas, card que abre edição em vez de listagem e filtro ativo cujos controles desaparecem no vazio. **3 falhas esperadas, exit 1**, sem correção de produto. Script, fixture fora da suíte e resultados em [evidências](produto/evidencias/sem-casa-2026-11-17/README.md).
+- Apenas documentação/artefatos de diagnóstico; nenhum novo layout implementado, teste integral, alteração do Doop ou leitura/marcação remota de Ajustes. Estado e aceites da Etapa 11 preservados. Próximo trabalho deve corrigir as causas registradas e entregar revisão visual/código em conjunto; retorno à aba ainda exige reprodução própria.
 
 ### 16/11/2026 — Relato de teste: sessão, contas e organização em grupos
 

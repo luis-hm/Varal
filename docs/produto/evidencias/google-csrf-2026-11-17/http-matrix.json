@@ -1,0 +1,46 @@
+[
+  {
+    "case": "matching_form_origin_null_no_referer",
+    "status": 403,
+    "csrf_cookie_present": true,
+    "csrf_form_matches_cookie": true,
+    "origin_kind": "null",
+    "referer_present": false,
+    "csrf_failure_page": true,
+    "redirect_host": null
+  },
+  {
+    "case": "matching_form_same_origin_no_referer",
+    "status": 302,
+    "csrf_cookie_present": true,
+    "csrf_form_matches_cookie": true,
+    "origin_kind": "same-origin",
+    "referer_present": false,
+    "csrf_failure_page": false,
+    "redirect_host": "accounts.google.com",
+    "oauth_callback_origin": "https://hmgvaral.codehub.systems",
+    "oauth_callback_path": "/accounts/google/login/callback/"
+  },
+  {
+    "case": "matching_form_no_origin_no_referer",
+    "status": 403,
+    "csrf_cookie_present": true,
+    "csrf_form_matches_cookie": true,
+    "origin_kind": "missing",
+    "referer_present": false,
+    "csrf_failure_page": true,
+    "redirect_host": null
+  },
+  {
+    "case": "matching_form_no_origin_valid_referer",
+    "status": 302,
+    "csrf_cookie_present": true,
+    "csrf_form_matches_cookie": true,
+    "origin_kind": "missing",
+    "referer_present": true,
+    "csrf_failure_page": false,
+    "redirect_host": "accounts.google.com",
+    "oauth_callback_origin": "https://hmgvaral.codehub.systems",
+    "oauth_callback_path": "/accounts/google/login/callback/"
+  }
+]

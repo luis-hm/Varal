@@ -1,0 +1,31 @@
+{
+  "environment": "HMG",
+  "policy_override_local": "strict-origin",
+  "anonymous_session": true,
+  "account_authenticated": false,
+  "before": {
+    "cookiePresent": true,
+    "hiddenTokenCount": 1,
+    "origin": "https://hmgvaral.codehub.systems",
+    "path": "/entrar"
+  },
+  "page": {
+    "origin": "https://accounts.google.com",
+    "path": "/signin/oauth/error",
+    "title": "Sign in - Google Accounts",
+    "csrfError": false,
+    "googleError": "redirect_uri_mismatch",
+    "formdata": null
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/auth/browser/v1/auth/provider/redirect",
+    "status": null,
+    "origin_header": "https://hmgvaral.codehub.systems",
+    "referer_present": true,
+    "csrf_post_present": true,
+    "csrf_post_count": 1
+  },
+  "app_google_start_passed": true,
+  "full_google_login_validated": false
+}

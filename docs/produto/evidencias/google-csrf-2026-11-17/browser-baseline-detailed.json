@@ -1,0 +1,30 @@
+{
+  "environment": "HMG",
+  "session": "new anonymous browser",
+  "path": "/api/auth/browser/v1/auth/provider/redirect",
+  "method": "POST",
+  "status": 403,
+  "origin_header": "null",
+  "referer_present": false,
+  "sec_fetch_site": null,
+  "initial_referrer_policy": "no-referrer\nno-referrer",
+  "post_field_names": [
+    "callback_url",
+    "csrfmiddlewaretoken",
+    "process",
+    "provider"
+  ],
+  "csrf_post_count": 1,
+  "csrf_post_present": true,
+  "csrf_post_lengths": [
+    32
+  ],
+  "error_title": "403 Forbidden",
+  "formdata_instrumentation": {
+    "csrf_equals_current_document_cookie": true,
+    "cookie_present": true,
+    "csrf_hidden_count": 1,
+    "csrf_hidden_present_at_submit": true
+  },
+  "google_account_authenticated": false
+}

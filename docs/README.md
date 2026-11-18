@@ -18,7 +18,7 @@ Sessão nova começa por [PROGRESSO.md](PROGRESSO.md). Cada agente lê **só** o
 | Como exportar/excluir e recuperar sem ressuscitar dados? | [ADR0015](arquitetura/adr/0015-exportacao-exclusao-e-prova-local.md) e [protocolo do journal](arquitetura/protocolo-journal.md) |
 | Qual RF vira qual CU, RN, tela, etapa e teste? | [matriz-rastreabilidade.md](matriz-rastreabilidade.md) |
 | Para que serve o produto? O que está no MVP? | [produto/visao-e-escopo.md](produto/visao-e-escopo.md) |
-| Quais correções e mudanças surgiram no teste inicial do dono? | [Correções de 16/11/2026](produto/correcoes-teste-inicial-2026-11-16.md): retorno à aba, contas sem mês obrigatório, grupos livres e cadastro por destino; análise ainda sem implementação |
+| Quais correções e mudanças surgiram no teste inicial do dono? | [Correções de 16/11/2026, complementadas em 17/11](produto/correcoes-teste-inicial-2026-11-16.md): sessão, filtros, grupos/categorias, permissões, telas, design/Perfil e login Google; diagnósticos de [Sem casa](produto/evidencias/sem-casa-2026-11-17/README.md) e [Google CSRF/OAuth](produto/evidencias/google-csrf-2026-11-17/README.md) reproduzidos; correções ainda não implementadas |
 | Quem usa e com que papel? | [produto/atores-e-personas.md](produto/atores-e-personas.md) |
 | Requisitos funcionais (RF01–RF25) | [requisitos/funcionais.md](requisitos/funcionais.md) |
 | Requisitos não funcionais (RNF01–RNF12) | [requisitos/nao-funcionais.md](requisitos/nao-funcionais.md) |

@@ -1,0 +1,27 @@
+{
+  "environment": "HMG",
+  "local_change": "Appended meta referrer strict-origin to this anonymous browser document only",
+  "page": {
+    "accessBlocked": false,
+    "csrfError": false,
+    "origin": "https://accounts.google.com",
+    "path": "/signin/oauth/error",
+    "redirectMismatch": true,
+    "title": "Sign in - Google Accounts"
+  },
+  "google_account_authenticated": false,
+  "method": "POST",
+  "path": "/api/auth/browser/v1/auth/provider/redirect",
+  "status": null,
+  "origin_header": "https://hmgvaral.codehub.systems",
+  "referer_present": true,
+  "referer_origin": "hmgvaral.codehub.systems",
+  "csrf_post_count": 1,
+  "csrf_post_present": true,
+  "csrf_post_lengths": [
+    32
+  ],
+  "redirect_outcome": "Google OAuth error page reached; intermediate browser redirect status unavailable in CLI tracking",
+  "google_error_code": "redirect_uri_mismatch",
+  "expected_callback": "https://hmgvaral.codehub.systems/accounts/google/login/callback/"
+}

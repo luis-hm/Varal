@@ -1,0 +1,47 @@
+{
+  "data_consolidacao": "2026-11-17",
+  "commit_observado": "1ca9284",
+  "limite": "Fixtures sintéticas. APIClient com autenticação de teste e rollback; UI com respostas simuladas. Sem browser do dono, contas reais ou correção de produto.",
+  "api": {
+    "execucoes": 2,
+    "exit_code": 0,
+    "rollback_confirmado": true
+  },
+  "interface": {
+    "execucoes_conjunto_tres_casos": 2,
+    "exit_codes": [
+      1,
+      1
+    ],
+    "duracoes_segundos": [
+      10.48,
+      17.2
+    ],
+    "resultado": "3 falhas de asserção reproduzidas em cada execução; sem timeout de teste",
+    "casos": [
+      {
+        "id": "grupo_sem_casa",
+        "observado": "Nenhum link local para /contas",
+        "falha": "expected false to be true"
+      },
+      {
+        "id": "card_casa",
+        "observado": "Dialog Editar casa presente; router.push não chamado",
+        "falha": "expected vi.fn() to be called at least once"
+      },
+      {
+        "id": "filtro_ativo_oculto",
+        "observado": "Vazio com filtros ativos, botão Filtros ausente",
+        "falha": "expected null not to be null"
+      }
+    ]
+  },
+  "sha256_fontes": {
+    "api/apps/lancamentos/views.py": "b790d34b8c7325d992309ff46991077ed28e637b0eb00123c30554f74784d84a",
+    "api/apps/espacos/acesso.py": "260baffa9ab739e06fb4239f79166fc7ff345b655972226bed271ba995a6e5ad",
+    "web/src/components/groups/grupo-pagina.tsx": "642e93eb3b60227e4497d04c9160a334dc3181904e1c8ebc323cb2157de3eb0f",
+    "web/src/components/groups/house-card.tsx": "3790db3216a8b54d54499e2a6a8cba3c630b29b4c44bcae44d3eedf9923a7fbc",
+    "web/src/components/bills/contas-pagina.tsx": "8003bd20cbf7d78ad9db3d0edaa2d9521e74bbf6c6697a4c51cf8aacd75d90ba",
+    "web/src/components/bills/conta-folha.tsx": "b952051b2f7b0552220d5d5f4b896ea1a710636732b554386774d617ded6e0f2"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "environment": "HMG",
+  "policy_override_local": null,
+  "anonymous_session": true,
+  "account_authenticated": false,
+  "before": {
+    "cookiePresent": true,
+    "hiddenTokenCount": 1,
+    "origin": "https://hmgvaral.codehub.systems",
+    "path": "/entrar"
+  },
+  "page": {
+    "origin": "https://hmgvaral.codehub.systems",
+    "path": "/api/auth/browser/v1/auth/provider/redirect",
+    "title": "403 Forbidden",
+    "csrfError": true,
+    "googleError": null,
+    "formdata": {
+      "cookiePresent": true,
+      "csrfEqualsCookie": true,
+      "csrfFieldCount": 1,
+      "csrfFieldPresent": true
+    }
+  },
+  "request": {
+    "method": "POST",
+    "path": "/api/auth/browser/v1/auth/provider/redirect",
+    "status": 403,
+    "origin_header": "null",
+    "referer_present": false,
+    "csrf_post_present": true,
+    "csrf_post_count": 1
+  },
+  "app_google_start_passed": false,
+  "full_google_login_validated": false
+}

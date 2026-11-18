@@ -1,0 +1,64 @@
+{
+  "cadastro": {
+    "status": 201,
+    "sem_casa_persistida_no_grupo": true
+  },
+  "lista_padrao": [
+    "com_casa",
+    "sem_casa"
+  ],
+  "filtro_meu_pagador_a_pagar": [
+    "com_casa",
+    "sem_casa"
+  ],
+  "filtro_casa": [
+    "com_casa"
+  ],
+  "limpar_filtro_casa": [
+    "com_casa",
+    "sem_casa"
+  ],
+  "mes_seguinte": [
+    "outro_mes"
+  ],
+  "mes_vazio_com_filtro_antigo": {
+    "itens_qtd": 0,
+    "opcoes": {
+      "casas": [],
+      "pagadores": [],
+      "sem_pagador": false,
+      "ex_membro": false
+    }
+  },
+  "modo_simples_abertas": [
+    "com_casa",
+    "outro_mes",
+    "sem_casa"
+  ],
+  "lista_pessoal": [],
+  "resumo": {
+    "qtd": 2,
+    "total_centavos": 20000,
+    "por_casa_qtd": [
+      1
+    ]
+  },
+  "opcoes_filtros": {
+    "chaves": [
+      "casas",
+      "pagadores",
+      "sem_pagador",
+      "ex_membro"
+    ],
+    "casas_qtd": 1
+  },
+  "filtro_sem_casa_explicito": {
+    "status": 400,
+    "resposta": {
+      "subgrupo": [
+        "Deve ser um UUID válido."
+      ]
+    }
+  },
+  "rollback_confirmado": true
+}
