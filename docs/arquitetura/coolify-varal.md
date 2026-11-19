@@ -39,10 +39,10 @@ Essa alternativa foi revisada quanto à segurança. Posteriormente, a inspeção
 
 | Workflow | Disparo | Condições |
 | --- | --- | --- |
-| [deploy-hmg.yml](../../.github/workflows/deploy-hmg.yml) | Push na `develop` ou execução manual nessa branch | CI API/web reutilizado e aprovado; testes do assinador; HEAD ainda corresponde ao commit testado. |
+| [deploy-hmg.yml](../../.github/workflows/deploy-hmg.yml) | Push na `develop` (menos commits só de `docs/` e `.md`) ou execução manual nessa branch | Portão rápido, até ~5 min: pytest, tipos, lint e Vitest (`web.yml` com `rapido: true`, sem E2E); testes do assinador; HEAD ainda corresponde ao commit testado. |
 | [deploy-prod.yml](../../.github/workflows/deploy-prod.yml) | Push na `main` ou execução manual nessa branch | Todos os jobs bloqueados enquanto `VARAL_PROD_DEPLOY_ENABLED` não for `true`; mesmos gates de HMG após habilitação futura. |
 
-As workflows `api.yml` e `web.yml` preservam seus testes e também aceitam `workflow_call`. Os disparos diretos já existentes podem gerar verificações duplicadas; não foram retirados para implantar HMG. Uma falha do CI não autoriza afrouxar testes nem chamar a homologação de integralmente aprovada.
+As workflows `api.yml` e `web.yml` também aceitam `workflow_call`. Em `develop` e `main` elas só rodam chamadas pelo deploy (antes rodavam duas vezes por push e gastavam o dobro de minutos do Actions). O E2E (~14 min) roda em pull request, à mão (`gh workflow run web.yml`) e no deploy de produção. Uma falha do CI não autoriza afrouxar testes nem chamar a homologação de integralmente aprovada.
 
 O [assinador](../../.github/scripts/deploy-coolify.py) envia um payload GitHub mínimo com `ref`, `repository.full_name` e `after` (SHA testado) para `/webhooks/source/github/events/manual`. Usa HMAC-SHA256 e segredo exclusivo por recurso, sem token administrativo do Coolify no Actions. Não há retry automático de POST ambíguo. O receptor verifica repo/branch/assinatura e enfileira o SHA explícito. [Controller oficial](https://github.com/coollabsio/coolify/blob/v4.x/app/Http/Controllers/Webhook/Github.php).
 

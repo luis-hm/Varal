@@ -221,8 +221,9 @@ test("ca07/ca08/ca09/ca28 rn06/rn07: restrita com aviso de quem paga; admin não
     await expect(abaAdmin.getByRole("alert").filter({ visible: true, hasText: /\S/ })).toContainText("Conta não encontrada");
     await expect(texto(abaAdmin, /Presente surpresa/)).toHaveCount(0);
     await abaAdmin.goto(`/grupos/${grupo.id}`);
-    await expect(link(abaAdmin, /Casa da praia/)).toContainText("R$ 50,00");
-    await expect(link(abaAdmin, /Casa da praia/)).toContainText("1 conta a pagar");
+    // The group card shows what is open in every month (owner's request, 18/11/2026).
+    await expect(link(abaAdmin, /Casa da praia/)).toContainText("R$ 50,00 a pagar");
+    await expect(link(abaAdmin, /Casa da praia/)).toContainText("1 conta");
   } finally {
     await abaAdmin.context().close();
   }

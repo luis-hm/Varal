@@ -1,7 +1,9 @@
 name: api
 
 on:
+  # develop/main run these through deploy-hmg/deploy-prod; a direct trigger there doubled the minutes.
   push:
+    branches-ignore: [develop, main]
     paths: ["api/**", "web/src/types/**", "infra/**", "Makefile", ".github/workflows/api.yml"]
   pull_request:
     paths: ["api/**", "web/src/types/**", "infra/**", "Makefile", ".github/workflows/api.yml"]
@@ -17,6 +19,7 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       S3_ENDPOINT_URL: http://localhost:9000
       S3_PUBLIC_ENDPOINT_URL: http://localhost:9000
@@ -62,6 +65,7 @@ jobs:
 
   types:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
