@@ -3,6 +3,8 @@ name: deploy hmg
 on:
   push:
     branches: [develop]
+    # Docs-only commits do not change what runs in homologation.
+    paths-ignore: ["docs/**", "**/*.md"]
   workflow_dispatch:
 
 permissions:
@@ -20,6 +22,8 @@ jobs:
   web:
     if: github.ref == 'refs/heads/develop'
     uses: ./.github/workflows/web.yml
+    with:
+      rapido: true # lint, types and unit tests; the E2E runs on PRs and before production
 
   deploy:
     if: github.ref == 'refs/heads/develop'

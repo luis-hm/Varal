@@ -85,7 +85,7 @@ Só E2E/CI: `ACCOUNT_RATE_LIMIT_SIGNUP` sobrescreve o limite de cadastro do alla
 - Allauth usa somente cliente browser, com sessão/CSRF, sem confirmação obrigatória de e-mail ou login automático após recuperação. Google com PKCE, sem armazenar tokens e sem vínculo automático por coincidência de e-mail.
 - Layout protegido do Next consulta `/api/me/` no servidor, sem cache compartilhado; usa Suspense e `instant=false` porque a sessão real é necessária antes de apresentar o shell.
 - `make types` exporta schema composto DRF + allauth por `export_schema`. `make e2e` sobe API/worker e dependências antes dos testes; o Next é iniciado pelo Playwright.
-- CI: `api.yml` e `web.yml` disparam por `push`/`pull_request` com filtro de caminhos, ou à mão com `gh workflow run <arquivo> --ref <branch>` (`workflow_dispatch`, só depois que o arquivo estiver na `main`).
+- CI: `api.yml` e `web.yml` disparam por `push` (fora de `develop`/`main`, onde o deploy as chama) e `pull_request` com filtro de caminhos, ou à mão com `gh workflow run <arquivo> --ref <branch>` (`workflow_dispatch`, só depois que o arquivo estiver na `main`).
 - `make limpar-dev` (`limpar_dev`, só com DEBUG) mostra e, após confirmação (`SIM=1` pula), apaga do banco de dev o grupo `x`, os grupos `Teste UI …`, os usuários `burst-*`/`e2e-*@varal.test` e os grupos que ficam sem membros; nunca o `dev`.
 - DRF exige autenticação por padrão; rotas públicas (como o health) declaram `AllowAny`.
 - `TIME_ZONE = America/Fortaleza` com `USE_TZ = True`: grava em UTC, exibe em Fortaleza (RNF11).

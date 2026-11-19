@@ -1,7 +1,9 @@
 name: web
 
 on:
+  # develop/main run these through deploy-hmg/deploy-prod; a direct trigger there doubled the minutes.
   push:
+    branches-ignore: [develop, main]
     # Browser authentication tests exercise both sides of the same-origin proxy.
     paths: ["web/**", "api/**", "infra/**", "Makefile", ".github/workflows/web.yml"]
   pull_request:
@@ -9,10 +11,16 @@ on:
   # Manual run: `gh workflow run web.yml --ref <branch>` (path filters do not apply).
   workflow_dispatch:
   workflow_call:
+    inputs:
+      rapido:
+        description: "Skip the browser E2E (~14 min); deploy-hmg uses it to stay under 5 min"
+        type: boolean
+        default: false
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     defaults:
       run:
         working-directory: web
@@ -38,7 +46,10 @@ jobs:
           rm -f "$RUNNER_TEMP/varal-web-test-raw.log"
 
   e2e:
+    # Runs on pull requests, by hand and before production; not on every homologation deploy.
+    if: ${{ !inputs.rapido }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       DJANGO_DEBUG: "1"
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
