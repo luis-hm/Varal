@@ -26,6 +26,15 @@
 | Capturas da etapa em JPEG (qualidade 70) versionadas em [evidencias/](evidencias/), geradas pelo teste "evidências da etapa 12" de `etapa12.spec.ts`. | O handoff pede as capturas na etapa; em JPEG somam ~0,6 MB. As outras etapas seguem em `web/e2e/__screens__` (ignorado). | Apagar a pasta e o teste. |
 | Specs E2E usam `ORIGIN` (`LAB_BASE_URL`) no lugar de `localhost:3000` fixo. | A porta 3000 da máquina estava ocupada por outro projeto; o E2E rodou na 3100. | Voltar o literal. |
 
+## Pedidos do dono depois do fechamento
+
+| Pedido (18/11/2026, chat) | Como ficou |
+| --- | --- |
+| Categorias do grupo sem filtro de mês | Card mostra "R$ X a pagar" e o número de contas abertas de todos os meses; sem barra de progresso. |
+| "Ver todas as contas do grupo" acima das categorias, menor | Link de 44px com texto pequeno, antes da seção Categorias. |
+| "Contas que se repetem" só quando houver | Seção some sem recorrência; criar continua pela nova conta e por Contas. |
+| "Sair do grupo" no desktop à direita, menor | Fim da coluna de Membros, alinhado à direita. No celular, no fim da página. |
+
 ## Perguntas ao dono (abertas)
 
 | ID | Pergunta | Proposta |
