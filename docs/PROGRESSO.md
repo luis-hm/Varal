@@ -66,7 +66,7 @@ Ordem cronológica inversa.
 
 - Cards de categoria mostram o que está a pagar em qualquer mês (`abertas_centavos` e `abertas_indefinidas_qtd` em `por_casa`), não mais o total do mês. Membros seguem contando o mês.
 - "Ver todas as contas do grupo" sobe para cima das categorias, menor. "Contas que se repetem" só aparece quando há alguma. No desktop, "Sair do grupo" fica à direita, menor.
-- Os frames 10 · Grupo e D04 · Grupo no Doop ainda mostram o layout anterior.
+- Frames 10 · Grupo e D04 · Grupo atualizados no Doop; D04 voltou para revisão do dono.
 
 ### 18/11/2026 — Q12-2: nome no cadastro e no Perfil (branch `etapa/12-nome-perfil`)
 
