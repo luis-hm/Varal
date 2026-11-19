@@ -427,6 +427,8 @@ class PorCasaSerializer(serializers.Serializer):
     nome = serializers.CharField()
     icone = serializers.CharField(allow_null=True)
     abertas_qtd = serializers.IntegerField(help_text="A pagar em qualquer mês")
+    abertas_centavos = serializers.IntegerField(help_text="Valor conhecido a pagar, qualquer mês")
+    abertas_indefinidas_qtd = serializers.IntegerField(help_text="A pagar sem valor, qualquer mês")
     total_centavos = serializers.IntegerField()
     qtd = serializers.IntegerField()
     pagas_qtd = serializers.IntegerField()
@@ -763,12 +765,18 @@ class ResumoView(APIView):
                     pagas_qtd=Count("pk", filter=Q(status__in=(Status.PAGA, Status.CONFIRMADA))),
                 )
             }
-            abertas = dict(
-                visiveis.filter(status__in=ABERTOS)
+            # The group page shows what is still open in each category, from every month.
+            abertas = {
+                a["subgrupo"]: a
+                for a in visiveis.filter(status__in=ABERTOS)
                 .values("subgrupo")
-                .annotate(n=Count("pk"))
-                .values_list("subgrupo", "n")
-            )
+                .annotate(
+                    abertas_qtd=Count("pk"),
+                    abertas_centavos=Sum("valor_centavos", default=0),
+                    abertas_indefinidas_qtd=Count("pk", filter=Q(valor_centavos__isnull=True)),
+                )
+            }
+            sem_abertas = {"abertas_qtd": 0, "abertas_centavos": 0, "abertas_indefinidas_qtd": 0}
             vazio = {"total_centavos": 0, "qtd": 0, "valores_indefinidos_qtd": 0, "pagas_qtd": 0}
 
             def linha(id_, nome, icone):
@@ -778,7 +786,7 @@ class ResumoView(APIView):
                     "nome": nome,
                     "icone": icone,
                     **numeros_,
-                    "abertas_qtd": abertas.get(id_, 0),
+                    **{k: abertas.get(id_, sem_abertas)[k] for k in sem_abertas},
                 }
 
             por_casa = [

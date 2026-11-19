@@ -75,7 +75,7 @@ export function SairDoGrupo({ grupoId, grupoNome }: { grupoId: string; grupoNome
   return (
     <div className={styles.leave}>
       {confirmacao}
-      <Button tone="ghost" label={sair.isPending && !barrada ? "Saindo…" : "Sair do grupo"} onClick={confirmar} disabled={sair.isPending} />
+      <Button className={styles.sairBotao} tone="ghost" label={sair.isPending && !barrada ? "Saindo…" : "Sair do grupo"} onClick={confirmar} disabled={sair.isPending} />
       {sair.error && !barrada && !orfas(sair.error) && <p className={styles.erro} role="alert">{sair.error.message}</p>}
 
       <Folha

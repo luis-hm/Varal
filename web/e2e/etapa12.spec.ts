@@ -206,7 +206,9 @@ test("evidências da etapa 12: grupo, categoria, Contas, permissões, Perfil, Av
   await logar(page, admin);
   await page.goto(`/grupos/${grupo.id}`);
   await expect(link(page, /Casa da praia/)).toContainText("R$ 371,78");
-  await expect(texto(page, "Nenhuma conta que se repete.")).toBeVisible();
+  // Owner's request (18/11): no recurrence, no section; "Ver todas as contas" sits above the categories.
+  await expect(page.getByRole("heading", { name: "Contas que se repetem" })).toHaveCount(0);
+  expect((await link(page, /Ver todas as contas do grupo/).boundingBox())!.y).toBeLessThan((await page.getByRole("heading", { name: "Categorias" }).boundingBox())!.y);
   await foto("grupo");
   await visivel(page, "Editar Casa da praia").click();
   await visivel(page.getByRole("dialog", { name: "Editar categoria" }), /^Quem pode fazer o quê/).click();

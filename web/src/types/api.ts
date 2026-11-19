@@ -3541,6 +3541,10 @@ export interface components {
             nome: string;
         };
         PorCasa: {
+            /** @description Valor conhecido a pagar, qualquer mês */
+            abertas_centavos: number;
+            /** @description A pagar sem valor, qualquer mês */
+            abertas_indefinidas_qtd: number;
             /** @description A pagar em qualquer mês */
             abertas_qtd: number;
             icone: string | null;

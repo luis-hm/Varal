@@ -2,6 +2,8 @@
 // RN13, RN21. COR-04/07/11: "Casas" became "Categorias" with an icon; a card opens the category's bills, the
 // pencil edits it (admin), "Sem categoria" appears whenever it holds bills and "Ver todas as contas" lists the
 // whole group. Observers get the same page with no admin action; the payer never gets here (403).
+// Owner's request (18/11/2026, chat): category cards show what is open in every month; "Ver todas" sits above the
+// categories, smaller; "Contas que se repetem" only shows when there is one; "Sair do grupo" goes right on desktop.
 "use client";
 
 import { useConfirmar } from "@/components/ui/confirmar";
@@ -78,16 +80,15 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
     setConfigN((n) => n + 1);
     setConfig(true);
   };
-  // Q11/Q12: real month totals per category, only from the bills you see (RN06). COR-07: the "Sem categoria"
-  // line (id null) gets its own card so no part of the total disappears.
+  // Open totals per category from every month, only from the bills you see (RN06). COR-07: the "Sem categoria"
+  // line (id null) gets its own card so no part of the total disappears. Members still count this month.
   const resumo = useResumo(grupo.id);
   const porCasa = new Map(resumo.data?.por_casa.map((c) => [c.id, c]));
   const semCategoria = porCasa.get(null);
   const mes = resumo.data ? nomeMes(resumo.data.mes) : "";
   const legenda = (total?: (typeof resumo.data & object)["por_casa"][number]) => ({
-    caption: resumo.data ? `${total?.valores_indefinidos_qtd ? "Total conhecido: " : ""}${totalConhecido(total?.total_centavos ?? 0, total?.valores_indefinidos_qtd ?? 0)} em ${mes}` : "…",
-    "caption-2": resumo.data ? (total?.abertas_qtd ? `${plural(total.abertas_qtd, "conta", "contas")} a pagar` : total?.qtd ? `${total.pagas_qtd} de ${total.qtd} pagas` : "Nada a pagar") : undefined,
-    progress: total?.qtd ? total.pagas_qtd / total.qtd * 100 : undefined,
+    caption: !resumo.data ? "…" : total?.abertas_qtd ? `${totalConhecido(total.abertas_centavos, total.abertas_indefinidas_qtd)} a pagar` : "Nada a pagar",
+    "caption-2": total?.abertas_qtd ? plural(total.abertas_qtd, "conta", "contas") : undefined,
   });
   const urlCategoria = (id: string) => `/grupos/${encodeURIComponent(grupo.id)}/categorias/${encodeURIComponent(id)}`;
 
@@ -117,6 +118,11 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
 
       <div className={styles.body}>
         <div className={styles.colA}>
+          <Link className={`${styles.todas} ${styles.in}`} href={`/contas?espaco=${encodeURIComponent(grupo.id)}`}>
+            <Icon name="contas" size="md" />
+            <span>Ver todas as contas do grupo</span>
+            <Icon name="chevron" size="sm" />
+          </Link>
           <section className={`${styles.in} ${styles.d1}`} aria-labelledby="casas-t">
             <div className={styles.sec}>
               <h2 id="casas-t">Categorias</h2>
@@ -138,16 +144,11 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
                 {admin ? "Organize as contas em categorias, como Luz, Internet ou Aluguel." : "Nenhuma categoria ainda."}
               </p>
             )}
-            <Link className={styles.todas} href={`/contas?espaco=${encodeURIComponent(grupo.id)}`}>
-              <Icon name="contas" size="md" />
-              <span>Ver todas as contas do grupo</span>
-              <Icon name="chevron" size="sm" />
-            </Link>
           </section>
-          <section className={`${styles.in} ${styles.d2}`} aria-labelledby="recorrencias-t">
+          {!!modelos.data?.length && <section className={`${styles.in} ${styles.d2}`} aria-labelledby="recorrencias-t">
             <div className={styles.sec}><h2 id="recorrencias-t">Contas que se repetem</h2><button type="button" className={styles.secAction} onClick={() => setRecorrencias(true)}>Ver todas</button></div>
-            <div className={styles.card}>{modelos.data?.length ? modelos.data.slice(0, 5).map((r) => <RecurringRow key={r.id} text={r.descricao} caption={`Dia ${r.dia_vencimento} · ${r.valor_tipo === "fixo" ? "valor fixo" : "valor muda"} · ${estadoRecorrencia(r.estado)}`} vl={r.valor_centavos == null ? "Valor a definir" : reais(r.valor_centavos)} onClick={() => setRecorrencias(r.id)} />) : <p className={styles.empty}>{modelos.isPending ? "Carregando recorrências…" : modelos.error ? "Não foi possível carregar as recorrências." : "Nenhuma conta que se repete."}</p>}</div>
-          </section>
+            <div className={styles.card}>{modelos.data.slice(0, 5).map((r) => <RecurringRow key={r.id} text={r.descricao} caption={`Dia ${r.dia_vencimento} · ${r.valor_tipo === "fixo" ? "valor fixo" : "valor muda"} · ${estadoRecorrencia(r.estado)}`} vl={r.valor_centavos == null ? "Valor a definir" : reais(r.valor_centavos)} onClick={() => setRecorrencias(r.id)} />)}</div>
+          </section>}
         </div>
 
         <div className={styles.colB}>
@@ -203,10 +204,9 @@ function Conteudo({ grupo }: { grupo: GrupoDetalhe }) {
             <Icon name="cadeado" size="md" />
             <span>Suas contas pessoais nunca aparecem aqui. Só o que está no grupo é visto pelos membros.</span>
           </p>
+          <SairDoGrupo grupoId={grupo.id} grupoNome={grupo.nome} />
         </div>
       </div>
-
-      <SairDoGrupo grupoId={grupo.id} grupoNome={grupo.nome} />
       {recorrencias && <RecorrenciasFolha open espacoId={grupo.id} pessoal={false} inicial={recorrencias === true ? undefined : recorrencias} onClose={() => setRecorrencias(false)} />}
 
       {admin && (

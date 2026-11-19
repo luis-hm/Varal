@@ -4033,6 +4033,12 @@ components:
       type: object
     PorCasa:
       properties:
+        abertas_centavos:
+          description: Valor conhecido a pagar, qualquer mês
+          type: integer
+        abertas_indefinidas_qtd:
+          description: A pagar sem valor, qualquer mês
+          type: integer
         abertas_qtd:
           description: A pagar em qualquer mês
           type: integer
@@ -4055,6 +4061,8 @@ components:
         valores_indefinidos_qtd:
           type: integer
       required:
+      - abertas_centavos
+      - abertas_indefinidas_qtd
       - abertas_qtd
       - icone
       - id

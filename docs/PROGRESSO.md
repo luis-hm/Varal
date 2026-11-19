@@ -62,6 +62,12 @@ Na continuidade iniciada em 15/11/2026, o dono delegou expressamente ao Codex re
 
 Ordem cronológica inversa.
 
+### 18/11/2026 — Tela do grupo ajustada (pedido do dono no chat)
+
+- Cards de categoria mostram o que está a pagar em qualquer mês (`abertas_centavos` e `abertas_indefinidas_qtd` em `por_casa`), não mais o total do mês. Membros seguem contando o mês.
+- "Ver todas as contas do grupo" sobe para cima das categorias, menor. "Contas que se repetem" só aparece quando há alguma. No desktop, "Sair do grupo" fica à direita, menor.
+- Os frames 10 · Grupo e D04 · Grupo no Doop ainda mostram o layout anterior.
+
 ### 18/11/2026 — Q12-2: nome no cadastro e no Perfil (branch `etapa/12-nome-perfil`)
 
 - Aprovado pelo dono. Cadastro pede "Nome (opcional)"; o Perfil edita o nome no cartão "Seus dados" (`PATCH /api/me/`).

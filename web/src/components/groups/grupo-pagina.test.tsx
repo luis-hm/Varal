@@ -43,7 +43,7 @@ beforeEach(() => {
     if (input === "/api/grupos/g1/convites/" && method === "GET") return json(200, []);
     if (input === "/api/espacos/g1/recorrencias/" && method === "GET") return json(200, []);
     if (input === "/api/espacos/g1/resumo/")
-      return json(200, { mes: "2026-11", total_centavos: 0, qtd: 4, pagas_qtd: 3, vencidas_qtd: 0, vence_qtd: 0, janela_alerta_dias: 3, atencao: [], por_casa: [{ id: "c1", nome: "Casa 1", total_centavos: 147960, qtd: 4, pagas_qtd: 3 }] });
+      return json(200, { mes: "2026-11", total_centavos: 0, qtd: 4, pagas_qtd: 3, vencidas_qtd: 0, vence_qtd: 0, janela_alerta_dias: 3, atencao: [], por_casa: [{ id: "c1", nome: "Casa 1", total_centavos: 0, qtd: 4, pagas_qtd: 3, abertas_qtd: 1, abertas_centavos: 147960, abertas_indefinidas_qtd: 0 }] });
     if (input === "/api/grupos/g1/" && method === "PATCH") return json(200, { ...grupo("admin"), ...JSON.parse(String(init!.body)) });
     if (input === "/api/grupos/g1/sair/") return sair(JSON.parse(String(init?.body ?? "{}")));
     if (input === "/api/grupos/g1/convites/" && method === "POST") {
@@ -84,14 +84,18 @@ test("ca11/ca18: admin sees the whole page with management actions; name falls b
   // COR-11: the card opens the category's bills; editing is its own button.
   expect(screen.getByRole("link", { name: /Casa 1/ }).getAttribute("href")).toBe("/grupos/g1/categorias/c1");
   expect(screen.getByRole("button", { name: "Editar Casa 1" })).toBeTruthy();
-  expect(screen.getByRole("link", { name: /Ver todas as contas do grupo/ }).getAttribute("href")).toBe("/contas?espaco=g1");
+  const todas = screen.getByRole("link", { name: /Ver todas as contas do grupo/ });
+  expect(todas.getAttribute("href")).toBe("/contas?espaco=g1");
+  // Owner's request: "Ver todas" comes before the categories.
+  expect(todas.compareDocumentPosition(screen.getByRole("heading", { name: "Categorias" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(screen.getByRole("button", { name: /Dev \(você\).*Admin/ })).toBeTruthy();
   expect(screen.getByRole("button", { name: /observador@varal\.local.*Observador/ })).toBeTruthy();
-  // Q07-7: progress counts visible paid accounts in the due month.
-  expect(await screen.findByText("R$ 1.479,60 em novembro")).toBeTruthy();
-  expect(screen.getByText("3 de 4 pagas")).toBeTruthy();
+  // Owner's request: the card shows what is open in every month, not the month's total.
+  expect(await screen.findByText("R$ 1.479,60 a pagar")).toBeTruthy();
+  expect(screen.getByText("1 conta")).toBeTruthy();
   expect(screen.getAllByRole("button", { name: "Configurações" }).length).toBeGreaterThan(0);
-  expect(screen.getByRole("heading", { name: "Contas que se repetem" })).toBeTruthy();
+  // No recurrence: the section is hidden.
+  expect(screen.queryByRole("heading", { name: "Contas que se repetem" })).toBeNull();
   expect(screen.queryByText(/Gerenciar papéis/)).toBeNull();
 });
 
@@ -105,11 +109,12 @@ test("q07-7: a house without visible bills shows zero without a progress bar", a
 
 test("COR-07: bills without category get their own card, even in a group with no categories", async () => {
   detalhe = { status: 200, body: { ...grupo("membro"), casas: [] } };
-  vi.stubGlobal("fetch", vi.fn(async (input: string) => input === "/api/grupos/g1/" ? json(200, detalhe.body) : input === "/api/espacos/g1/resumo/" ? json(200, { mes: "2026-11", total_centavos: 10000, qtd: 1, pagas_qtd: 0, vencidas_qtd: 0, vence_qtd: 0, janela_alerta_dias: 3, atencao: [], por_casa: [{ id: null, nome: "Sem categoria", icone: null, total_centavos: 10000, qtd: 1, pagas_qtd: 0, abertas_qtd: 2, valores_indefinidos_qtd: 0 }] }) : json(200, [])));
+  vi.stubGlobal("fetch", vi.fn(async (input: string) => input === "/api/grupos/g1/" ? json(200, detalhe.body) : input === "/api/espacos/g1/resumo/" ? json(200, { mes: "2026-11", total_centavos: 10000, qtd: 1, pagas_qtd: 0, vencidas_qtd: 0, vence_qtd: 0, janela_alerta_dias: 3, atencao: [], por_casa: [{ id: null, nome: "Sem categoria", icone: null, total_centavos: 10000, qtd: 1, pagas_qtd: 0, abertas_qtd: 2, abertas_centavos: 10000, abertas_indefinidas_qtd: 1, valores_indefinidos_qtd: 0 }] }) : json(200, [])));
   renderPagina();
   const card = await screen.findByRole("link", { name: /Sem categoria/ });
   expect(card.getAttribute("href")).toBe("/grupos/g1/categorias/sem-categoria");
-  expect(card.textContent).toContain("2 contas a pagar");
+  expect(card.textContent).toContain("R$ 100,00 · 1 valor a definir a pagar");
+  expect(card.textContent).toContain("2 contas");
 });
 
 test.each(["membro", "observador"] as const)("ca11: %s sees the page with no management action", async (papel) => {
@@ -270,4 +275,12 @@ test("ca22/rn32: a blocked exit lists the bills, each resolved before Sair resen
     undefined,
     { resolucoes: [{ lancamento: "l1", acao: "acesso", usuarios: ["u9"] }, { lancamento: "l2", acao: "cancelar" }] },
   ]);
+});
+
+test("contas que se repetem aparece quando o grupo tem alguma", async () => {
+  detalhe = { status: 200, body: grupo("membro") };
+  vi.stubGlobal("fetch", vi.fn(async (input: string) => input === "/api/grupos/g1/" ? json(200, detalhe.body) : input === "/api/espacos/g1/recorrencias/" ? json(200, [{ id: "r1", descricao: "Internet", dia_vencimento: 10, valor_tipo: "fixo", valor_centavos: 9990, estado: "ativa" }]) : json(200, { mes: "2026-11", total_centavos: 0, qtd: 0, pagas_qtd: 0, vencidas_qtd: 0, vence_qtd: 0, janela_alerta_dias: 3, atencao: [], por_casa: [] })));
+  renderPagina();
+  expect(await screen.findByRole("heading", { name: "Contas que se repetem" })).toBeTruthy();
+  expect(screen.getByText("Internet")).toBeTruthy();
 });
